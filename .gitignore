@@ -1,4 +1,7 @@
-.idea/
-__pycache__/
-db/
-env/
+.idea
+
+db
+
+env
+
+__pycache__
