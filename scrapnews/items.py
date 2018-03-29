@@ -9,9 +9,12 @@ from scrapy.item import Item, Field
 
 
 class NewsItem(Item):
-    number = Field()
-    title = Field()
-    lead = Field()
     url = Field()
-    time = Field()
+    title = Field()
+    # content = Field()
+    number = Field()
     country = Field()
+    tokens = Field()
+    scraping_date = Field()
+    scraping_type = Field()
+    # news_date = Field()

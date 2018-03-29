@@ -4,3 +4,6 @@
 db/
 # Environment folder
 env/
+# Some docs
+documents/
+topnews.db

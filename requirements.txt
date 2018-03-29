@@ -4,3 +4,4 @@ plotly==2.5.0
 networkx
 nltk
 numpy
+sqlalchemy

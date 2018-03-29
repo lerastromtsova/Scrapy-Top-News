@@ -1,10 +1,12 @@
+import plotly.tools as tools
 import plotly.plotly as py
 from plotly.graph_objs import *
 import networkx as nx
 from get_news import Topnews, Corpus
 from datetime import datetime
 
-#plotly.tools.set_credentials_file(username='v.stromtsova@yandex.ru', api_key='0i6kdrCiZpD5aoOiQhbu')
+tools.set_credentials_file(username='v.stromtsova@yandex.ru', api_key='1AiEemPFWZeSclPX2ZQM')
+py.sign_in("valeria19988", "1AiEemPFWZeSclPX2ZQM")
 
 COLORS = {'Australia': 'dusty rose',
           'Argentina': 'blue',
@@ -124,12 +126,12 @@ for m in range(1, 5):
 
     nodes = data.data
     edges = data.edges
-    draw_graph(nodes, edges, m, fname="со связями внутри стран ")
-
-"""for m in range(1,5):
+    draw_graph(nodes, edges, m, fname="со связями внутри стран 20.03")
+"""
+for m in range(1, 5):
     corp = Corpus()
     data = Topnews(corp, mweight=m)
     nodes = data.data
     edges = data.edges
 
-    draw_graph(nodes,edges,m,fname="без связей внутри стран ",type="без связей внутри")"""
+    draw_graph(nodes,edges,m,fname="без связей внутри стран 20.03",type="без связей внутри")"""

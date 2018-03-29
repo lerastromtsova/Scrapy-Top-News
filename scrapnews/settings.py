@@ -64,9 +64,10 @@ ROBOTSTXT_OBEY = True
 
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-    #'scrapnews.pipelines.MongoPipeline': 300,
-#}
+ITEM_PIPELINES = {
+    'scrapnews.pipelines.SQLitePipeline': 300,
+    'scrapnews.pipelines.VisualisationPipeline': 500,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://doc.scrapy.org/en/latest/topics/autothrottle.html
@@ -89,4 +90,3 @@ ROBOTSTXT_OBEY = True
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
-ITEM_PIPELINES = {'scrapnews.pipelines.JsonWriterPipeline': 1}
