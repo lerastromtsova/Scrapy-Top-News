@@ -5,4 +5,4 @@ networkx
 gensim
 numpy
 sqlalchemy
-botocore==1.8.11
+botocore==1.9.19
