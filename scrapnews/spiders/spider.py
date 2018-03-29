@@ -3,10 +3,12 @@ from googletrans import Translator
 from scrapnews.items import NewsItem
 from scrapy.crawler import CrawlerProcess
 from datetime import date
+import spacy
 import nltk
 from nltk.corpus import wordnet as wn
 import string
 import sqlite3
+
 
 COUNTRIES = {'au': 'Australia',
              'ar':'Argentina',
@@ -49,11 +51,14 @@ def translate(text):
     t = Translator()
     return(t.translate(text).text)
 
+nlp = spacy.load('en_core_web_md')
 
 def tokenize(text):
-    tokens = [t.lower() for t in nltk.word_tokenize(text) if t.lower() not in STOP_WORDS and t not in PUNKTS and t not in string.punctuation]
-    tokens = [wn.morphy(t) if wn.morphy(t) is not None else t for t in tokens]
-    return " ".join(tokens)
+    doc = nlp(text)
+    print(doc)
+    tokens = [tok.lemma for tok in doc]
+    print(tokens)
+    return ' '.join(tokens)
 
 
 class NewsSpider(scrapy.Spider):
