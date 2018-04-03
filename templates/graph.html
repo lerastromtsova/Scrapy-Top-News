@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Graph</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.js"></script>
+    <style>
+    </style>
+</head>
+
+<body>
+<div id="graph">
+</div>
+<script type="text/javascript">
+    var nodes = new vis.DataSet()
+
+    news_list = {{ listt|tojson }}
+    news_list.forEach(function(item,i){
+        nodes.add({id: i+1, title: item.country+": "+item.title, group: item.country, url: item.url})
+    })
+   // create an array with edges
+   var edges = new vis.DataSet()
+
+   raw_edges = {{ conns|tojson }}
+   raw_edges.forEach(function(item) {
+       edges.add({from: item['from'], to: item['to']})
+   })
+   console.log(nodes)
+   console.log(edges)
+   // create a network
+   var container = document.getElementById('graph');
+
+   // provide the data in the vis format
+   var data = {
+       nodes: nodes,
+       edges: edges
+   };
+   var options = {
+       layout: {
+           improvedLayout: true,
+       },
+       physics: {
+           enabled: false,
+       },
+       autoResize: true,
+       width: '1400px',
+       height: '1000px',
+       nodes: {
+
+           heightConstraint: 50,
+       },
+       groups: {
+          Australia: {color: '#008b00'},
+          Argentina: {color: '#cd2626'},
+          Armenia: {color: '#cdaa7d'},
+          Belarus: {color: '#eea9b8'},
+          Bulgary: {color: '#bdbdbd'},
+          Brazil: {color: '#778899'},
+          'Great Britain': {color: '#8b5742'},
+          Georgia: {color: '#ff6eb4'},
+          Germany: {color: '#87cefa'},
+          Greece: {color: '#8b7d7b'},
+          India: {color: '#ff6347'},
+          Italy: {color: '#cdc5bf'},
+          Kazakhstan: {color: '#ee2c2c'},
+          Mexica: {color: '#ffc0cb'},
+          Canada: {color: '#707070'},
+          Netherlands: {color: '#ee6363'},
+          Portugal: {color: '#cdb7b5'},
+          Russia: {color: '#8b0a50'},
+          Romania: {color: '#ee9a00'},
+          USA: {color: '#cd3700'},
+          Uzbekistan: {color: '#7fff00'},
+          Singapore: {color: '#bcee68'},
+          Turkey: {color: '#3a5fcd'},
+          Ukraine: {color: '#4eee94'},
+          Finland: {color: '#ffe4b5'},
+          France: {color: '#f0e68c'},
+          'Czech Republic': {color: '#d2b48c'},
+          Switzerland: {color: '#cd96cd'},
+          Estonia: {color: '#53868b'},
+          Japan: {color: '#c0ff3e'}
+       }
+   };
+
+   // initialize your network!
+   var network = new vis.Network(container, data, options);
+
+   network.on("selectNode", function (params) {
+            var node = nodes.get(params.nodes[0]);
+            window.open(node.url, '_blank');
+        })
+
+</script>
+<div id="palette"></div>
+
+</body>
+</html>

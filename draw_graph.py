@@ -126,12 +126,12 @@ for m in range(1, 5):
 
     nodes = data.data
     edges = data.edges
-    draw_graph(nodes, edges, m, fname="со связями внутри стран 20.03")
-"""
+    draw_graph(nodes, edges, m, fname="со связями внутри стран неделя")
+
 for m in range(1, 5):
     corp = Corpus()
     data = Topnews(corp, mweight=m)
     nodes = data.data
     edges = data.edges
 
-    draw_graph(nodes,edges,m,fname="без связей внутри стран 20.03",type="без связей внутри")"""
+    draw_graph(nodes,edges,m,fname="без связей внутри стран неделя",type="без связей внутри")

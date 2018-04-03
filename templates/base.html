@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Top News</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+</head>
+
+<body>
+       <nav class="navbar navbar-light bg-light" >
+			<a class="navbar-brand" href="#">
+				Common World
+			</a>
+		</nav>
+	<div class="container">
+
+		<div class="row">
+			<div class="col-md-12">
+				<div class="form-group">
+				  <form method=get>
+					  <text>Period:</text>
+					  {{ form.period(class_="form-control", size=5) }}
+					  <br/>
+					  <div class="alert alert-info" role="alert">
+						  Hold CTRL for multiple select!
+					  </div>
+					  <text>Countries:</text>
+					  {{ form.countries(class_="form-control", size=10) }}
+					  <br/>
+					  <div class="alert alert-danger" role="alert">
+						  Getting information about ONE country can take up to 1 minute!
+						  So relax and have a coffee while we collect news :)
+					  </div>
+					  <input type=submit value=Go! class="btn btn-info">
+				 </form>
+				</div>
+
+			</div>
+		</div>
+	</div>
+</body>
+</html>

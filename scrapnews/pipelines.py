@@ -5,9 +5,10 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import sqlite3
+import os
 
-con = None  # db connection
-
+con = None
+DB_PATH = os.path.join(os.path.dirname(__file__), '..','db','topnews.db')
 
 class SQLitePipeline(object):
     def __init__(self):
@@ -28,7 +29,7 @@ class SQLitePipeline(object):
         self.con.commit()
 
     def setupDBCon(self):
-        self.con = sqlite3.connect('topnews.db')
+        self.con = sqlite3.connect(DB_PATH)
         self.cur = self.con.cursor()
 
     def __del__(self):
@@ -42,7 +43,18 @@ class SQLitePipeline(object):
     def closeDB(self):
         self.con.close()
 
-class VisualisationPipeline(object):
+
+import json
+
+class JsonWriterPipeline(object):
+
+    def open_spider(self, spider):
+        self.file = open('items.json', 'w')
+
+    def close_spider(self, spider):
+        self.file.close()
 
     def process_item(self, item, spider):
-        print("Process",item)
+        line = json.dumps(dict(item)) + ",\n"
+        self.file.write(line)
+        return item

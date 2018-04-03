@@ -1,54 +1,118 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from googletrans import Translator
-import nltk
-from nltk.corpus import wordnet as wn
-import string
+import sqlite3
 import csv
 import json.decoder
-import pandas as pd
+from scrapnews.translate import translate
+from scrapnews.preprocess import preprocess
+from gensim.corpora import Dictionary
+from pandas import DataFrame, Series
+from gensim.matutils import corpus2csc
 
 LANGS = {'Germany': 'de',
          'Russia': 'ru',
          'United States': 'en',
          'United Kingdom': 'en'}
 
-with open('stop-words.txt', 'r') as stop_file:
-    STOP_WORDS = stop_file.readlines()
-
-
-t = Translator()
-
 def translate_to_en(text):
+    if len(text)>5000:
+        translate_to_en(text[:5000])
     if "Краткое описание: " in text:
         text = text.split("Краткое описание: ")[1]
-    return t.translate(text).text
+    return translate(text)
 
 def translate_to_orig(text, lang):
-    return t.translate(text, dest=lang).text
+    if len(text)>5000:
+        translate_to_orig(text[:5000],lang)
+    return translate(text, language=lang)
 
 
-def tokenize(text):
-    tokens = nltk.word_tokenize(text)  # список слов в новости
-    for i in range(len(tokens)):
-        tokens[i] = tokens[i].lower()
-        if wn.morphy(tokens[i]) is not None:
-            tokens[i] = wn.morphy(tokens[i])  # используем morphy, чтобы убрать множ число и формы глаголов, а также понижаем регистр
-    return tokens
+texts = []
 
-def preprocess(text):
-    punkts = ["''",'``','...','’','‘','-']
-    tk = [x for x in tokenize(text) if x+'\n' not in STOP_WORDS
-             and x not in string.punctuation and x not in punkts]
-    return tk
+#
+# def get_corpus(db):
+#     conn = sqlite3.connect(f"db/{db}.db")
+#     c = conn.cursor()
+#     c.execute("SELECT * FROM buffer")
+#
+#     dct = Dictionary()
+#     news = c.fetchall()
+#
+#     for item in news:
+#         try:
+#             en_title = translate_to_en(item[1])
+#             en_content = translate_to_en(item[2])
+#
+#             orig_title = translate_to_orig(en_title,LANGS[item[0]])
+#             orig_content = translate_to_orig(en_content,LANGS[item[0]])
+#
+#             en1_title = translate_to_en(orig_title)
+#             en1_content = translate_to_en(orig_content)
+#
+#             text = en_title+' '+en_content
+#             text2 = en1_title+' '+en1_content
+#             text = preprocess(text).split()
+#             text2 = preprocess(text2).split()
+#
+#             texts.append(text)
+#
+#             common = set(text).intersection(set(text2))
+#
+#             dct.add_documents([list(common)])
+#         except json.decoder.JSONDecodeError as err:
+#             pass
+#         return dct
+#
+# dct_month = get_corpus("month")
+# dct_week = get_corpus("week")
+# dct_day = get_corpus("day")
+#
+# dct = Dictionary(texts)
+# bow_corpus = [dct.doc2bow(line) for line in texts]
+# term_doc_mat = corpus2csc(bow_corpus)
 
-frequencies = dict()
-tks = list()
-articles = list()
-all_words = list()
-bag = dict()
 
+
+
+# def write_to_csv(dc,name):
+#     d2b = []
+#     file = csv.writer(open(f"{name}.csv", "w", encoding="utf_8_sig"))
+#     for t in texts:
+#         file.writerow(dc.doc2bow(t))
+#     i2t = []
+#     for i in range(len(dc)):
+#         file.writerow((i,dc[i]))
+#
+#     freq = []
+
+
+
+
+
+    #df = DataFrame([[word[1] for word in dc.doc2bow(t)] for t in texts],columns=[dc[i] for i in range(len(dc))],index=[t for t in texts])
+    # for i, t in enumerate(texts):
+    #     d2b = dc.doc2bow(t) #[(1,2)(9,0)]
+    #     row = Series(index=t,[[word[1] for word in d2b])
+    #     for word in d2b:
+    #         w = dc[word[0]]
+    #         row[w] = []
+    #         f = word[1]
+    #         row[w].append([t, f])
+    #     print(row)
+    #     d = DataFrame(row)
+    #     print(d)
+    #     df.append(d).fillna(0)
+    # print(df)
+    # df.to_csv(f"{name}.csv")
+
+# write_to_csv(dct_day,"day")
+# write_to_csv(dct_month,"month")
+# write_to_csv(dct_week,"week")
+
+frequencies = {}
+all_words = set()
+articles = []
 
 def get_data(db, table,n):
     file = csv.writer(open(f"articles{n}.csv", "w", encoding="utf_8_sig"))
@@ -75,13 +139,16 @@ def get_data(db, table,n):
             contents = [content[i:i+1500] for i in range(0, len(content), 1500)]
             url = row[3]
 
+            tk2 = ''
+
             if title:
                 eng_tit = translate_to_en(str(title))
                 orig_tit = translate_to_orig(str(eng_tit), language)
                 eng1_tit = translate_to_en(str(orig_tit))
+                tk2 = preprocess(str(eng1_tit))
 
             tk1 = preprocess(str(eng_tit))
-            tk2 = preprocess(str(eng1_tit))
+
             eng_cont_all = ""
             orig_cont_all = ""
             eng1_cont_all = ""
@@ -95,7 +162,7 @@ def get_data(db, table,n):
 
             tk1 += preprocess(str(eng_cont_all))
             tk2 += preprocess(str(eng1_cont_all))
-            roww= [url, title, content, []]
+            roww = [url, title, content, []]
 
             for word in tk1:
                 if word in tk2:
@@ -107,10 +174,12 @@ def get_data(db, table,n):
                             frequencies[url].update({word: 1})
                         except KeyError:
                             frequencies[url] = {word: 1}
-                    if word not in all_words:
-                        all_words.append(word)
+                    all_words.add(word)
+
             file.writerow(roww)
             articles.append([eng_tit,eng_cont_all,url])
+
+
             print("Success ",row)
             success += 1
 
@@ -131,6 +200,6 @@ def get_data(db, table,n):
                 except KeyError:
                     bag[art] = {word: 1}"""
     print(success,error)
-    return all_words, frequencies
+    return all_words, frequencies, result
 
 

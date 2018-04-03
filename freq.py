@@ -3,26 +3,29 @@ import json
 import csv
 import ast
 
-"""
-a1, f1 = get_data("day", "buffer","1")
+
+a1, f1, r1 = get_data("day", "buffer","1")
 with open('c1.json', 'w') as fp:
     json.dump(f1, fp, ensure_ascii=False)
 
-a2, f2 = get_data("week", "buffer","2")
+a2, f2, r2 = get_data("week", "buffer","2")
 with open('c4.json', 'w') as fp:
     json.dump(f2, fp, ensure_ascii=False)
 
-a3, f3 = get_data("month","buffer","3")
+a3, f3, r3 = get_data("month","buffer","3")
 with open('c3.json', 'w') as fp:
     json.dump(f3, fp, ensure_ascii=False)
 
 
-a4, f4 = get_data("mydatabase-2","buffer","4")
+a4, f4, r4 = get_data("mydatabase-2","buffer","4")
 with open('c4.json', 'w') as fp:
     json.dump(f4, fp, ensure_ascii=False)
 with open('a4.json','w') as fp:
     json.dump(a4, fp, ensure_ascii=False)
+
+
 """
+
 
 f = list()
 for i in range(1,5):
@@ -58,8 +61,8 @@ for e,word in enumerate(all_words):
                 by_article[e].append(words[word])
             else:
                 by_article[e].append(0)
-print(len(by_article))
-print(len(by_article[0]))
+
+
 for i, corp in enumerate(f):
     for key, words in corp.items():
         if 'https://' in key:
@@ -81,9 +84,4 @@ headers = ['Word', 'Articles','DB']+art_list
 file.writerow(headers)
 
 file.writerows(rows)
-
-
-
-
-
-
+"""

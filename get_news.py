@@ -12,19 +12,19 @@ class Corpus(object):
         self.time = time
 
     def __iter__(self):
-        data = json.load(open('items_news.json',encoding="utf8"))
+        data = json.load(open('scrapnews/spiders/items.json',encoding="utf8"))
         print(data)
         for item in data:
             yield item
 
 
-def tokenize(title):
-    tokens = nltk.word_tokenize(title)  # список слов в новости
-    for i in range(len(tokens)):
-        tokens[i] = tokens[i].lower()
-        if wn.morphy(tokens[i]) is not None:
-            tokens[i] = wn.morphy(tokens[i])  # используем morphy, чтобы убрать множ число и формы глаголов, а также понижаем регистр
-    return tokens
+# def tokenize(title):
+#     tokens = nltk.word_tokenize(title)  # список слов в новости
+#     for i in range(len(tokens)):
+#         tokens[i] = tokens[i].lower()
+#         if wn.morphy(tokens[i]) is not None:
+#             tokens[i] = wn.morphy(tokens[i])  # используем morphy, чтобы убрать множ число и формы глаголов, а также понижаем регистр
+#     return tokens
 
 
 com_words = list()
@@ -39,24 +39,24 @@ class Topnews(object):
             self.stop_words = stop_file.readlines()
         self.preprocess()
 
-    def preprocess(self):
-        punkts = ["''",'``','...','’','‘','-']
-        for new in self.data:
-            title = new['title']
-            tk = [x for x in tokenize(title) if x+'\n' not in self.stop_words
-                  and x not in string.punctuation and x not in punkts]
-            self.tokens.append(tk)
-
-        for i in range(len(self.tokens)):
-            for j in range(i+1, len(self.tokens)):
-                #if self.tokens[i][0] != self.tokens[j][0]:
-                weight = 0
-                for tk in self.tokens[i]:
-                    if tk in self.tokens[j]:
-                        com_words.append(tk)
-                        weight += 1
-                if weight > self.mweight:
-                    self.edges.append((i, j ,weight))
+    # def preprocess(self):
+    #     punkts = ["''",'``','...','’','‘','-']
+    #     for new in self.data:
+    #         title = new['title']
+    #         tk = [x for x in tokenize(title) if x+'\n' not in self.stop_words
+    #               and x not in string.punctuation and x not in punkts]
+    #         self.tokens.append(tk)
+    #
+    #     for i in range(len(self.tokens)):
+    #         for j in range(i+1, len(self.tokens)):
+    #             #if self.tokens[i][0] != self.tokens[j][0]:
+    #             weight = 0
+    #             for tk in self.tokens[i]:
+    #                 if tk in self.tokens[j]:
+    #                     com_words.append(tk)
+    #                     weight += 1
+    #             if weight > self.mweight:
+    #                 self.edges.append((i, j ,weight))
         frequencies = dict()
         # for word in com_words:
         #     if word not in frequencies.keys():
