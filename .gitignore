@@ -1,5 +1,6 @@
 # PyCharm idea
 .idea/
+__pycache__/
 # DB folder
 db/
 # Environment folder
