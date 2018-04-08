@@ -22,18 +22,18 @@ from nltk.tag.stanford import StanfordNERTagger
 # text = set(en_exm.split()).union(set(en1_exm.split()))
 # text = ' '.join(text)
 #
-# def extract_entities(text):
-#     nes = []
-#     for sent in nltk.sent_tokenize(text):
-#         for chunk in nltk.ne_chunk(nltk.pos_tag(nltk.word_tokenize(sent))):
-#             try:
-#                 flat_tree = ' '.join(chunk.pprint().split())
-#                 if 'NE' in flat_tree:
-#                     nes.append(flat_tree)
-#             except AttributeError:
-#                 pass
-#
-#     return nes
+def extract_entities(text):
+    nes = []
+    for sent in nltk.sent_tokenize(text):
+        for chunk in nltk.ne_chunk(nltk.pos_tag(nltk.word_tokenize(sent))):
+            try:
+                flat_tree = ' '.join(chunk.pprint().split())
+                if 'NE' in flat_tree:
+                    nes.append(flat_tree)
+            except AttributeError:
+                pass
+
+    return nes
 
 #print(extract_entities(text))
 #print('\n'.join(exm.split('.')))
@@ -43,99 +43,3 @@ text1 = 'ТАСС, 3 апреля. 01.02.2018 Российская актрис�
 text2 = 'В документе говорится, что название «предположительное». 23 Января 2017 Учредительный съезд партии должен пройти 19 мая 2018 года. '
 text3 = 'В сентябре 2017 года в Госдепартаменте отметили, что американская сторона не желает продолжать политику «око за око» в отношениях с Россией.'
 text4 = 'Запланировали съезд партии на 9 мая. Поскольку название у нас утащили, до съезда будет рабочее название'
-
-def ismonth(str):
-    MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december',
-              'jan','feb','mar','apr','jun','jul','aug','sept','oct','nov','dec']
-    STR_MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12']
-    if str in MONTHS or str is STR_MONTHS:
-        return True
-    else:
-        return False
-
-def isyear(str):
-    if str.isdigit() and len(str)==4:
-        return True
-    else:
-        return False
-
-def isday(str):
-    if str.isdigit() and (len(str)==2 or len(str)==1):
-        return True
-    else:
-        return False
-
-from datetime import datetime
-now = datetime.now()
-
-def process_dates(text):
-    tks = get_useful(text,'ru')
-    dates = []
-    for i,t in enumerate(tks):
-        try:
-            dt = datetime.strptime(t,'%m/%d/%Y')
-            date = ((str(dt.day),str(dt.month),str(dt.year)))
-            dates.append(date)
-        except ValueError:
-            pass
-        if ismonth(t):
-            year = None
-            month = t
-            day = None
-
-            try:
-                if isyear(tks[i+2]):
-                    year = tks[i+2]
-                if isday(tks[i+2]):
-                    day = tks[i+2]
-            except KeyError:
-                pass
-            try:
-                if isyear(tks[i-2]):
-                    year = tks[i-2]
-                if isday(tks[i-2]):
-                    day = tks[i-2]
-            except KeyError:
-                pass
-
-            try:
-                if isyear(tks[i+1]):
-                    year = tks[i+1]
-                if isday(tks[i+1]):
-                    day = tks[i+1]
-            except KeyError:
-                pass
-            try:
-                if isyear(tks[i-1]):
-                    year = tks[i-1]
-                if isday(tks[i-1]):
-                    day = tks[i-1]
-            except KeyError:
-                pass
-
-
-
-            if not year:
-                year = now.year
-            if not day:
-                day = now.day
-
-            dates.append((day,month,year))
-    print(dates)
-    return dates
-
-
-
-
-def get_useful(text,orig):
-    en_text = translate(text)
-    or_text = translate(en_text,orig)
-    en1_text = translate(or_text)
-    print(en_text)
-    print(en1_text)
-    return [t for t in preprocess(en_text).split() if t in preprocess(en1_text).split()]
-
-process_dates(text1)
-process_dates(text2)
-process_dates(text3)
-process_dates(text4)

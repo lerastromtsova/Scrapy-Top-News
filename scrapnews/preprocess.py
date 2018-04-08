@@ -8,21 +8,38 @@ from nltk.corpus import wordnet as wn
 import os
 import nltk
 import string
+import re
 
 STOP_PATH = os.path.join(os.path.dirname(__file__), 'spiders', 'stop-words.txt')
 
-PUNKTS = ["''",'``','...','’','‘','-']
+PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––']
 
 with open(STOP_PATH,"r") as f:
     STOP_WORDS = f.read().split('\n')
 
 
-def preprocess(text):
+def preprocess(text,with_uppercase=False):
 
-    tokens = [t.lower() for t in nltk.word_tokenize(text) if
-              (t.lower() not in STOP_WORDS or t =='May') and t not in PUNKTS and t not in string.punctuation]
-    tokens = [wn.morphy(t) if wn.morphy(t) is not None else t for t in tokens]
-    return " ".join(tokens)
+    for p in PUNKTS:
+        text = ' '.join(text.split(p))
+    for p in string.punctuation:
+        text = ' '.join(text.split(p))
+
+    tokens = [wn.morphy(t) if wn.morphy(t) is not None else t for t in nltk.word_tokenize(text)]
+    if with_uppercase:
+        tokens = [t for t in tokens if
+                  (t.lower() not in STOP_WORDS or t == 'May')
+                  and t not in PUNKTS and t not in string.punctuation
+                  and len(t) > 1]
+    else:
+        tokens = [t.lower() for t in tokens if
+                  (t.lower() not in STOP_WORDS or t =='May')
+                  and t not in PUNKTS and t not in string.punctuation
+                  and len(t)>1]
+
+
+    # print("Tokens: "+" ".join(tokens))
+    return tokens
     #
     # tokens = simple_preprocess(text)
     #
