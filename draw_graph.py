@@ -57,9 +57,11 @@ def draw_graph(nodes, edges, m, fname, type="со связями внутри"):
         G.node[i]['title'] = d['title']
         G.node[i]['url'] = d['url']
         G.node[i]['country'] = d['country']
+        G.node[i]['date'] = d['date']
         labels.append(G.node[i]['country'] + '<br>'
                       + G.node[i]['title'] + '<br>'
-                      + G.node[i]['url'] + '<br>'
+                      + G.node[i]['url'] + '<br>' +
+                      G.node[i]['date']
                       )
 
     G.add_weighted_edges_from(edges)

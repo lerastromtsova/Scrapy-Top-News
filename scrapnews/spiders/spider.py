@@ -1,7 +1,7 @@
 import scrapy
 from scrapnews.items import NewsItem
-from scrapnews.translate import translate
-from scrapnews.preprocess import preprocess
+from text_processing.translate import translate
+from text_processing.preprocess import preprocess
 from datetime import date
 import sqlite3
 import os
@@ -85,7 +85,7 @@ class NewsSpider(scrapy.Spider):
                 item['title'] = title
                 item['number'] = i + 1
                 item['country'] = COUNTRIES[co]
-                item['tokens'] = preprocess(title)
+                item['tokens'] = ' '.join(preprocess(title))
                 item['scraping_date'] = str(date.today())
                 item['scraping_type'] = response.url.split('/')[-1]
 

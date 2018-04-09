@@ -3,13 +3,15 @@ Here is where we double translate documents and save the output to DB
 Input: db name
 Output: tokens stored in db
 """
-import sqlite3
-from scrapnews.translate import translate
-from scrapnews.preprocess import preprocess
-import csv
-from dates import process_dates
-import nltk
+from text_processing.translate import translate
+from text_processing.preprocess import preprocess
+from text_processing.dates import process_dates
 from draw_graph import draw_graph
+
+import sqlite3
+import csv
+import nltk
+
 from numpy import median
 
 LANGS = {'Germany': 'de',
@@ -142,8 +144,9 @@ class Corpus:
             parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(text), binary=True)  # POS tagging before chunking!
             for t in parse_tree.subtrees():
                 if t.label() == 'NE':
-                    nes.append(list(t))
-            self.named_entities.append(nes)
+                    for k in list(t):
+                        nes.append(k[0])
+            self.named_entities.append(set(nes))
 
 
 def build_stats(db):
@@ -196,7 +199,7 @@ def stats_by_articles(db):
 
     for i,row in enumerate(corpus.data):
         file.writerow([row[3], row[1], row[2], corpus.translated1[i], corpus.tokens[i],
-                       [c for c in corpus.tokens[i] if c[0].isupper()],
+                       set([c for c in corpus.tokens[i] if c[0].isupper()]),
                        corpus.dates[i],corpus.named_entities[i]])
 
 
@@ -216,29 +219,37 @@ def visualize(db,m,uppercase=False,dates=False,nes=False):
 
                     u = [c for c in corpus.tokens[i] if c[0].isupper()]
                     u1 = [c for c in corpus.tokens[j] if c[0].isupper()]
-                    common_upper = [w for w in u if w in u1]
+                    common_upper = set([w for w in u if w in u1])
                     weight += len(common_upper)
 
                 if dates:
 
                     d = corpus.dates[i]
                     d1 = corpus.dates[j]
-                    common_dates = [w for w in d if w in d1]
+                    common_dates = set()
+                    for w in d:
+                        for w1 in d1:
+                            if w[0] == w1[0] and w[1] == w1[1] and w[0] != 'None' and w[1] != 'None':
+                                common_dates.add(w)
                     weight += len(common_dates)
 
                 if nes:
 
                     ne = corpus.named_entities[i]
                     ne1 = corpus.named_entities[j]
-                    common_nes = [w for w in ne if w in ne1]
+                    print(ne1)
+                    print(ne)
+                    common_nes = set([w for w in ne if w in ne1])
                     weight += len(common_nes)
 
                 if weight>m:
 
                     edges.append((i,j,weight))
-
-
-    nodes = [{'title': corpus.translated[i], 'url': row[3], 'country': row[0]} for i,row in enumerate(corpus.data)]
+    dates = []
+    for i in range(len(corpus.dates)):
+        print(corpus.dates[i])
+        dates.append([f"{date[0]}.{date[1]}.{date[2]};" for date in corpus.dates[i]])
+    nodes = [{'title': corpus.translated[i][:100], 'url': row[3], 'country': row[0], 'date': ' '.join(dates[i])} for i,row in enumerate(corpus.data)]
 
     fname = ''
     if uppercase:
@@ -251,5 +262,5 @@ def visualize(db,m,uppercase=False,dates=False,nes=False):
     draw_graph(nodes,edges,m=m,fname=fname, type="без связей внутри")
 
 
-visualize('day',m=20,uppercase=True)
-visualize('day',m=20,nes=True)
+# visualize('day',m=3,uppercase=True)
+visualize('day',m=0,dates=True)

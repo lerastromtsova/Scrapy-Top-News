@@ -23,12 +23,15 @@
 					  <text>Period:</text>
 					  {{ form.period(class_="form-control", size=5) }}
 					  <br/>
-					  <div class="alert alert-info" role="alert">
-						  Hold CTRL for multiple select!
-					  </div>
 					  <text>Countries:</text>
 					  {{ form.countries(class_="form-control", size=10) }}
 					  <br/>
+                      <small class="form-text text-muted">
+						  Hold CTRL for multiple select!
+					  </small>
+                      <text>Select threshold</text>
+                      {{ form.threshold(class="form-control") }}
+                      <br/>
 					  <div class="alert alert-danger" role="alert">
 						  Getting information about ONE country can take up to 1 minute!
 						  So relax and have a coffee while we collect news :)

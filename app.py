@@ -1,8 +1,7 @@
-import subprocess
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from flask import Flask, render_template, request, redirect, url_for
-from wtforms import Form, SelectMultipleField, SelectField
+from wtforms import Form, SelectMultipleField, SelectField, IntegerField
 import sqlite3
 from datetime import date
 import os
@@ -43,6 +42,7 @@ app = Flask(__name__)
 class BaseForm(Form):
     period = SelectField("Period", choices=PERIODS)
     countries = SelectMultipleField("Countries", choices=COUNTRIES)
+    threshold = IntegerField("Threshold")
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'db','topnews.db')
 
@@ -50,13 +50,14 @@ DB_PATH = os.path.join(os.path.dirname(__file__), 'db','topnews.db')
 def index():
     period = request.args.get("period")
     countries = request.args.getlist("countries")
+    threshold = request.args.get("threshold")
     if period and countries:
-        return show_network(period, countries)
+        return show_network(period, countries, threshold)
     else:
         form = BaseForm(request.form)
         return render_template("base.html", form=form)
 
-def show_network(period, countries):
+def show_network(period, countries, threshold):
     run(countries=countries, period=period)
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -69,8 +70,7 @@ def show_network(period, countries):
         d = {'url': item[1], 'title': item[2], 'number': item[3], 'country': item[4]}
         news_list.append(d)
 
-    edges = find_connection(news)
-    print(news_list)
+    edges = find_connection(news, threshold)
     return render_template("graph.html", listt=news_list, conns=edges)
 
 if __name__ == "__main__":

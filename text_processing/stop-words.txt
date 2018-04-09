@@ -327,3 +327,5 @@ n't
 c.
 'll
 'm
+say
+tell

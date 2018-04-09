@@ -19,7 +19,7 @@
     news_list.forEach(function(item,i){
         nodes.add({id: i+1, title: item.country+": "+item.title, group: item.country, url: item.url})
     })
-   // create an array with edges
+
    var edges = new vis.DataSet()
 
    raw_edges = {{ conns|tojson }}
@@ -28,14 +28,14 @@
    })
    console.log(nodes)
    console.log(edges)
-   // create a network
+
    var container = document.getElementById('graph');
 
-   // provide the data in the vis format
    var data = {
        nodes: nodes,
        edges: edges
    };
+
    var options = {
        layout: {
            improvedLayout: true,

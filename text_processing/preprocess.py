@@ -3,14 +3,13 @@ This is where preprocessing happens.
 input: text
 output: preprocessed text (string)
 """
-from gensim.utils import simple_preprocess
 from nltk.corpus import wordnet as wn
 import os
 import nltk
 import string
 import re
 
-STOP_PATH = os.path.join(os.path.dirname(__file__), 'spiders', 'stop-words.txt')
+STOP_PATH = os.getcwd()+'/text_processing/stop-words.txt'
 
 PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––']
 

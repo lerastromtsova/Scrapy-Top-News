@@ -1,5 +1,5 @@
-from scrapnews.translate import translate
-from scrapnews.preprocess import preprocess
+from text_processing.translate import translate
+from text_processing.preprocess import preprocess
 import sqlite3
 import nltk
 

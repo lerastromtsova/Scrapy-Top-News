@@ -2,12 +2,14 @@ from datetime import datetime
 now = datetime.now()
 
 MONTHS = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'08',
-              'september':'09','october':'10','november':'11','december':'12',
-              'jan':'01','feb':'02','mar':'03','apr':'04','jun':'06','jul':'07','aug':'08','sept':'09','oct':'10','nov':'11','dec':'12'}
+        'september':'09','october':'10','november':'11','december':'12', 'jan':'01','feb':'02','mar':'03','apr':'04',
+        'jun':'06','jul':'07','aug':'08','sept':'09','oct':'10','nov':'11','dec':'12'}
+
+
 
 def ismonth(str):
 
-    if str.lower() in MONTHS.keys() or str in MONTHS.values():
+    if str.lower() in MONTHS.keys():
         return True
     else:
         return False
@@ -19,7 +21,8 @@ def isyear(str):
         return False
 
 def isday(str):
-    if str.isdigit() and 1 <= int(str) <= 12:
+
+    if str.isdigit() and 1 <= int(str) <= 31:
         return True
     else:
         return False
@@ -72,12 +75,13 @@ def process_dates(text):
                 except IndexError:
                     pass
 
-                if not year:
-                    year = now.year
-                if not day:
-                    day = now.day
-
                 dates.append((str(day),str(month),str(year)))
+            elif isyear(t):
+                day = None
+                month = None
+                year = t
+                dates.append((str(day),str(month),str(year)))
+
     return dates
 
 
