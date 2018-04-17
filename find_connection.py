@@ -12,7 +12,7 @@ def find_connection(data, m):
             text = data[i][5].split()
             text1 = data[j][5].split()
 
-            common = [tk for tk in text if tk in text1]
+            common = set(text).intersection(set(text1))
             weight = len(common)
 
             if weight>int(m):

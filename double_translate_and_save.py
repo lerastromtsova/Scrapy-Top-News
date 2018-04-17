@@ -264,3 +264,11 @@ def visualize(db,m,uppercase=False,dates=False,nes=False):
 
 # visualize('day',m=3,uppercase=True)
 visualize('day',m=0,dates=True)
+
+# def find_main_topics(translated,named_entities):
+#     main_topics = []
+#
+#     for i in range(len(translated)):
+#         for j in range(i+1,len(translated)):
+#             
+

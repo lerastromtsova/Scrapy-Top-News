@@ -33,15 +33,22 @@ def process_dates(text):
     dates = []
     for i,t in enumerate(text):
         try:
-            dt = datetime.strptime(t,'%m/%d/%Y')
-            date = (str(dt.day),str(dt.month),str(dt.year))
-            dates.append(date)
+
+            try:
+                dt = datetime.strptime(t,'%m/%d/%Y')
+                date = (str(dt.day),str(dt.month),str(dt.year))
+                dates.append(date)
+
+            except ValueError:
+                dt = datetime.strptime(t, '%m.%d.%Y')
+                date = (str(dt.day), str(dt.month), str(dt.year))
+                dates.append(date)
+
         except ValueError:
+
             if ismonth(t):
-                if t.lower() in MONTHS.keys():
-                    month = MONTHS[t.lower()]
-                else:
-                    month = t
+                month = MONTHS[t.lower()]
+
                 year = None
                 day = None
 
