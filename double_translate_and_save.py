@@ -6,11 +6,12 @@ Output: tokens stored in db
 from text_processing.translate import translate
 from text_processing.preprocess import preprocess
 from text_processing.dates import process_dates
-from draw_graph import draw_graph
+# from draw_graph import draw_graph
 
 import sqlite3
 import csv
 import nltk
+import pandas as pd
 
 from numpy import median
 
@@ -259,16 +260,151 @@ def visualize(db,m,uppercase=False,dates=False,nes=False):
     if nes:
         fname += 'H '
 
-    draw_graph(nodes,edges,m=m,fname=fname, type="без связей внутри")
+    # draw_graph(nodes,edges,m=m,fname=fname, type="без связей внутри")
 
 
 # visualize('day',m=3,uppercase=True)
-visualize('day',m=0,dates=True)
+# visualize('day',m=0,dates=True)
 
-# def find_main_topics(translated,named_entities):
-#     main_topics = []
+def find_main_topics(dframe):
+
+    main_topics = {}
+    mains = []
+
+    for i in range(dframe.shape[0]):
+        ma = 0
+        for j in range(dframe.shape[1]):
+            if type(dframe.ix[i][j]) == set:
+                if len(dframe.ix[i][j])>ma:
+                    ma = len(dframe.ix[i][j])
+                    main_idx = j
+        if main_idx:
+            mains.append(main_idx)
+
+    return mains
+
+
+def create_df(named_entities):
+
+    df = pd.DataFrame(index=[i for i in range(len(named_entities))], columns=[i for i in range(len(named_entities))])
+    for i in range(df.shape[0]):
+        for j in range(df.shape[1]):
+            if i != j:
+                df.ix[i][j] = named_entities[i].intersection(named_entities[j])
+
+    return df
+
+def find_main_for_it(dframe,mains):
+
+    cols = set(range(dframe.shape[0]))-set(mains)
+    main_df = pd.DataFrame(index=mains,columns=cols,data=[[dframe[i][j] for j in cols] for i in mains])
+    main_for_each = {}
+
+    for j in cols:
+        sublist = [len(item) if type(item) == set else 0 for item in main_df.loc[:,j]]
+        main_for_it = sublist.index(max(sublist))
+        main_for_each[j] = list(main_df.index.values)[main_for_it]
+
+
+    return main_for_each, main_df
+
+
+corpus = Corpus('day', 'buffer', with_uppercase=True)
+corpus.double_translate()
+
+corpus.find_common()
+
+corpus.extract_entities()
+
+news_df = create_df(corpus.named_entities)
+
+main_topics = find_main_topics(news_df)
+main_for_each, main_df = find_main_for_it(news_df, main_topics)
+
+not_main = set(range(news_df.shape[0])) - set(main_topics)
+m_for_each = {}
+print(main_for_each)
+rest_words = {}
+
+f = open("news.csv", "w")
+file = csv.writer(f, delimiter=',')
+headers = ['Main','Entities in main','# of articles in topic','Articles','Common words']
+file.writerow(headers)
+for i in set(main_for_each.values()):
+    print(i)
+    main = corpus.translated[i]
+    ents_in_main = corpus.named_entities[i]
+    art_index = [key for key,val in main_for_each.items() if val==i]
+    num_articles = len(art_index)
+    row = [main,ents_in_main,num_articles]
+
+    articles = [(corpus.translated[ind],corpus.named_entities[ind].intersection(ents_in_main)) for ind in art_index]
+
+    for art in articles:
+        row.append(art[0])
+        row.append(art[1])
+
+    file.writerow(row)
+    f.flush()
+
+f.close()
+
+
+print("Written rows")
+
+for j in not_main:
+
+    com_words = news_df.iloc[main_for_each[j]][j]
+    t = news_df
+    if type(com_words) != float:
+        nes = [row if i != j else corpus.named_entities[j]-com_words for i,row in enumerate(corpus.named_entities)]
+        rest_words[j] = corpus.named_entities[j]-com_words
+        new_df = create_df(nes)
+        # news_df.iloc[main_for_each[j]][j] = corpus.named_entities[j]-com_words
+        new_main_for_each, main_df = find_main_for_it(new_df,main_topics)
+        m_for_each[j] = new_main_for_each[j]
+        # news_df.iloc[main_for_each[j]][j] = com_words
+        nes = corpus.named_entities
+
+print(m_for_each)
+
+# file = csv.writer(open("news.csv", "w"))
+# headers = ['News','Entities','Common words-1','Main-1','Words in main 1','CW1','Common words-2','Main-2','Words in main 2']
+# file.writerow(headers)
+# for i in not_main:
+#     news = corpus.translated[i]
 #
-#     for i in range(len(translated)):
-#         for j in range(i+1,len(translated)):
-#             
+#     entities = corpus.named_entities[i]
+#     common_words1 = news_df[main_for_each[i]][i]
+#     main1 = corpus.translated[main_for_each[i]]
+#     e1 = corpus.named_entities[main_for_each[i]]
+#
+#     common_words2 = news_df[m_for_each[i]][i]
+#     main2 = corpus.translated[m_for_each[i]]
+#     e2 = corpus.named_entities[m_for_each[i]]
+#     cw1 = rest_words[j].intersection(e2)
+#     file.writerow([news,entities,common_words1,main1,e1,cw1,common_words2,main2,e2])
 
+
+f = open("news1.csv", "w")
+file = csv.writer(f,delimiter=',')
+headers = ['Main','Entities in main','# of articles in topic','Articles','Common words']
+file.writerow(headers)
+
+for i in set(m_for_each.values()):
+    main = corpus.translated[i]
+    ents_in_main = corpus.named_entities[i]
+    art_index = [key for key, val in m_for_each.items() if val == i]
+    num_articles = len(art_index)
+    row = [main, ents_in_main, num_articles]
+
+    articles = [(corpus.translated[ind], corpus.named_entities[ind].intersection(ents_in_main)) for ind in art_index]
+
+    for art in articles:
+        row.append(art[0])
+        row.append(art[1])
+
+    file.writerow(row)
+    f.flush()
+
+f.close()

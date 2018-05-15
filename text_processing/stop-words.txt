@@ -329,3 +329,16 @@ c.
 'm
 say
 tell
+read
+video
+photo
+image
+west
+western
+facebook
+eu
+europe
+european 
+north
+center
+union

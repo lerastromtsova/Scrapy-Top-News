@@ -53,12 +53,14 @@ def draw_graph(nodes, edges, m, fname, type="со связями внутри"):
     labels = []
 
     for i, d in enumerate(nodes):
-        # G.node[i]['number'] = d['number']
+        G.node[i]['number'] = d['number']
         G.node[i]['title'] = d['title']
         G.node[i]['url'] = d['url']
         G.node[i]['country'] = d['country']
-        G.node[i]['date'] = d['date']
-        labels.append(G.node[i]['country'] + '<br>'
+        G.node[i]['date'] = d['scraping_date']
+
+        labels.append(str(G.node[i]['number']) + '<br>' +
+                      G.node[i]['country'] + '<br>'
                       + G.node[i]['title'] + '<br>'
                       + G.node[i]['url'] + '<br>' +
                       G.node[i]['date']
@@ -123,18 +125,10 @@ def draw_graph(nodes, edges, m, fname, type="со связями внутри"):
     py.plot(fig, filename=fname + str(m))
 
 
-# for m in range(1, 5):
-#     corp = Corpus()
-#     data = Topnews(corp, mweight=m)
-#
-#     nodes = data.data
-#     edges = data.edges
-#     draw_graph(nodes, edges, m, fname="со связями внутри стран неделя")
-#
-# for m in range(1, 5):
-#     corp = Corpus()
-#     data = Topnews(corp, mweight=m)
-#     nodes = data.data
-#     edges = data.edges
-#
-#     draw_graph(nodes,edges,m,fname="без связей внутри стран неделя",type="без связей внутри")
+for m in range(2,6):
+    corp = Corpus()
+    data = Topnews(corp, mweight=m)
+    nodes = data.data
+    edges = data.edges
+
+    draw_graph(nodes,edges,m,fname=f"{m} день без связей внутри стран ",type="без связей внутри")

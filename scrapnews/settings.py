@@ -65,8 +65,8 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    'scrapnews.pipelines.SQLitePipeline': 300,
-    # 'scrapnews.pipelines.JsonWriterPipeline':300
+    'scrapnews.pipelines.SQLitePipeline': 500,
+    'scrapnews.pipelines.JsonWriterPipeline':300
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
