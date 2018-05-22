@@ -131,4 +131,4 @@ for m in range(2,6):
     nodes = data.data
     edges = data.edges
 
-    draw_graph(nodes,edges,m,fname=f"{m} день без связей внутри стран ",type="без связей внутри")
+    draw_graph(nodes,edges,m,fname=f"{m} месяц без связей внутри стран ",type="без связей внутри")

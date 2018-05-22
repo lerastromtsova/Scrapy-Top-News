@@ -336,9 +336,11 @@ image
 west
 western
 facebook
+twitter
 eu
 europe
-european 
+european
 north
 center
 union
+republic

@@ -28,10 +28,10 @@ def preprocess(text,with_uppercase=True):
 
 
     if with_uppercase:
-        tokens = [t for t in tokens if
-                  (t.lower() not in STOP_WORDS or t == 'May')
+        tokens = [t for t in tokens if (t.lower() not in STOP_WORDS or t == 'May')
                   and t not in PUNKTS and t not in string.punctuation
                   and len(t) > 1]
+
     else:
         tokens = [t.lower() for t in tokens if
                   (t.lower() not in STOP_WORDS or t =='May')

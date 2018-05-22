@@ -50,8 +50,10 @@ class JsonWriterPipeline(object):
 
     def open_spider(self, spider):
         self.file = open('items.json', 'w')
+        self.file.write('[')
 
     def close_spider(self, spider):
+        self.file.write(']')
         self.file.close()
 
     def process_item(self, item, spider):

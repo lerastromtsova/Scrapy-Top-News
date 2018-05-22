@@ -12,7 +12,7 @@ from text_processing.translate import translate
 
 class Corpus:
 
-    def __init__(self, db, table):
+    def __init__(self, db, table, with_lead=False):
 
         self.table = table
         self.conn = sqlite3.connect(f"db/{db}.db")
@@ -24,7 +24,7 @@ class Corpus:
         raw_data = self.c.fetchall()
 
         for row in raw_data:
-            self.data.append(Document(row,self.conn,table))
+            self.data.append(Document(row, self.conn, table, with_lead))
 
     def find_topics(self):
 
@@ -40,57 +40,86 @@ class Corpus:
 
 class Document:
 
-    def __init__(self,row,conn,table):
+    def __init__(self, row, conn, table, with_lead=False):
 
         self.country = row[0]
         self.title = row[1]
-        # self.content = row[3]
-        # self.url = row[4]
-        # self.date = row[5]
-        # self.translated = row[6]
-        # self.double_translated = row[7]
 
-        self.content = row[2]
-        self.url = row[3]
-        self.date = row[4]
-        self.translated = row[5]
-        self.double_translated = row[6]
+        if with_lead:
+            self.lead = row[2]
+            self.content = row[3]
+            self.url = row[4]
+            self.date = row[5]
+            self.translated = row[6]
+            self.double_translated = row[7]
+
+        else:
+            self.content = row[2]
+            self.url = row[3]
+            self.date = row[4]
+            self.translated = row[5]
+            self.double_translated = row[6]
 
         self.tokens = []
-
+        self.removed_words = []
+        self.start_words = {}
         self.conn = conn
         self.table = table
-
-        if not self.translated or not self.double_translated:
-            self.double_translate()
 
         for tr in preprocess(self.translated):
             if tr in preprocess(self.double_translated):
                 self.tokens.append(tr)
+            elif tr[0].isupper():
+                self.removed_words.append(tr)
 
-        parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(self.tokens), binary=True)  # POS tagging before chunking!
-        self.named_entities = {k[0] for t in parse_tree.subtrees() for k in list(t) if t.label() == 'NE'}
+        self.named_entities = {word for word in self.tokens if word[0].isupper()}
+
+        if row[7]:
+            self.named_entities = set(row[7].split(' '))
+        else:
+            parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(self.tokens), binary=True)  # POS tagging before chunking!
+            self.named_entities = {k[0] for t in parse_tree.subtrees() for k in list(t) if t.label() == 'NE'}
+
+            c = self.conn.cursor()
+            c.execute(f"UPDATE {self.table} SET named_entities=(?) WHERE reference=(?)",
+                      (' '.join(self.named_entities), self.url))
+            self.conn.commit()
+
+        if not self.translated or not self.double_translated:
+            self.double_translate()
+
         self.unite_countries()
         self.find_entities()
         self.unite_countries()
+
         # self.dates = process_dates(list(self.tokens)).append(self.date)
 
     def find_entities(self):
 
-        text = re.findall(r"[\w]+|[^\s\w]",self.translated)
+        text = re.findall(r"[\w]+|[^\s\w]", self.translated)
         to_remove = set()
         to_add = set()
 
         for ent1 in self.named_entities:
             if ent1 in text:
                 idx1 = text.index(ent1)
+                # Проверка на "первое слово в предложении"
+                # if text[idx1-1] == '.':
+                #     try:
+                #         idx3 = text[idx1 + 1:].index(ent1)
+                #         self.start_words[ent1] = True
+                #     except ValueError:
+                #         to_remove.add(ent1)
+                #         self.start_words[ent1] = False
+                #
+                # else:
                 entities_except_this = self.named_entities - set(ent1)
 
                 for ent2 in entities_except_this:
                     if ent2 in text:
                         idx2 = text.index(ent2)
                         if ((idx2 - idx1 == 2) and (text[idx1+1] == ' ' or text[idx1+1] == '-'
-                                                or text[idx1+1] == "'" or text[idx1+1] == 'of')) or idx2 - idx1 == 1:
+                                                    or text[idx1+1] == "'" or text[idx1+1] == 'of')) or idx2 - idx1 == 1:
 
                             united_entity = ' '.join([ent1,ent2])
                             to_add.add(united_entity)
@@ -131,24 +160,24 @@ class Document:
         self.translated = ''
         self.double_translated = ''
 
-        for c in content:
+        for cont in content:
 
-            eng_content = translate(c)
+            eng_content = translate(cont)
             orig_content = translate(eng_content, self.country)
             eng1_content = translate(orig_content)
 
-            self.translated += ' '.join([self.translated,eng_content])
-            self.double_translated += ' '.join([self.double_translated,eng1_content])
+            self.translated += ' '.join([self.translated, eng_content])
+            self.double_translated += ' '.join([self.double_translated, eng1_content])
 
         c = self.conn.cursor()
         c.execute(f"UPDATE {self.table} SET translated=(?), translated1=(?) WHERE reference=(?)",
-                  (self.translated,self.double_translated,self.url))
+                  (self.translated, self.double_translated, self.url))
         self.conn.commit()
 
 
 class Node:
 
-    def __init__(self,item):
+    def __init__(self, item):
 
         self.name = item
         self.level = len(self.name)
@@ -158,7 +187,7 @@ class Node:
         self.documents = []
         self.percents = []
 
-    def has_free_links(self,other_node):
+    def has_free_links(self, other_node):
 
         topic = self.name
         my_free_words = [d.named_entities - topic for d in self.documents]
@@ -235,6 +264,7 @@ class Tree:
                     node.assign_child(other_node)
 
         self.roots = [n for n in self.nodes if n.isroot()]
+        write_topics_to_xl("7-1.csv",self.roots)
         self.last_nodes = set()
 
     def assign_documents(self,corpus):
@@ -254,10 +284,13 @@ class Tree:
         to_remove = set()
         to_add = set()
         all_links = {}
+
+        write_topics_to_xl("7-2.csv", self.last_nodes)
+
         for node in self.last_nodes:
             nodes_except_this = self.last_nodes - {node}
+            all_links[node] = {}
             for other_node in nodes_except_this:
-                all_links[node] = {other_node: 0}
                 common_documents = set(node.documents).intersection(set(other_node.documents))
                 percent_of_common = 2*len(common_documents)/(len(node.documents)+len(other_node.documents))
                 if percent_of_common >= 0.5:
@@ -265,28 +298,42 @@ class Tree:
                     # percent_of_potential = node.has_free_links(other_node)
                     # if percent_of_potential >= 0.5:
 
-                if all_links[node][other_node] == 0:
-                    del all_links[node][other_node]
-
         while all_links:
 
             for node in self.last_nodes:
                 try:
-                    print(node.name)
-                    maximum_similarity_node = max(all_links[node].items(), key=operator.itemgetter(1))[0]
-                    print("Max similarity: ", maximum_similarity_node.name)
-                    del all_links[node][maximum_similarity_node]
-                    new_node = Node(node.name|maximum_similarity_node.name)
-                    new_node.documents = []
-                    new_node.documents.extend(node.documents)
-                    new_node.documents.extend([doc for doc in maximum_similarity_node.documents if doc not in new_node.documents])
-                    to_remove.add(node)
-                    to_remove.add(maximum_similarity_node)
-                    to_add.add(new_node)
+                    if all_links[node]:
+                            maximum_similarity_node = max(all_links[node].items(), key=operator.itemgetter(1))[0]
+                            del all_links[node][maximum_similarity_node]
+                            new_node = Node(node.name|maximum_similarity_node.name)
+                            new_node.documents = []
+                            new_node.documents.extend(node.documents)
+                            new_node.documents.extend([doc for doc in maximum_similarity_node.documents if doc not in new_node.documents])
+                            to_remove.add(node)
+                            to_remove.add(maximum_similarity_node)
+                            to_add.add(new_node)
+                    else:
+                        del all_links[node]
                 except KeyError:
                     continue
 
-        self.last_nodes = (self.last_nodes - to_remove) | to_add
+        self.last_nodes = self.last_nodes | to_add - to_remove
+        write_topics_to_xl("7-3.csv", self.last_nodes)
+
+        to_remove = set()
+        nodes = sorted(list(self.last_nodes), key=lambda n: len(n.name))
+
+        for node in nodes:
+            other_nodes = [n for n in nodes if n.name != node.name]
+            for other_node in other_nodes:
+                if node.name.issubset(other_node.name):
+                    print(node.name, other_node.name)
+                    to_remove.add(node)
+                    docs = [n for n in node.documents if n not in other_node.documents]
+                    other_node.documents.extend(docs)
+
+        self.last_nodes -= to_remove
+        write_topics_to_xl("7-4.csv", self.last_nodes)
 
 
 def check_free(nodes):
@@ -297,21 +344,48 @@ def check_free(nodes):
                 gchild_percent = gch.percents[gch.parents.index(ch)]
                 if gchild_percent < ch_percent and gchild_percent < 0.5:
                     return ch
-                else:
+                elif gch.children:
                     return check_free(ch.children)
+                else:
+                    return gch
 
 
-def write_topics_to_xl(fname, tree):
+def write_topics_to_xl(fname, nodes):
     file = csv.writer(open(fname, "w"))
-    headers = ['Topic', 'News']
+    headers = ['Topic', 'News', 'Keywords']
     file.writerow(headers)
+    all_topics = {frozenset(n.name) for n in nodes}
 
-    for node in tree.last_nodes:
-                row = [' '.join(node.name)]
-                for doc in node.documents:
-                    row.append(f"{doc.url}: {doc.translated}")
+    for at in all_topics:
+                row = [' '.join(at)]
+                for n in nodes:
+                    if n.name == at:
+                        docs = n.documents
+                for doc in docs:
+                    row.append(f"{doc.country} | {doc.title} | {doc.url} | {doc.translated}")
                     row.append(' '.join(doc.named_entities))
                 file.writerow(row)
+
+
+def write_words_to_xl(fname, data):
+    file = csv.writer(open(fname, "w"))
+    headers = ['Document', 'Deleted words']
+    file.writerow(headers)
+
+    for r in data:
+        row = [r.translated, r.removed_words]
+        file.writerow(row)
+
+
+def write_start_words_to_xl(fname, data):
+    file = csv.writer(open(fname, "w"))
+    headers = ['Document', 'Deleted words']
+    file.writerow(headers)
+
+    for r in data:
+        for key, ind in r.start_words.items():
+            row = [key, ind]
+            file.writerow(row)
 
 
 if __name__ == '__main__':
@@ -326,12 +400,13 @@ if __name__ == '__main__':
     if not table:
         table = "buffer"
 
-    c = Corpus(db,table)
+    c = Corpus(db, table)
     c.find_topics()
+    # write_words_to_xl("double_translation.csv", c.data)
+    # write_start_words_to_xl("start_words.csv", c.data)
 
     t = Tree(c)
     t.find_last_topics()
     t.unite_similar_topics()
-    write_topics_to_xl(f"{db}-topics.csv", t)
+    write_topics_to_xl(f"{db}-topics.csv", t.last_nodes)
 
-    print(time.time()-now)
