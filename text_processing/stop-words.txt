@@ -344,3 +344,4 @@ north
 center
 union
 republic
+democratic

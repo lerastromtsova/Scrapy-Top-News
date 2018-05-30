@@ -8,3 +8,4 @@ env/
 # Some docs
 documents/
 topnews.db
+*.csv

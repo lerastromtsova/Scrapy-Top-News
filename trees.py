@@ -1,18 +1,19 @@
-import nltk
-import sqlite3
-import csv
 import re
 import time
 import operator
 
+import nltk
+import sqlite3
+import csv
+
 from text_processing.preprocess import preprocess
 from text_processing.translate import translate
-# from text_processing.dates import process_dates
+from text_processing.dates import process_dates
 
 
 class Corpus:
 
-    def __init__(self, db, table, with_lead=False):
+    def __init__(self, db, table, with_lead=False, analyze=('content',)):
 
         self.table = table
         self.conn = sqlite3.connect(f"db/{db}.db")
@@ -24,7 +25,7 @@ class Corpus:
         raw_data = self.c.fetchall()
 
         for row in raw_data:
-            self.data.append(Document(row, self.conn, table, with_lead))
+            self.data.append(Document(row, self.conn, table, with_lead, analyze))
 
     def find_topics(self):
 
@@ -40,20 +41,55 @@ class Corpus:
 
 class Document:
 
-    def __init__(self, row, conn, table, with_lead=False):
+    def __init__(self, row, conn, table, with_lead=False, analyze=('title', 'lead', 'content')):
 
         self.country = row[0]
         self.title = row[1]
+        self.content = ''
+        self.translated = ''
+        self.double_translated = ''
 
         if with_lead:
             self.lead = row[2]
-            self.content = row[3]
+            if 'title' in analyze:
+                self.content += self.title
+                if row[9]:  # if title is already translated
+                    self.translated += row[9]
+                else:
+                    self.double_translate(type='title')
+            if 'lead' in analyze:
+                self.content += ' '
+                self.content += self.lead
+                if row[11]:  # if lead is already translated
+                    self.translated += row[11]
+                else:
+                    self.double_translate(type='lead')
+            if 'content' in analyze:
+                self.content += ' '
+                self.content += row[3]
+                if row[6]:  # if content is already translated
+                    self.translated += row[6]
+                else:
+                    self.double_translate(type='content')
             self.url = row[4]
             self.date = row[5]
             self.translated = row[6]
             self.double_translated = row[7]
 
         else:
+            if 'title' in analyze:
+                self.content = self.title
+                if row[8]:  # if title is already translated
+                    self.translated += row[8]
+                else:
+                    self.double_translate(type='title')
+            if 'content' in analyze:
+                self.content += ' '
+                self.content += row[2]
+                if row[5]:  # if content is already translated
+                    self.translated += row[5]
+                else:
+                    self.double_translate(type='content')
             self.content = row[2]
             self.url = row[3]
             self.date = row[4]
@@ -69,30 +105,22 @@ class Document:
         for tr in preprocess(self.translated):
             if tr in preprocess(self.double_translated):
                 self.tokens.append(tr)
-            elif tr[0].isupper():
-                self.removed_words.append(tr)
 
-        self.named_entities = {word for word in self.tokens if word[0].isupper()}
+        # self.named_entities = {word for word in self.tokens if word[0].isupper()}
 
-        if row[7]:
-            self.named_entities = set(row[7].split(' '))
-        else:
-            parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(self.tokens), binary=True)  # POS tagging before chunking!
-            self.named_entities = {k[0] for t in parse_tree.subtrees() for k in list(t) if t.label() == 'NE'}
+        parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(self.tokens), binary=True)  # POS tagging before chunking!
+        self.named_entities = {k[0] for t in parse_tree.subtrees() for k in list(t) if t.label() == 'NE'}
 
-            c = self.conn.cursor()
-            c.execute(f"UPDATE {self.table} SET named_entities=(?) WHERE reference=(?)",
+        c = self.conn.cursor()
+        c.execute(f"UPDATE {self.table} SET named_entities=(?) WHERE reference=(?)",
                       (' '.join(self.named_entities), self.url))
-            self.conn.commit()
-
-        if not self.translated or not self.double_translated:
-            self.double_translate()
+        self.conn.commit()
 
         self.unite_countries()
         self.find_entities()
         self.unite_countries()
 
-        # self.dates = process_dates(list(self.tokens)).append(self.date)
+        self.dates = process_dates(list(self.tokens)).append(self.date)
 
     def find_entities(self):
 
@@ -103,16 +131,6 @@ class Document:
         for ent1 in self.named_entities:
             if ent1 in text:
                 idx1 = text.index(ent1)
-                # Проверка на "первое слово в предложении"
-                # if text[idx1-1] == '.':
-                #     try:
-                #         idx3 = text[idx1 + 1:].index(ent1)
-                #         self.start_words[ent1] = True
-                #     except ValueError:
-                #         to_remove.add(ent1)
-                #         self.start_words[ent1] = False
-                #
-                # else:
                 entities_except_this = self.named_entities - set(ent1)
 
                 for ent2 in entities_except_this:
@@ -146,28 +164,30 @@ class Document:
 
         self.named_entities = (self.named_entities - to_remove) | to_add
 
-    def double_translate(self):
+    def double_translate(self, type):
 
         n = 1500  # length limit
-        if "Краткое описание: " in self.content:
-            content = self.content.split("Краткое описание: ")[1]
-        else:
-            content = self.content
+        if type == "title":
+            text = self.title
+        if type == "lead":
+            text = self.lead
+        if type == "content":
+            text = self.content
+
+        if "Краткое описание: " in text:
+            text = text.split("Краткое описание: ")[1]
 
         # Split into parts of 1500 before translating
-        content = [content[i:i + n] for i in range(0, len(content), n)]
+        text = [text[i:i + n] for i in range(0, len(text), n)]
 
-        self.translated = ''
-        self.double_translated = ''
+        for t in text:
 
-        for cont in content:
+            eng_text = translate(t)
+            orig_text = translate(eng_text, self.country)
+            eng1_text = translate(orig_text)
 
-            eng_content = translate(cont)
-            orig_content = translate(eng_content, self.country)
-            eng1_content = translate(orig_content)
-
-            self.translated += ' '.join([self.translated, eng_content])
-            self.double_translated += ' '.join([self.double_translated, eng1_content])
+            self.translated += ' '.join([self.translated, eng_text])
+            self.double_translated += ' '.join([self.double_translated, eng1_text])
 
         c = self.conn.cursor()
         c.execute(f"UPDATE {self.table} SET translated=(?), translated1=(?) WHERE reference=(?)",
@@ -186,6 +206,7 @@ class Node:
         self.children = []
         self.documents = []
         self.percents = []
+        self.subtopics = []
 
     def has_free_links(self, other_node):
 
@@ -264,7 +285,7 @@ class Tree:
                     node.assign_child(other_node)
 
         self.roots = [n for n in self.nodes if n.isroot()]
-        write_topics_to_xl("7-1.csv",self.roots)
+        write_topics_to_xl("корневые темы.csv",self.roots)
         self.last_nodes = set()
 
     def assign_documents(self,corpus):
@@ -279,61 +300,152 @@ class Tree:
             x = check_free([root])
             if x:
                 self.last_nodes.add(x)
+        write_topics_to_xl("после обрезания.csv", self.last_nodes)
 
     def unite_similar_topics(self):
         to_remove = set()
-        to_add = set()
-        all_links = {}
 
-        write_topics_to_xl("7-2.csv", self.last_nodes)
-
-        for node in self.last_nodes:
-            nodes_except_this = self.last_nodes - {node}
-            all_links[node] = {}
-            for other_node in nodes_except_this:
-                common_documents = set(node.documents).intersection(set(other_node.documents))
-                percent_of_common = 2*len(common_documents)/(len(node.documents)+len(other_node.documents))
-                if percent_of_common >= 0.5:
-                    all_links[node][other_node] = percent_of_common
-                    # percent_of_potential = node.has_free_links(other_node)
-                    # if percent_of_potential >= 0.5:
-
-        while all_links:
-
-            for node in self.last_nodes:
-                try:
-                    if all_links[node]:
-                            maximum_similarity_node = max(all_links[node].items(), key=operator.itemgetter(1))[0]
-                            del all_links[node][maximum_similarity_node]
-                            new_node = Node(node.name|maximum_similarity_node.name)
-                            new_node.documents = []
-                            new_node.documents.extend(node.documents)
-                            new_node.documents.extend([doc for doc in maximum_similarity_node.documents if doc not in new_node.documents])
-                            to_remove.add(node)
-                            to_remove.add(maximum_similarity_node)
-                            to_add.add(new_node)
-                    else:
-                        del all_links[node]
-                except KeyError:
-                    continue
-
-        self.last_nodes = self.last_nodes | to_add - to_remove
-        write_topics_to_xl("7-3.csv", self.last_nodes)
-
-        to_remove = set()
-        nodes = sorted(list(self.last_nodes), key=lambda n: len(n.name))
-
-        for node in nodes:
-            other_nodes = [n for n in nodes if n.name != node.name]
-            for other_node in other_nodes:
-                if node.name.issubset(other_node.name):
-                    print(node.name, other_node.name)
-                    to_remove.add(node)
-                    docs = [n for n in node.documents if n not in other_node.documents]
-                    other_node.documents.extend(docs)
+        for n in self.last_nodes:
+            other_nodes = self.last_nodes - {n}
+            for on in other_nodes:
+                if n.name.issubset(on.name):
+                    to_remove.add(n)
 
         self.last_nodes -= to_remove
-        write_topics_to_xl("7-4.csv", self.last_nodes)
+        write_topics_to_xl("удалили дубликаты.csv", self.last_nodes)
+
+        tr_1, ta_1 = self.add_and_remove(principle="country")
+        self.last_nodes = (self.last_nodes-tr_1)|ta_1
+        write_topics_to_xl("после объединения.csv", self.last_nodes, with_children=True)
+
+
+
+        #nodes = sorted(list(self.last_nodes), key=lambda n: len(n.name))
+        # old_nodes = self.last_nodes
+        #
+        # while old_nodes:
+        #     to_remove = set()
+        #     to_add = set()
+        #
+        #     for node in self.last_nodes:
+        #         other_nodes = self.last_nodes-{node}
+        #
+        #         for other_node in other_nodes:
+        #             if all(elem in node.documents for elem in other_node.documents):  #node contains all of other_node
+        #                 new_node = Node(node.name | other_node.name)
+        #                 new_node.subtopics = [node, other_node]
+        #                 new_node.documents = node.documents
+        #                 old_nodes.remove(node)
+        #                 old_nodes.remove(other_node)
+        #                 # to_remove.add(node)
+        #                 # to_remove.add(other_node)
+        #                 # to_add.add(new_node)
+        #             if node.name.issubset(other_node.name):
+        #                 # to_remove.add(node)
+        #                 # to_remove.add(other_node)
+        #                 old_nodes.remove(node)
+        #                 old_nodes.remove(other_node)
+        #                 new_node = Node(node.name & other_node.name)
+        #                 new_node.documents = []
+        #                 new_node.documents.extend(node.documents)
+        #                 new_node.documents.extend([doc for doc in other_node.documents if doc not in new_node.documents])
+        #                 to_add.add(new_node)
+        #
+        #     self.last_nodes = (self.last_nodes - to_remove) | to_add
+        #     print(len(old_nodes))
+        #
+        # write_topics_to_xl("3.csv", self.last_nodes, with_children=True)
+
+    def add_and_remove(self,principle):
+        all_links = dict.fromkeys(list(self.last_nodes),{})
+        to_remove = set()
+        to_add = set()
+
+        for node in self.last_nodes:
+            countries = {d.country for d in node.documents}
+            nodes_except_this = self.last_nodes - {node}
+            news = dict.fromkeys(countries,set())
+            for k in news.keys():
+                for doc in node.documents:
+                    if doc.country == k:
+                        news[k].add(doc)
+
+            for other_node in nodes_except_this:
+
+                # if principle == "documents":
+                #     common_documents = set(node.documents).intersection(set(other_node.documents))
+                #     percent_1 = len(common_documents) / len(node.documents)
+                #     percent_2 = len(common_documents) / len(other_node.documents)
+                #     if percent_1 >= 0.5 and percent_2 >= 0.5:
+                #         print(node.name, other_node.name)
+                #         for cd in common_documents:
+                #             print(translate(cd.title))
+                #         print(percent_1, percent_2)
+                #         all_links[node][other_node] = percent_1
+                # elif principle == 'country':
+
+                other_countries = {d.country for d in other_node.documents}
+
+                common_documents = set(node.documents).intersection(set(other_node.documents))
+                common_countries = {d.country for d in common_documents}
+                percent_1 = len(common_countries) / len(countries)
+                percent_2 = len(common_countries) / len(other_countries)
+                # if common_countries:
+                #     print(node.name, other_node.name)
+                #     print(countries)
+                #     print(other_countries)
+                #     print(percent_1)
+                #     print(percent_2)
+                #     for cd in common_documents:
+                #         print(cd.title)
+
+                # other_news = dict.fromkeys(other_countries, set())
+                # for k in other_news.keys():
+                #         for doc in node.documents:
+                #             if doc.country == k:
+                #                 other_news[k].add(doc)
+                #         if k in news.keys():
+                #             print(node.name)
+                #             print(other_node.name)
+                #             l = [doc.title for doc in news[k] if doc in other_news[k]]
+                #             print(l)
+                #             if l:
+                #
+                #                 percent_1 += 1
+                #                 percent_2 += 1
+                #                 continue
+
+                # percent_1 /= len(news.keys())
+                # percent_2 /= len(other_news.keys())
+                if percent_1 > 0.5 and percent_2 > 0.5:
+
+                        all_links[node][other_node] = percent_1
+
+        for node in self.last_nodes:
+            try:
+                print(node.name)
+                for k,m in all_links[node].items():
+                    print(k.name)
+                    print(m)
+                maximum_similarity_node = max(all_links[node].items(), key=operator.itemgetter(1))[0]
+
+                del all_links[node][maximum_similarity_node]
+                try:
+                    del all_links[maximum_similarity_node]
+                    new_node = Node(node.name | maximum_similarity_node.name)
+                    new_node.children = [node, maximum_similarity_node]
+                    new_node.subtopics = [node, maximum_similarity_node]
+                    new_node.documents.extend(node.documents)
+                    new_node.documents.extend([doc for doc in maximum_similarity_node.documents if doc not in new_node.documents])
+                    to_remove.add(node)
+                    to_remove.add(maximum_similarity_node)
+                    to_add.add(new_node)
+                except KeyError:
+                    continue
+            except KeyError:
+                continue
+
+        return to_remove, to_add
 
 
 def check_free(nodes):
@@ -350,25 +462,32 @@ def check_free(nodes):
                     return gch
 
 
-def write_topics_to_xl(fname, nodes):
-    file = csv.writer(open(fname, "w"))
+def write_topics_to_xl(fname, nodes, with_children=False):
+    file = csv.writer(open(fname, "w"), delimiter=',')
     headers = ['Topic', 'News', 'Keywords']
     file.writerow(headers)
-    all_topics = {frozenset(n.name) for n in nodes}
-
-    for at in all_topics:
-                row = [' '.join(at)]
-                for n in nodes:
-                    if n.name == at:
-                        docs = n.documents
-                for doc in docs:
-                    row.append(f"{doc.country} | {doc.title} | {doc.url} | {doc.translated}")
-                    row.append(' '.join(doc.named_entities))
-                file.writerow(row)
+    for n in nodes:
+        row = []
+        if with_children:
+            text = ''
+            if n.subtopics:
+                for c in n.subtopics:
+                    text += ' '.join(c.name)
+                    text += ' | '
+            else:
+                text = ' '.join(n.name)
+        else:
+            text = ' '.join(n.name)
+        row.append(text)
+        docs = n.documents
+        for doc in docs:
+            row.append(f"{doc.country} | {doc.title} | {doc.url} | {doc.translated}")
+            row.append(' '.join(doc.named_entities))
+        file.writerow(row)
 
 
 def write_words_to_xl(fname, data):
-    file = csv.writer(open(fname, "w"))
+    file = csv.writer(open(fname, "w"), delimiter=',')
     headers = ['Document', 'Deleted words']
     file.writerow(headers)
 
@@ -394,13 +513,17 @@ if __name__ == '__main__':
 
     db = input("DB name: ")
     table = input("Table name: ")
+    with_lead = input("With lead? ")
+    types = tuple(input("What types? ").split())
 
     if not db:
         db = "day"
     if not table:
         table = "buffer"
+    if with_lead == '':
+        with_lead = False
 
-    c = Corpus(db, table)
+    c = Corpus(db, table, with_lead=with_lead,analyze=types)
     c.find_topics()
     # write_words_to_xl("double_translation.csv", c.data)
     # write_start_words_to_xl("start_words.csv", c.data)
@@ -409,4 +532,6 @@ if __name__ == '__main__':
     t.find_last_topics()
     t.unite_similar_topics()
     write_topics_to_xl(f"{db}-topics.csv", t.last_nodes)
+    f = open("time1.txt","w")
+    f.write(str(time.time()-now))
 

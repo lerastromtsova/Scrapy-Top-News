@@ -39,15 +39,25 @@ COUNTRIES = {'au': 'Australia',
 
 COUNTRIES_R = {y:x for x,y in COUNTRIES.items()}
 
+ENGLISH_SPEAKING = {'au': 'Australia',
+                    'gb': 'Great Britain',
+                    'us': 'USA',}
+
+
 def translate(text, arg=None):
     t = Translator()
+    if arg in ENGLISH_SPEAKING.keys() or arg in ENGLISH_SPEAKING.values():
+        return text
 
-    if arg in COUNTRIES_R.keys():
-        language = COUNTRIES_R[arg]
-        return t.translate(text, language).text
+    try:
+        if arg in COUNTRIES_R.keys():
+            language = COUNTRIES_R[arg]
+            return t.translate(text, language).text
 
-    elif arg in COUNTRIES.keys():
-        language = COUNTRIES[arg]
-        return t.translate(text, language).text
+        elif arg in COUNTRIES.keys():
+            language = COUNTRIES[arg]
+            return t.translate(text, language).text
+    except ValueError:
+        return t.translate(text).text
 
     return t.translate(text).text
