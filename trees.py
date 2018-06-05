@@ -13,7 +13,7 @@ from text_processing.dates import process_dates
 
 class Corpus:
 
-    def __init__(self, db, table, analyze, with_lead=False):
+    def __init__(self, db, table):
 
         self.table = table
         self.conn = sqlite3.connect(f"db/{db}.db")
@@ -22,11 +22,19 @@ class Corpus:
         self.topics = []
         self.data = []
 
+        row = self.c.fetchone()
+        while row is not None:
+            print(type(row))
+            print(row.keys())
+            row = self.c.fetchone()
+
         raw_data = self.c.fetchall()
 
         for row in raw_data:
+            print(type(row))
+            print(row.keys())
+            self.data.append(Document(row, self.conn, table))
 
-            self.data.append(Document(row, self.conn, table, with_lead, analyze))
 
     def find_topics(self):
 
@@ -42,129 +50,70 @@ class Corpus:
 
 class Document:
 
-    def __init__(self, row, conn, table, with_lead=False, analyze=('title', 'lead', 'content')):
+    def __init__(self, row, conn, table):
+
+        types = ('title', 'lead', 'content')
+        self.raw = row
 
         self.country = row[0]
-        self.title = row[1]
-        self.content = ''
-        self.translated = ''
-        self.double_translated = ''
+        self.orig_data = dict.fromkeys(types)
+        self.orig_data['title'] = row[1]
+        self.orig_data['lead'] = row[2]
+        self.orig_data['content'] = row[3]
+        self.url = row[4]
+
+        self.translated = dict.fromkeys(types)
+        self.double_translated = dict.fromkeys(types)
+        self.tokens = dict.fromkeys(types)
+        self.named_entities = dict.fromkeys(types)
+
         self.conn = conn
         self.table = table
 
-        if with_lead:
-            self.lead = row[2]
-            self.url = row[4]
-
-            if 'title' in analyze:
-
-                self.translated_title = row[9]
-                self.double_translated_title = row[10]
-                # self.double_translate('title')
-                self.title_tokens = []
-                for tr in preprocess(self.translated_title):
-                    if tr in preprocess(self.double_translated_title):
-                        self.title_tokens.append(tr)
-
-                parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(self.title_tokens), binary=True)  # POS tagging before chunking!
-                self.title_named_entities = {k[0] for t in parse_tree.subtrees() for k in list(t) if t.label() == 'NE'}
-                self.unite_countries('title')
-                self.find_entities('title')
-                self.unite_countries('title')
-                print(self.title_named_entities)
-
-            if 'lead' in analyze:
-
-                self.translated_lead = row[11]
-                self.double_translated_lead = row[12]
-                # self.double_translate('lead')
-                self.lead_tokens = []
-                for tr in preprocess(self.translated_lead):
-                    if tr in preprocess(self.double_translated_lead):
-                        self.lead_tokens.append(tr)
-
-                parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(self.lead_tokens),
-                                           binary=True)  # POS tagging before chunking!
-                self.lead_named_entities = {k[0] for t in parse_tree.subtrees() for k in list(t) if t.label() == 'NE'}
-                self.unite_countries('lead')
-                self.find_entities('lead')
-                self.unite_countries('lead')
-                print(self.lead_named_entities)
-
-            if 'content' in analyze:
-                self.content += ' '
-                self.content += row[3]
-                if row[6]:  # if content is already translated
-                    self.translated += row[6]
-                else:
-                    self.double_translate(type='content')
-
-            self.date = row[5]
-            self.translated = row[6]
-            self.double_translated = row[7]
-
-        else:
-            if 'title' in analyze:
-                self.content = self.title
-                if row[8]:  # if title is already translated
-                    self.translated += row[8]
-                else:
-                    self.double_translate(type='title')
-            if 'content' in analyze:
-                self.content += ' '
-                self.content += row[2]
-                if row[5]:  # if content is already translated
-                    self.translated += row[5]
-                else:
-                    self.double_translate(type='content')
-            self.content = row[2]
-            self.url = row[3]
-            self.date = row[4]
-            self.translated = row[5]
-            self.double_translated = row[6]
-
-        self.tokens = []
-        self.removed_words = []
-        self.start_words = {}
-        self.conn = conn
-        self.table = table
-
-        for tr in preprocess(self.translated):
-            if tr in preprocess(self.double_translated):
-                self.tokens.append(tr)
-
-        # self.named_entities = {word for word in self.tokens if word[0].isupper()}
-
-        parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(self.tokens), binary=True)  # POS tagging before chunking!
-        self.named_entities = {k[0] for t in parse_tree.subtrees() for k in list(t) if t.label() == 'NE'}
-
-        c = self.conn.cursor()
-        c.execute(f"UPDATE {self.table} SET named_entities=(?) WHERE reference=(?)",
-                      (' '.join(self.named_entities), self.url))
-        self.conn.commit()
-
-        self.unite_countries('content')
-        self.find_entities('content')
-        self.unite_countries('content')
-
+        self.process(types)
         self.dates = process_dates(list(self.tokens)).append(self.date)
 
-    def find_entities(self, type):
+    def process(self,arr_of_types):
 
-        if type == "title":
-            text = re.findall(r"[\w]+|[^\s\w]", self.translated_title)
-        elif type == "lead":
-            text = re.findall(r"[\w]+|[^\s\w]", self.translated_lead)
-        else:
-            text = re.findall(r"[\w]+|[^\s\w]", self.translated)
+        for typ in arr_of_types:
+
+            if typ == 'content':
+                col = 'translated'
+                col1 = 'translated1'
+
+            else:
+                col = f'translated_{typ}'
+                col1 = f'translated1_{typ}'
+
+            if self.raw[col]:
+                self.translated[typ] = self.raw[col]
+            else:
+                self.double_translate(typ)
+
+            if self.raw[col1]:
+                self.double_translated[typ] = self.raw[col1]
+            else:
+                self.double_translate(typ)
+
+            self.tokens[typ] = [word for word in preprocess(self.translated[typ]) if
+                                    word in preprocess(self.double_translated[typ])]
+
+            parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(self.tokens[typ]),
+                                       binary=True)  # POS tagging before chunking!
+
+            self.named_entities[typ] = {k[0] for branch in parse_tree.subtrees() for k in list(branch) if branch.label() == 'NE'}
+            self.unite_countries(typ)
+            self.find_entities(typ)
+            self.unite_countries(typ)
+
+    def find_entities(self, ty):
+
+        text = re.findall(r"[\w]+|[^\s\w]", self.translated[ty])
+
         to_remove = set()
         to_add = set()
-        if type == "title":
-            nes = self.title_named_entities
-        elif type == "lead":
-            nes = self.lead_named_entities
-        else:
-            nes = self.named_entities
+
+        nes = self.named_entities[ty]
 
         for ent1 in nes:
             if ent1 in text:
@@ -182,68 +131,30 @@ class Document:
                             to_remove.add(ent1)
                             to_remove.add(ent2)
 
-        if type == "title":
-            self.title_named_entities = (self.title_named_entities - to_remove) | to_add  # Because we cannot change set while iterating
-        elif type == "lead":
-            self.lead_named_entities = (self.lead_named_entities - to_remove) | to_add  # Because we cannot change set while iterating
-        else:
-            self.named_entities = (self.named_entities - to_remove) | to_add  # Because we cannot change set while iterating
+        self.named_entities[ty] = (self.named_entities[ty] - to_remove) | to_add
 
-    def unite_countries(self, type):
+    def unite_countries(self, ty):
         conn = sqlite3.connect("db/countries.db")
         c = conn.cursor()
         c.execute("SELECT * FROM countries")
         all_rows = c.fetchall()
         to_remove = set()
         to_add = set()
-        if type == 'title':
-            for ent in self.title_named_entities:
+        for ent in self.named_entities[ty]:
                 for row in all_rows:
                     low = [w.lower() for w in row if w is not None]
                     if ent.lower() in low:
                         to_remove.add(ent)
                         to_add.add(row[0])
 
-            self.title_named_entities = (self.title_named_entities - to_remove) | to_add
+        self.named_entities[ty] = (self.title_named_entities[ty] - to_remove) | to_add
 
-        elif type == 'lead':
-            for ent in self.lead_named_entities:
-                for row in all_rows:
-                    low = [w.lower() for w in row if w is not None]
-                    if ent.lower() in low:
-                        to_remove.add(ent)
-                        to_add.add(row[0])
-
-            self.lead_named_entities = (self.lead_named_entities - to_remove) | to_add
-
-        else:
-                for ent in self.named_entities:
-                    for row in all_rows:
-                        low = [w.lower() for w in row if w is not None]
-                        if ent.lower() in low:
-                            to_remove.add(ent)
-                            to_add.add(row[0])
-
-                self.named_entities = (self.named_entities - to_remove) | to_add
-
-    def double_translate(self, type):
+    def double_translate(self, ty):
 
         n = 1500  # length limit
-        if type == "title":
-            text = self.title
-            self.translated_title = ''
-            self.double_translated_title = ''
-
-        if type == "lead":
-            text = self.lead
-            self.translated_lead = ''
-            self.double_translated_lead = ''
-
-        if type == "content":
-            text = self.content
-
-        if not text:
-            return
+        text = self.orig_data[ty]
+        self.translated[ty] = ''
+        self.double_translated[ty] = ''
 
         if "Краткое описание: " in text:
             text = text.split("Краткое описание: ")[1]
@@ -251,34 +162,28 @@ class Document:
         # Split into parts of 1500 before translating
         text = [text[i:i + n] for i in range(0, len(text), n)]
 
-        for t in text:
+        for part in text:
 
-            eng_text = translate(t)
+            eng_text = translate(part)
             orig_text = translate(eng_text, self.country)
             eng1_text = translate(orig_text)
 
-            if type == "title":
-                self.translated_title += ' '.join([self.translated_title, eng_text])
-                self.double_translated_title += ' '.join([self.double_translated_title, eng1_text])
-
-            if type == "lead":
-                self.translated_lead += ' '.join([self.translated_lead, eng_text])
-                self.double_translated_lead += ' '.join([self.double_translated_lead, eng1_text])
-
-            if type == "content":
-                self.translated += ' '.join([self.translated, eng_text])
-                self.double_translated += ' '.join([self.double_translated, eng1_text])
+            self.translated[ty] += ' '
+            self.translated[ty] += eng_text
+            self.double_translated[ty] += ' '
+            self.double_translated[ty] += eng1_text
 
         c = self.conn.cursor()
-        if type == "title":
-            c.execute(f"UPDATE {self.table} SET translated_title=(?), translated1_title=(?) WHERE reference=(?)",
-                  (self.translated_title, self.double_translated_title, self.url))
-        if type == "lead":
-            c.execute(f"UPDATE {self.table} SET translated_lead=(?), translated1_lead=(?) WHERE reference=(?)",
-                  (self.translated_lead, self.double_translated_lead, self.url))
-        if type == "content":
-            c.execute(f"UPDATE {self.table} SET translated=(?), translated1=(?) WHERE reference=(?)",
-                  (self.translated, self.double_translated, self.url))
+        if ty == 'content':
+            col = 'translated'
+            col1 = 'translated1'
+
+        else:
+            col = f'translated_{ty}'
+            col1 = f'translated1_{ty}'
+
+        c.execute(f"UPDATE {self.table} SET {col}=(?), {col1}=(?) WHERE reference=(?)",
+                  (self.translated[ty], self.double_translated[ty], self.url))
         self.conn.commit()
 
 
@@ -617,34 +522,11 @@ def write_topics_to_xl(fname, nodes, with_children=False):
                 text = ' '.join(n.name)
         else:
             text = ' '.join(n.name)
-        sheet.cell(row=i+1, column=1).value = text
+        sheet.cell(row=i+2, column=1).value = text
         docs = n.documents
         for j,doc in enumerate(docs):
-            sheet.cell(row=i+1,column=j+2).value = f"{doc.country} | {doc.title} | {doc.url} | {doc.translated} | {doc.named_entities}"
+            sheet.cell(row=i+2,column=j+2).value = f"{doc.country} | {doc.title} | {doc.url} | {doc.translated} | {doc.named_entities}"
     wb.save(fname)
-
-
-    # file = csv.writer(open(fname, "w"), delimiter=',')
-    # headers = ['Topic', 'News', 'Keywords']
-    # file.writerow(headers)
-    # for n in nodes:
-    #     row = []
-    #     if with_children:
-    #         text = ''
-    #         if n.subtopics:
-    #             for c in n.subtopics:
-    #                 text += ' '.join(c.name)
-    #                 text += ' | '
-    #         else:
-    #             text = ' '.join(n.name)
-    #     else:
-    #         text = ' '.join(n.name)
-    #     row.append(text)
-    #     docs = n.documents
-    #     for doc in docs:
-    #         row.append(f"{doc.country} | {doc.title} | {doc.url} | {doc.translated}")
-    #         row.append(' '.join(doc.named_entities))
-    #     file.writerow(row)
 
 
 def write_words_to_xl(fname, data):
@@ -674,19 +556,13 @@ if __name__ == '__main__':
 
     db = input("DB name: ")
     table = input("Table name: ")
-    with_lead = input("With lead? ")
-    types = tuple(input("What types? ").split())
 
     if not db:
         db = "day"
     if not table:
         table = "buffer"
-    if not with_lead:
-        with_lead = True
-    if not types:
-        types = ('title', 'lead', 'content')
 
-    c = Corpus(db, table, with_lead=with_lead,analyze=types)
+    c = Corpus(db, table)
     c.find_topics()
     # write_words_to_xl("double_translation.csv", c.data)
     # write_start_words_to_xl("start_words.csv", c.data)
@@ -694,7 +570,7 @@ if __name__ == '__main__':
     t = Tree(c)
     t.find_last_topics()
     t.unite_similar_topics()
-    write_topics_to_xl(f"{db}-topics.csv", t.last_nodes)
-    f = open("time1.txt","w")
-    f.write(str(time.time()-now))
+    # write_topics_to_xl(f"{db}-topics.csv", t.last_nodes)
+    # f = open("time1.txt", "w")
+    # f.write(str(time.time()-now))
 
