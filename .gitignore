@@ -9,3 +9,4 @@ env/
 documents/
 topnews.db
 *.csv
+*.xlsx

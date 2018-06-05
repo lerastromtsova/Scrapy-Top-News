@@ -1,10 +1,10 @@
 import re
 import time
-import operator
 
 import nltk
 import sqlite3
 import csv
+import openpyxl
 
 from text_processing.preprocess import preprocess
 from text_processing.translate import translate
@@ -13,7 +13,7 @@ from text_processing.dates import process_dates
 
 class Corpus:
 
-    def __init__(self, db, table, with_lead=False, analyze=('content',)):
+    def __init__(self, db, table, analyze, with_lead=False):
 
         self.table = table
         self.conn = sqlite3.connect(f"db/{db}.db")
@@ -25,6 +25,7 @@ class Corpus:
         raw_data = self.c.fetchall()
 
         for row in raw_data:
+
             self.data.append(Document(row, self.conn, table, with_lead, analyze))
 
     def find_topics(self):
@@ -48,22 +49,48 @@ class Document:
         self.content = ''
         self.translated = ''
         self.double_translated = ''
+        self.conn = conn
+        self.table = table
 
         if with_lead:
             self.lead = row[2]
+            self.url = row[4]
+
             if 'title' in analyze:
-                self.content += self.title
-                if row[9]:  # if title is already translated
-                    self.translated += row[9]
-                else:
-                    self.double_translate(type='title')
+
+                self.translated_title = row[9]
+                self.double_translated_title = row[10]
+                # self.double_translate('title')
+                self.title_tokens = []
+                for tr in preprocess(self.translated_title):
+                    if tr in preprocess(self.double_translated_title):
+                        self.title_tokens.append(tr)
+
+                parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(self.title_tokens), binary=True)  # POS tagging before chunking!
+                self.title_named_entities = {k[0] for t in parse_tree.subtrees() for k in list(t) if t.label() == 'NE'}
+                self.unite_countries('title')
+                self.find_entities('title')
+                self.unite_countries('title')
+                print(self.title_named_entities)
+
             if 'lead' in analyze:
-                self.content += ' '
-                self.content += self.lead
-                if row[11]:  # if lead is already translated
-                    self.translated += row[11]
-                else:
-                    self.double_translate(type='lead')
+
+                self.translated_lead = row[11]
+                self.double_translated_lead = row[12]
+                # self.double_translate('lead')
+                self.lead_tokens = []
+                for tr in preprocess(self.translated_lead):
+                    if tr in preprocess(self.double_translated_lead):
+                        self.lead_tokens.append(tr)
+
+                parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(self.lead_tokens),
+                                           binary=True)  # POS tagging before chunking!
+                self.lead_named_entities = {k[0] for t in parse_tree.subtrees() for k in list(t) if t.label() == 'NE'}
+                self.unite_countries('lead')
+                self.find_entities('lead')
+                self.unite_countries('lead')
+                print(self.lead_named_entities)
+
             if 'content' in analyze:
                 self.content += ' '
                 self.content += row[3]
@@ -71,7 +98,7 @@ class Document:
                     self.translated += row[6]
                 else:
                     self.double_translate(type='content')
-            self.url = row[4]
+
             self.date = row[5]
             self.translated = row[6]
             self.double_translated = row[7]
@@ -116,22 +143,33 @@ class Document:
                       (' '.join(self.named_entities), self.url))
         self.conn.commit()
 
-        self.unite_countries()
-        self.find_entities()
-        self.unite_countries()
+        self.unite_countries('content')
+        self.find_entities('content')
+        self.unite_countries('content')
 
         self.dates = process_dates(list(self.tokens)).append(self.date)
 
-    def find_entities(self):
+    def find_entities(self, type):
 
-        text = re.findall(r"[\w]+|[^\s\w]", self.translated)
+        if type == "title":
+            text = re.findall(r"[\w]+|[^\s\w]", self.translated_title)
+        elif type == "lead":
+            text = re.findall(r"[\w]+|[^\s\w]", self.translated_lead)
+        else:
+            text = re.findall(r"[\w]+|[^\s\w]", self.translated)
         to_remove = set()
         to_add = set()
+        if type == "title":
+            nes = self.title_named_entities
+        elif type == "lead":
+            nes = self.lead_named_entities
+        else:
+            nes = self.named_entities
 
-        for ent1 in self.named_entities:
+        for ent1 in nes:
             if ent1 in text:
                 idx1 = text.index(ent1)
-                entities_except_this = self.named_entities - set(ent1)
+                entities_except_this = nes - set(ent1)
 
                 for ent2 in entities_except_this:
                     if ent2 in text:
@@ -139,40 +177,73 @@ class Document:
                         if ((idx2 - idx1 == 2) and (text[idx1+1] == ' ' or text[idx1+1] == '-'
                                                     or text[idx1+1] == "'" or text[idx1+1] == 'of')) or idx2 - idx1 == 1:
 
-                            united_entity = ' '.join([ent1,ent2])
+                            united_entity = ' '.join([ent1, ent2])
                             to_add.add(united_entity)
                             to_remove.add(ent1)
                             to_remove.add(ent2)
 
-        self.named_entities = (self.named_entities - to_remove) | to_add  # Because we cannot change set while iterating
+        if type == "title":
+            self.title_named_entities = (self.title_named_entities - to_remove) | to_add  # Because we cannot change set while iterating
+        elif type == "lead":
+            self.lead_named_entities = (self.lead_named_entities - to_remove) | to_add  # Because we cannot change set while iterating
+        else:
+            self.named_entities = (self.named_entities - to_remove) | to_add  # Because we cannot change set while iterating
 
-    def unite_countries(self):
-
+    def unite_countries(self, type):
         conn = sqlite3.connect("db/countries.db")
         c = conn.cursor()
         c.execute("SELECT * FROM countries")
         all_rows = c.fetchall()
         to_remove = set()
         to_add = set()
+        if type == 'title':
+            for ent in self.title_named_entities:
+                for row in all_rows:
+                    low = [w.lower() for w in row if w is not None]
+                    if ent.lower() in low:
+                        to_remove.add(ent)
+                        to_add.add(row[0])
 
-        for ent in self.named_entities:
-            for row in all_rows:
-                low = [w.lower() for w in row if w is not None]
-                if ent.lower() in low:
-                    to_remove.add(ent)
-                    to_add.add(row[0])
+            self.title_named_entities = (self.title_named_entities - to_remove) | to_add
 
-        self.named_entities = (self.named_entities - to_remove) | to_add
+        elif type == 'lead':
+            for ent in self.lead_named_entities:
+                for row in all_rows:
+                    low = [w.lower() for w in row if w is not None]
+                    if ent.lower() in low:
+                        to_remove.add(ent)
+                        to_add.add(row[0])
+
+            self.lead_named_entities = (self.lead_named_entities - to_remove) | to_add
+
+        else:
+                for ent in self.named_entities:
+                    for row in all_rows:
+                        low = [w.lower() for w in row if w is not None]
+                        if ent.lower() in low:
+                            to_remove.add(ent)
+                            to_add.add(row[0])
+
+                self.named_entities = (self.named_entities - to_remove) | to_add
 
     def double_translate(self, type):
 
         n = 1500  # length limit
         if type == "title":
             text = self.title
+            self.translated_title = ''
+            self.double_translated_title = ''
+
         if type == "lead":
             text = self.lead
+            self.translated_lead = ''
+            self.double_translated_lead = ''
+
         if type == "content":
             text = self.content
+
+        if not text:
+            return
 
         if "Краткое описание: " in text:
             text = text.split("Краткое описание: ")[1]
@@ -186,11 +257,27 @@ class Document:
             orig_text = translate(eng_text, self.country)
             eng1_text = translate(orig_text)
 
-            self.translated += ' '.join([self.translated, eng_text])
-            self.double_translated += ' '.join([self.double_translated, eng1_text])
+            if type == "title":
+                self.translated_title += ' '.join([self.translated_title, eng_text])
+                self.double_translated_title += ' '.join([self.double_translated_title, eng1_text])
+
+            if type == "lead":
+                self.translated_lead += ' '.join([self.translated_lead, eng_text])
+                self.double_translated_lead += ' '.join([self.double_translated_lead, eng1_text])
+
+            if type == "content":
+                self.translated += ' '.join([self.translated, eng_text])
+                self.double_translated += ' '.join([self.double_translated, eng1_text])
 
         c = self.conn.cursor()
-        c.execute(f"UPDATE {self.table} SET translated=(?), translated1=(?) WHERE reference=(?)",
+        if type == "title":
+            c.execute(f"UPDATE {self.table} SET translated_title=(?), translated1_title=(?) WHERE reference=(?)",
+                  (self.translated_title, self.double_translated_title, self.url))
+        if type == "lead":
+            c.execute(f"UPDATE {self.table} SET translated_lead=(?), translated1_lead=(?) WHERE reference=(?)",
+                  (self.translated_lead, self.double_translated_lead, self.url))
+        if type == "content":
+            c.execute(f"UPDATE {self.table} SET translated=(?), translated1=(?) WHERE reference=(?)",
                   (self.translated, self.double_translated, self.url))
         self.conn.commit()
 
@@ -219,7 +306,7 @@ class Node:
         for doc in my_free_words:
             for d in par_free_words:
                 if doc.intersection(d):
-                    connection+=1
+                    connection += 1
 
         if my_free_words and par_free_words:
             percent_of_connected = connection/(len(my_free_words)*len(par_free_words))
@@ -285,7 +372,7 @@ class Tree:
                     node.assign_child(other_node)
 
         self.roots = [n for n in self.nodes if n.isroot()]
-        write_topics_to_xl("корневые темы.csv",self.roots)
+        write_topics_to_xl("корневые темы.xlsx",self.roots)
         self.last_nodes = set()
 
     def assign_documents(self,corpus):
@@ -300,23 +387,45 @@ class Tree:
             x = check_free([root])
             if x:
                 self.last_nodes.add(x)
-        write_topics_to_xl("после обрезания.csv", self.last_nodes)
+        write_topics_to_xl("после обрезания.xlsx", self.last_nodes)
 
     def unite_similar_topics(self):
+
+        # to_remove = self.delete_subsets()
+        #
+        # self.last_nodes -= to_remove
+        # write_topics_to_xl("удалили дубликаты.xlsx", self.last_nodes)
         to_remove = set()
 
-        for n in self.last_nodes:
-            other_nodes = self.last_nodes - {n}
-            for on in other_nodes:
-                if n.name.issubset(on.name):
-                    to_remove.add(n)
+        # Это проверка
 
-        self.last_nodes -= to_remove
-        write_topics_to_xl("удалили дубликаты.csv", self.last_nodes)
+        # for node in self.last_nodes:
+        #     percent = 0
+        #     for doc in node.documents:
+        #         nes = doc.title_named_entities|doc.lead_named_entities
+        #         if nes.intersection(node.name):
+        #             percent += 1
+        #     percent /= len(node.documents)
+        #     if percent < 0.5:
+        #         to_remove.add(node)
+        #
+        # self.last_nodes -= to_remove
+        # write_topics_to_xl("правило 50%.xlsx", self.last_nodes)
 
         tr_1, ta_1 = self.add_and_remove(principle="country")
         self.last_nodes = (self.last_nodes-tr_1)|ta_1
-        write_topics_to_xl("после объединения.csv", self.last_nodes, with_children=True)
+
+        to_remove = self.delete_subsets()
+
+        self.last_nodes -= to_remove
+
+        write_topics_to_xl("после объединения.xlsx", self.last_nodes, with_children=True)
+
+        for node in self.last_nodes:
+            print(node.name)
+            print(len(node.documents))
+            for d in node.documents:
+                print(d.title)
 
 
 
@@ -356,19 +465,25 @@ class Tree:
         #
         # write_topics_to_xl("3.csv", self.last_nodes, with_children=True)
 
+    def delete_subsets(self):
+        to_remove = set()
+
+        for n in self.last_nodes:
+            other_nodes = self.last_nodes - {n}
+            for on in other_nodes:
+                if n.name.issubset(on.name) and on not in to_remove:
+                    to_remove.add(n)
+
+        return to_remove
+
     def add_and_remove(self,principle):
-        all_links = dict.fromkeys(list(self.last_nodes),{})
+        all_links = []
         to_remove = set()
         to_add = set()
 
         for node in self.last_nodes:
             countries = {d.country for d in node.documents}
             nodes_except_this = self.last_nodes - {node}
-            news = dict.fromkeys(countries,set())
-            for k in news.keys():
-                for doc in node.documents:
-                    if doc.country == k:
-                        news[k].add(doc)
 
             for other_node in nodes_except_this:
 
@@ -418,31 +533,36 @@ class Tree:
                 # percent_1 /= len(news.keys())
                 # percent_2 /= len(other_news.keys())
                 if percent_1 > 0.5 and percent_2 > 0.5:
-
-                        all_links[node][other_node] = percent_1
+                        all_links.append((node,other_node,percent_1*percent_2))
 
         for node in self.last_nodes:
             try:
-                print(node.name)
-                for k,m in all_links[node].items():
-                    print(k.name)
-                    print(m)
-                maximum_similarity_node = max(all_links[node].items(), key=operator.itemgetter(1))[0]
+                l = []
+                for a in all_links:
+                    if a[0] == node:
+                        l.append((a[1],a[2]))
 
-                del all_links[node][maximum_similarity_node]
-                try:
-                    del all_links[maximum_similarity_node]
-                    new_node = Node(node.name | maximum_similarity_node.name)
-                    new_node.children = [node, maximum_similarity_node]
-                    new_node.subtopics = [node, maximum_similarity_node]
-                    new_node.documents.extend(node.documents)
-                    new_node.documents.extend([doc for doc in maximum_similarity_node.documents if doc not in new_node.documents])
-                    to_remove.add(node)
-                    to_remove.add(maximum_similarity_node)
-                    to_add.add(new_node)
-                except KeyError:
-                    continue
-            except KeyError:
+                max_value = max(l, key=lambda x: x[1])[1]
+                max_sim_nodes = [s[0] for s in l if s[1]==max_value]
+                name = node.name
+                subtopics = []
+                documents = node.documents
+                to_remove.add(node)
+
+                for msn in max_sim_nodes:
+                    name |= msn.name
+                    subtopics.append(msn)
+                    documents.extend(msn.documents)
+
+                    to_remove.add(msn)
+
+                new_node = Node(name)
+                new_node.subtopics = subtopics
+                new_node.documents = list(set(documents))
+                to_add.add(new_node)
+
+                # new_node.children = [node, maximum_similarity_node]
+            except ValueError:
                 continue
 
         return to_remove, to_add
@@ -462,12 +582,31 @@ def check_free(nodes):
                     return gch
 
 
-def write_topics_to_xl(fname, nodes, with_children=False):
-    file = csv.writer(open(fname, "w"), delimiter=',')
-    headers = ['Topic', 'News', 'Keywords']
-    file.writerow(headers)
+def check_xl(nodes,all_links):
+    file = csv.writer(open("t.csv", "w"), delimiter=',')
+
     for n in nodes:
-        row = []
+        countries = {d.country for d in n.documents}
+        row = [f"{n.name} | {countries}"]
+        for k,m in all_links[n].items():
+            row.append(f"{k.name} | {m} | {' '.join({d.country for d in k.documents})}")
+            cd = set(n.documents).intersection(set(k.documents))
+            cc = {d.country for d in cd}
+            perc = len(cc)/len(countries)
+            row.append(perc)
+            row.append(cc)
+            tex = ' | '.join([d.title for d in cd])
+            row.append(tex)
+        file.writerow(row)
+
+
+def write_topics_to_xl(fname, nodes, with_children=False):
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    sheet['A1'] = 'Topic'
+    sheet['B1'] = 'News'
+    sheet['C1'] = 'Keywords'
+    for i,n in enumerate(nodes):
         if with_children:
             text = ''
             if n.subtopics:
@@ -478,12 +617,34 @@ def write_topics_to_xl(fname, nodes, with_children=False):
                 text = ' '.join(n.name)
         else:
             text = ' '.join(n.name)
-        row.append(text)
+        sheet.cell(row=i+1, column=1).value = text
         docs = n.documents
-        for doc in docs:
-            row.append(f"{doc.country} | {doc.title} | {doc.url} | {doc.translated}")
-            row.append(' '.join(doc.named_entities))
-        file.writerow(row)
+        for j,doc in enumerate(docs):
+            sheet.cell(row=i+1,column=j+2).value = f"{doc.country} | {doc.title} | {doc.url} | {doc.translated} | {doc.named_entities}"
+    wb.save(fname)
+
+
+    # file = csv.writer(open(fname, "w"), delimiter=',')
+    # headers = ['Topic', 'News', 'Keywords']
+    # file.writerow(headers)
+    # for n in nodes:
+    #     row = []
+    #     if with_children:
+    #         text = ''
+    #         if n.subtopics:
+    #             for c in n.subtopics:
+    #                 text += ' '.join(c.name)
+    #                 text += ' | '
+    #         else:
+    #             text = ' '.join(n.name)
+    #     else:
+    #         text = ' '.join(n.name)
+    #     row.append(text)
+    #     docs = n.documents
+    #     for doc in docs:
+    #         row.append(f"{doc.country} | {doc.title} | {doc.url} | {doc.translated}")
+    #         row.append(' '.join(doc.named_entities))
+    #     file.writerow(row)
 
 
 def write_words_to_xl(fname, data):
@@ -520,8 +681,10 @@ if __name__ == '__main__':
         db = "day"
     if not table:
         table = "buffer"
-    if with_lead == '':
-        with_lead = False
+    if not with_lead:
+        with_lead = True
+    if not types:
+        types = ('title', 'lead', 'content')
 
     c = Corpus(db, table, with_lead=with_lead,analyze=types)
     c.find_topics()
