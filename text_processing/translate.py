@@ -47,20 +47,21 @@ ENGLISH_SPEAKING = {'au': 'Australia',
 def translate(text, arg=None):
     try:
         t = Translator()
-        if arg in ENGLISH_SPEAKING.keys() or arg in ENGLISH_SPEAKING.values():
-            return text
 
         try:
             if arg in COUNTRIES_R.keys():
                 language = COUNTRIES_R[arg]
-                return t.translate(text, language).text
+                return t.translate(text, dest=language).text
 
             elif arg in COUNTRIES.keys():
-                language = COUNTRIES[arg]
-                return t.translate(text, language).text
+                language = arg
+                return t.translate(text, dest=language).text
         except ValueError:
             return t.translate(text).text
 
         return t.translate(text).text
     except json.decoder.JSONDecodeError:
-        return ''
+        print("Error")
+        return text
+
+

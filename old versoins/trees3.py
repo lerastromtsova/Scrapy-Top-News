@@ -235,7 +235,7 @@ class Node:
             # descr.extend(document.tokens['lead'])lead
             descr = set(document.tokens['title']) | set(document.tokens['lead'])
 
-            if type=='lowercase':
+            if type == 'lowercase':
                 parse_tree = nltk.ne_chunk(nltk.tag.pos_tag(descr),
                                            binary=True)  # POS tagging before chunking!
 
@@ -245,13 +245,17 @@ class Node:
 
             for word in descr:
 
-                if word in freq_words.keys():
-                    freq_words[word] +=1
-                else:
-                    freq_words[word] = 1
+                countries = {d.country for d in self.documents if word in d.tokens['lead'] or word in d.tokens['title']}
+                if len(countries) >= 2:
+
+                    if word in freq_words.keys():
+                        freq_words[word] += 1
+                    else:
+                        freq_words[word] = 1
+
         if freq_words:
             maxval = max(freq_words.values())
-            result = {key:value for key,value in freq_words.items() if value==maxval}
+            result = {key: value for key, value in freq_words.items() if value == maxval}
             return result
         else:
             return freq_words
@@ -316,8 +320,10 @@ class Tree:
                     node.assign_child(other_node)
 
         self.roots = [n for n in self.nodes if n.isroot()]
-        write_topics_to_xl("корневые темы.xlsx", self.roots)
+        self.leaves = [n for n in self.nodes if n.isleaf()]
+        write_topics_to_xl("0.xlsx", self.roots)
         self.last_nodes = set()
+        # self.last_nodes = set(self.roots)
 
     def assign_documents(self, corpus):
 
@@ -327,107 +333,94 @@ class Tree:
                     node.add_document(doc)
 
     def find_last_topics(self):
-        for root in self.roots:
-            x = check_free([root])
-            if x:
-                self.last_nodes.add(x)
-        write_topics_to_xl("после отсекания.xlsx", self.last_nodes)
+
+        for node in self.roots:
+            name, docs = get_all_in_strings(node, [], set())
+            new_node = Node(name)
+            new_node.documents = docs
+            self.last_nodes.add(new_node)
+        write_topics_to_xl("3-2.xlsx", self.last_nodes)
+        write_tz(self)
 
 
-    # def unite_similar_topics(self):
+    def unite_similar_topics(self):
 
-        # to_remove = self.delete_subsets()
-        #
-        # self.last_nodes -= to_remove
-        # write_topics_to_xl("удалили дубликаты.xlsx", self.last_nodes)
-        # to_remove = set()
+        to_remove = set()
 
-        # Это проверка
+        for n in self.roots:
+            frequent_words_dict = n.find_most_frequent(type='uppercase')
 
-        # for node in self.last_nodes:
-        #     percent = 0
-        #     for doc in node.documents:
-        #         nes = doc.title_named_entities|doc.lead_named_entities
-        #         if nes.intersection(node.name):
-        #             percent += 1
-        #     percent /= len(node.documents)
-        #     if percent < 0.5:
-        #         to_remove.add(node)
-        #
-        # self.last_nodes -= to_remove
-        # write_topics_to_xl("правило 50%.xlsx", self.last_nodes)
-        # to_remove = set()
-        #
-        # for n in self.last_nodes:
-        #     frequent_words_dict = self.find_most_frequent(n)
-        #     if any(k < 0.5*len(n.documents) for k in frequent_words_dict.values()):
-        #         to_remove.add(n)
-        #     else:
-        #         rest = []
-        #
-        #         for d in n.documents:
-        #             for w in frequent_words_dict.values():
-        #                 if w not in d.tokens['title'] and w not in d.tokens['lead']:
-        #                     rest.append(d)
-        #                     continue
-        #
-        #         has_these_words = [d for d in n.documents if d not in rest]
-        #
-        #         for doc in rest:
-        #             perc = 0
-        #             for doc1 in has_these_words:
-        #                 if set(doc.tokens['title']).intersection(set(doc1.tokens['title'])):
-        #                     perc +=1
-        #             perc /= len(has_these_words)
-        #             if perc < 0.5:
-        #                 n.documents.remove(doc)
-        #
-        # self.last_nodes -= to_remove
-        #
-        # write_topics_to_xl("проверка.xlsx", self.last_nodes, with_children=True)
-        #
-        # tr_1, ta_1 = self.add_and_remove(principle="country")
-        # self.last_nodes = (self.last_nodes - tr_1) | ta_1
-        # to_remove = self.delete_subsets()
-        # self.last_nodes -= to_remove
-        #
-        # write_topics_to_xl("после объединения.xlsx", self.last_nodes, with_children=True)
+            if any(k < 0.5 * len(n.documents) for k in frequent_words_dict.values()):
+                print("Removed: ", n.name)
+                to_remove.add(n)
+            elif not frequent_words_dict.values():
+                print("Removed: ", n.name)
+                to_remove.add(n)
+            else:
+                print("Not removed: ",n.name)
+                has_these_words = []
+                print(frequent_words_dict)
 
-        # nodes = sorted(list(self.last_nodes), key=lambda n: len(n.name))
-        # old_nodes = self.last_nodes
-        #
-        # while old_nodes:
-        #     to_remove = set()
-        #     to_add = set()
-        #
-        #     for node in self.last_nodes:
-        #         other_nodes = self.last_nodes-{node}
-        #
-        #         for other_node in other_nodes:
-        #             if all(elem in node.documents for elem in other_node.documents):  #node contains all of other_node
-        #                 new_node = Node(node.name | other_node.name)
-        #                 new_node.subtopics = [node, other_node]
-        #                 new_node.documents = node.documents
-        #                 old_nodes.remove(node)
-        #                 old_nodes.remove(other_node)
-        #                 # to_remove.add(node)
-        #                 # to_remove.add(other_node)
-        #                 # to_add.add(new_node)
-        #             if node.name.issubset(other_node.name):
-        #                 # to_remove.add(node)
-        #                 # to_remove.add(other_node)
-        #                 old_nodes.remove(node)
-        #                 old_nodes.remove(other_node)
-        #                 new_node = Node(node.name & other_node.name)
-        #                 new_node.documents = []
-        #                 new_node.documents.extend(node.documents)
-        #                 new_node.documents.extend([doc for doc in other_node.documents if doc not in new_node.documents])
-        #                 to_add.add(new_node)
-        #
-        #     self.last_nodes = (self.last_nodes - to_remove) | to_add
-        #     print(len(old_nodes))
-        #
-        # write_topics_to_xl("3.csv", self.last_nodes, with_children=True)
+                for d in n.documents:
+                    for w in frequent_words_dict.keys():
+                        if w in d.tokens['title'] or w in d.tokens['lead']:
+                            has_these_words.append(d)
+                            continue
+
+                rest = [d for d in n.documents if d not in has_these_words]
+                print(len(has_these_words))
+                print(len(rest))
+
+                for doc in rest:
+                    perc = 0
+                    for doc1 in has_these_words:
+                        common_words = set(doc.tokens['title']).intersection(set(doc1.tokens['title']))
+                        potential_words = common_words - set(frequent_words_dict.keys())
+                        if not potential_words:
+                            if doc in n.documents:
+                                n.documents.remove(doc)
+
+            countries = {d.country for d in n.documents}
+            if len(countries) == 1:
+                to_remove.add(n)
+
+        self.roots = [r for r in self.roots if r not in to_remove]
+        write_topics_with_freq("3-1.xlsx", self.roots, with_children=False)
+
+    def unite_by_countries(self):
+        most_similar = []
+
+        while self.last_nodes:
+            node = self.last_nodes.pop()
+            others = self.last_nodes - {node}
+            similar = [node]
+            while others:
+                other = others.pop()
+
+                common_docs = [nd for nd in node.documents for od in other.documents if
+                               nd.translated['title'] == od.translated['title']]
+                common_countries = {cd.country for cd in common_docs}
+                if len(common_countries) >= 2:
+                    self.last_nodes.remove(other)
+                    similar.append(other)
+                    print(node.name, other.name)
+            most_similar.append(similar)
+
+        for ms in most_similar:
+            name = set()
+            docs = set()
+            subtopics = []
+            for s in ms:
+                name |= set(s.name)
+                docs |= set(s.documents)
+                subtopics.append(s)
+
+            node = Node(name)
+            node.documents = docs
+            node.subtopics = subtopics
+            self.last_nodes.add(node)
+
+        write_topics_to_xl("3-3.xlsx", self.last_nodes, with_children=True)
 
     def delete_subsets(self):
         to_remove = set()
@@ -453,51 +446,13 @@ class Tree:
 
             for other_node in nodes_except_this:
 
-                # if principle == "documents":
-                #     common_documents = set(node.documents).intersection(set(other_node.documents))
-                #     percent_1 = len(common_documents) / len(node.documents)
-                #     percent_2 = len(common_documents) / len(other_node.documents)
-                #     if percent_1 >= 0.5 and percent_2 >= 0.5:
-                #         print(node.name, other_node.name)
-                #         for cd in common_documents:
-                #             print(translate(cd.title))
-                #         print(percent_1, percent_2)
-                #         all_links[node][other_node] = percent_1
-                # elif principle == 'country':
-
                 other_countries = {d.country for d in other_node.documents}
 
                 common_documents = set(node.documents).intersection(set(other_node.documents))
                 common_countries = {d.country for d in common_documents}
                 percent_1 = len(common_countries) / len(countries)
                 percent_2 = len(common_countries) / len(other_countries)
-                # if common_countries:
-                #     print(node.name, other_node.name)
-                #     print(countries)
-                #     print(other_countries)
-                #     print(percent_1)
-                #     print(percent_2)
-                #     for cd in common_documents:
-                #         print(cd.title)
 
-                # other_news = dict.fromkeys(other_countries, set())
-                # for k in other_news.keys():
-                #         for doc in node.documents:
-                #             if doc.country == k:
-                #                 other_news[k].add(doc)
-                #         if k in news.keys():
-                #             print(node.name)
-                #             print(other_node.name)
-                #             l = [doc.title for doc in news[k] if doc in other_news[k]]
-                #             print(l)
-                #             if l:
-                #
-                #                 percent_1 += 1
-                #                 percent_2 += 1
-                #                 continue
-
-                # percent_1 /= len(news.keys())
-                # percent_2 /= len(other_news.keys())
                 if percent_1 > 0.5 and percent_2 > 0.5:
                         all_links.append((node, other_node, percent_1*percent_2))
 
@@ -569,6 +524,36 @@ def check_xl(nodes, all_links):
         file.writerow(row)
 
 
+def write_topics_with_freq(fname, nodes, with_children=False):
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    sheet['A1'] = 'Topic'
+    sheet['B1'] = 'News'
+    sheet['C1'] = 'Keywords'
+    for i, n in enumerate(nodes):
+        if with_children:
+            text = ''
+            if n.subtopics:
+                for c in n.subtopics:
+                    text += ' {'.join(c.name)
+                    text += ' | '
+            else:
+                text = ' '.join(n.name)
+        else:
+            text = ' '.join(n.name)
+        freq_words = n.find_most_frequent(type="uppercase")
+        for word, val in freq_words.items():
+            t = f"|{word}:{val}|"
+            text += t
+        sheet.cell(row=i+2, column=1).value = text
+        docs = n.documents
+        for j, doc in enumerate(docs):
+            sheet.cell(row=i+2, column=j+2).value = f"{doc.country} | {doc.translated['title']} | " \
+                                                    f"{doc.translated['lead']} | {doc.url} | {doc.translated['content']} " \
+                                                    f"| {doc.named_entities['title']} | {doc.named_entities['content']}"
+    wb.save(fname)
+
+
 def write_topics_to_xl(fname, nodes, with_children=False):
     wb = openpyxl.Workbook()
     sheet = wb.active
@@ -588,9 +573,28 @@ def write_topics_to_xl(fname, nodes, with_children=False):
             text = ' '.join(n.name)
         sheet.cell(row=i+2, column=1).value = text
         docs = n.documents
-        for j,doc in enumerate(docs):
+        for j, doc in enumerate(docs):
             sheet.cell(row=i+2, column=j+2).value = f"{doc.country} | {doc.translated['title']} | {doc.translated['lead']} | {doc.url} | {doc.translated['content']} | {doc.named_entities['title']} | {doc.named_entities['content']}"
     wb.save(fname)
+
+
+def write_tz(tree):
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    for i, node in enumerate(tree.roots):
+        texts, _ = get_all_in_strings(node, [], set())
+        for j, text in enumerate(texts):
+            sheet.cell(row=i+1, column=j+1).value = text
+    wb.save("tz-today.xlsx")
+
+
+def get_all_in_strings(node, prev, docs):
+    docs.update(node.documents)
+    prev.append(f"{node.name} | {len(node.documents)}")
+    for ch in node.children:
+        if ch.children:
+            get_all_in_strings(ch, prev, docs)
+    return prev, docs
 
 
 def write_words_to_xl(fname, data):
@@ -618,8 +622,8 @@ if __name__ == '__main__':
 
     now = time.time()
 
-    db = input("DB name: ")
-    table = input("Table name: ")
+    db = input("DB name (default - day): ")
+    table = input("Table name (default - buffer): ")
 
     if not db:
         db = "day"
@@ -632,8 +636,9 @@ if __name__ == '__main__':
     # write_start_words_to_xl("start_words.csv", c.data)
 
     t = Tree(c)
+    t.unite_similar_topics()
     t.find_last_topics()
-    # t.unite_similar_topics()
+    t.unite_by_countries()
     # write_topics_to_xl(f"{db}-topics.csv", t.last_nodes)
-    # f = open("time1.txt", "w")
-    # f.write(str(time.time()-now))
+    f = open("time1.txt", "w")
+    f.write(str(time.time()-now))

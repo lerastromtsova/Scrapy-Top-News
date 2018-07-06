@@ -82,8 +82,11 @@ def process_dates(text):
                 except IndexError:
                     pass
 
-                if day and year:
-                    dates.append((str(day),str(month),str(year)))
+                if day:
+                    if not year:
+                        dates.append(f"{str(day)}.{str(month)}.2018")
+                    else:
+                        dates.append(f"{str(day)}.{str(month)}.{str(year)}")
 
     return dates
 

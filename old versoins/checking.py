@@ -111,17 +111,20 @@ while nodes:
             text.extend(doc.tokens['lead'])
             if any([word in text for word in freq_words_1]):
                 percent1 += 1
-        percent1 /= len(on.documents)
-        for doc in n.documents:
-            text = []
-            text.extend(doc.tokens['title'])
-            text.extend(doc.tokens['lead'])
-            if any([word in text for word in freq_words_2]):
-                percent2 += 1
-        percent2 /= len(n.documents)
-        if percent1 > 0.5 and percent2>0.5:
-            nodes.remove(on)
-            similar.append(on)
+
+        if on.documents:
+            percent1 /= len(on.documents)
+            for doc in n.documents:
+                text = []
+                text.extend(doc.tokens['title'])
+                text.extend(doc.tokens['lead'])
+                if any([word in text for word in freq_words_2]):
+                    percent2 += 1
+            if n.documents:
+                percent2 /= len(n.documents)
+                if percent1 > 0.5 and percent2>0.5:
+                    nodes.remove(on)
+                    similar.append(on)
     most_similar.append(similar)
 
 
