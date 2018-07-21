@@ -171,6 +171,10 @@ def write_rows_title(fname, similarities):
 def write_topics(fname, topics):
     wb = openpyxl.Workbook()
     sheet = wb.active
+    sheet.cell(row=1, column=1).value = "Topic"
+    sheet.cell(row=1, column=2).value = "Unique"
+    sheet.cell(row=1, column=3).value = "Check"
+    sheet.cell(row=1, column=4).value = "News"
 
     for i, topic in enumerate(topics):
         if topic.subtopics:
@@ -179,12 +183,12 @@ def write_topics(fname, topics):
                 name += f"{', '.join(s.name)} | {s.text_name} |"
         else:
             name = f"{' '.join(topic.name)} | {topic.text_name}"
-        sheet.cell(row=i+1, column=1).value = name
-        sheet.cell(row=i + 1, column=2).value = ', '.join(topic.new_name)
-        sheet.cell(row=i + 1, column=3).value = ', '.join(topic.main_words)
+        sheet.cell(row=i + 2, column=1).value = name
+        sheet.cell(row=i + 2, column=2).value = ', '.join(topic.new_name)
+        sheet.cell(row=i + 2, column=3).value = ', '.join(topic.main_words)
         for j, doc in enumerate(topic.news):
 
-            sheet.cell(row=i+1, column=j+4).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+            sheet.cell(row=i+2, column=j+4).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                f"{doc.translated['lead']} | " \
                                                f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
 

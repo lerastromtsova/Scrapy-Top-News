@@ -2,8 +2,19 @@ from descr import CorpusD, count_countries, count_not_countries
 from content import CorpusC
 from content import Topic
 from xl_stats import write_topics
+import cProfile
 
+def profile(func):
+    """Decorator for run function profile"""
+    def wrapper(*args, **kwargs):
+        profile_filename = func.__name__ + '.txt'
+        profiler = cProfile.Profile()
+        result = profiler.runcall(func, *args, **kwargs)
+        profiler.dump_stats(profile_filename)
+        return result
+    return wrapper
 
+@profile
 def similar(topics):
 
     new_topics = list()
@@ -68,6 +79,7 @@ def similar(topics):
 
                     except ZeroDivisionError:
                         continue
+
             new_topic = Topic(t.name, init_news=t.news)
             for s in similar:
                 new_topic.name.update(s.name)
@@ -84,16 +96,28 @@ def similar(topics):
 
 def give_news(topics, rows):
     for row in rows:
-        for topic in topics:
-            percent1 = len(topic.name.intersection(row.named_entities['content']))/len(topic.name)
-            percent2 = len(topic.name.intersection(row.description))/len(topic.name)
-            percent3 = len(topic.main_words.intersection(row.named_entities['content']))/len(topic.name)
-            percent4 = len(topic.main_words.intersection(row.description)) / len(topic.name)
 
-            keywords = {w for w in topic.unique_words if w in row.description}
-            if (percent1 > 0.5 and percent3 > 0.5 or percent2 > 0.5 and percent4 > 0.5) and len(keywords) >= 1:
-                if row not in topic.news:
-                    topic.news.append(row)
+        for topic in topics:
+
+            for new in topic.news:
+                cw_all = row.all_text.intersection(new.all_text)
+                cw_unique = {w for w in cw_all if w in topic.new_name}
+
+                if count_countries(cw_all)>=1 and len(cw_unique)>=1 and count_not_countries(cw_all-cw_unique)>=2:
+
+                    if row not in topic.news:
+
+                        topic.news.append(row)
+
+            # keywords = {w for w in topic.unique_words if w in row.description}
+            # if (percent1 > 0.5 and percent3 > 0.5 or percent2 > 0.5 and percent4 > 0.5) and len(keywords) >= 1:
+            #     if row not in topic.news:
+            #         topic.news.append(row)
+    for topic in topics:
+        topic.news = delete_dupl_from_news(topic.news)
+
+    topics = delete_duplicates(topics)
+
     return topics
 
 def assign_news(topics, rows):
@@ -108,7 +132,7 @@ def assign_news(topics, rows):
             topic.subtopics = []
 
     for topic in topics:
-        topic.news = list(set(topic.news))
+        topic.news = delete_dupl_from_news(topic.news)
     return topics
 
 
@@ -117,14 +141,52 @@ def delete_duplicates(topics):
     to_remove = set()
     to_add = set()
 
-    for t in topics:
-        others = [to for to in topics if t.name != to.name]
-        for o in others:
-            if set(o.news) == set(t.news):
-                if o in new_topics and t in new_topics:
-                    new_topics.remove(t)
+    for i,t in enumerate(topics):
+        if t:
+            others = [to for to in topics if to is not None]
+            others = [to for to in others if t != to]
+            ids = {new.id for new in t.news}
+            for o in others:
+                if o:
+                    other_ids = {n.id for n in o.news}
+                    if ids == other_ids:
+                        print(ids)
+                        topics[i] = None
+    topics = [t for t in topics if t is not None]
+    return topics
 
-    return new_topics
+
+def redefine_unique(topics):
+    for topic in topics:
+        other_topics = [t for t in topics if t != topic]
+        for ot in other_topics:
+            cw = topic.name.intersection(ot.name)
+            percent1 = len(cw) / len(topic.name)
+            percent2 = len(cw) / len(ot.name)
+            cw2 = topic.main_words.intersection(ot.main_words)
+            percent3 = len(cw2) / len(topic.main_words)
+            percent4 = len(cw2) / len(ot.main_words)
+
+            if count_countries(cw) >= 1 and percent1 > 0.5 and percent2 > 0.5 and percent3 > 0.5 and percent4 > 0.5:
+                continue
+            else:
+                topic.new_name -= cw
+
+    to_remove = set()
+    for topic in topics:
+        if len(topic.new_name) < 2 or count_not_countries(topic.new_name) == 0:
+            to_remove.add(topic)
+
+    topics = [t for t in topics if t not in to_remove]
+    return topics
+
+def delete_dupl_from_news(news_list):
+    new = list()
+    for n in news_list:
+        ids = {i.id for i in new}
+        if n.id not in ids:
+            new.append(n)
+    return new
 
 
 db = input("DB name (default - day): ")
@@ -138,14 +200,14 @@ if not table:
 
 c_descr = CorpusD(db, table)
 c_descr.find_topics()
-# write_topics("0-краткое.xlsx", c_descr.topics)
+#write_topics("0-краткое.xlsx", c_descr.topics)
 c_descr.delete_small()
-# write_topics("1-краткое.xlsx", c_descr.topics)
+#write_topics("1-краткое.xlsx", c_descr.topics)
 c_descr.check_unique()
-# write_topics("2-краткое.xlsx", c_descr.topics)
+#write_topics("2-краткое.xlsx", c_descr.topics)
 c_descr.topics = [t for t in c_descr.topics if t.isvalid()]
-# write_topics("3-краткое.xlsx", c_descr.topics)
-c_descr.final_delete()
+#write_topics("3-краткое.xlsx", c_descr.topics)
+# c_descr.final_delete()
 # write_topics("4-краткое.xlsx", c_descr.topics)
 
 c_content = CorpusC(db, table)
@@ -161,13 +223,18 @@ c_content.topics = [t for t in c_content.topics if t.isvalid()]
 
 all_topics = c_descr.topics
 all_topics.extend(c_content.topics)
-all_topics = give_news(all_topics, c_descr.data)
+
 
 write_topics("0.xlsx", all_topics)
 
-all_topics = similar(all_topics)
-all_topics = delete_duplicates(all_topics)
+all_topics = redefine_unique(all_topics)
+all_topics = give_news(all_topics, c_descr.data)
+write_topics("1.xlsx", all_topics)
 
+all_topics = similar(all_topics)
+write_topics("2.xlsx", all_topics)
+
+all_topics = delete_duplicates(all_topics)
 write_topics("3.xlsx", all_topics)
 
 all_topics = assign_news(all_topics, c_descr.data)

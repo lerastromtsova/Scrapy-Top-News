@@ -31,8 +31,6 @@ class Topic:
         self.text_name = self.news[0].description.intersection(self.news[1].description)
 
 
-
-
     def isvalid(self):
 
         a = self.point_a()
@@ -137,7 +135,7 @@ class CorpusC:
             others = [r for r in self.data if r.country != row.country]
             for ot in others:
 
-                cw = row.named_entities['content'].intersection(ot.named_entities['content'])
+                cw = intersect(row.named_entities['content'],ot.named_entities['content'])
 
                 if count_not_countries(cw) >= 1 and (count_countries(cw) >= 1):
                     news = [row, ot]
@@ -230,7 +228,15 @@ def count_not_countries(name):
     not_countries = name - countries
     return len(not_countries)
 
-
+def intersect(set1,set2):
+    new1 = set1.copy()
+    new2 = set2.copy()
+    for s1 in set1:
+        for s2 in set2:
+            if s2 == s1+'s' or s2 == s1+'es' or s2 == s1+'ies':
+                new2.remove(s2)
+                new2.add(s1)
+    return new1.intersection(new2)
 # if __name__ == '__main__':
 #
 #     db = input("DB name (default - day): ")

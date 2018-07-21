@@ -26,13 +26,27 @@ def preprocess(text, with_uppercase=True):
     tokens = [wn.morphy(t) if wn.morphy(t) is not None else t for t in nltk.word_tokenize(text)]
 
     if with_uppercase:
-        tokens = [t for t in tokens if (t.lower() not in STOP_WORDS or t == 'May')
+        tokens = [t for t in tokens if (t.lower() not in STOP_WORDS)
                   and t not in PUNKTS and t not in string.punctuation
                   and len(t) > 1]
 
     else:
         tokens = [t.lower() for t in tokens if
-                  (t.lower() not in STOP_WORDS or t == 'May')
+                  (t.lower() not in STOP_WORDS)
                   and t not in PUNKTS and t not in string.punctuation
-                  and len(t)>1]
+                  and len(t) > 1]
+
+    # for i, t in enumerate(tokens):
+    #     if t[-1] == 's':
+    #         if t[-2] == 'e':
+    #             if t[-3] == 'i':
+    #                 tokens[i] = t.replace('ies', 'y')
+    #                 print(tokens[i])
+    #             else:
+    #                 tokens[i] = t.replace('is', '')
+    #                 print(tokens[i])
+    #         else:
+    #             tokens[i] = t.replace('s', '')
+    #             print(tokens[i])
+
     return tokens

@@ -49,9 +49,14 @@ class Topic:
         b = self.point_b()
         c = self.point_c()
         d = self.point_d()
-
+        e = self.point_e()
+        f = self.point_f()
         self.valid = a | c | d
-        return self.valid
+
+        if e:
+            return self.valid
+
+        return self.valid & f
 
     def point_a(self):
 
@@ -73,7 +78,7 @@ class Topic:
         # Пункт б
         # Вариант "Или"
 
-        sents = [{s: {w for w in self.unique_words if w in s} for s in new.sentences} for new in self.news]
+        sents = [{s: {w for w in self.new_name if w in s} for s in new.sentences} for new in self.news]
         a = False
         b = False
 
@@ -111,10 +116,28 @@ class Topic:
         # un_words = {w for w in self.new_name if w[0].islower()}
         # if len(un_words) >= 2:
 
-        if count_not_countries(self.unique_words) >= 2 and count_countries(self.unique_words) >= 1:
-            self.main_words.update(self.unique_words)
+        if count_not_countries(self.new_name) >= 2 and count_countries(self.new_name) >= 1:
+            self.main_words.update(self.new_name)
             return True
         return False
+
+    def point_e(self):
+
+        # un_words = {w for w in self.new_name if w[0].islower()}
+        # if len(un_words) >= 2:
+        text = set.intersection(*[n.named_entities['content'] for n in self.news])
+
+        if count_not_countries(self.new_name) >= 3 and count_countries(text) >= 1:
+            self.main_words.update(self.new_name)
+            return True
+        return False
+
+    def point_f(self):
+        text = set.intersection(*[n.named_entities['content'] for n in self.news])
+        if count_not_countries(text) < 2:
+            return False
+        else:
+            return True
 
 
 class CorpusD:
@@ -143,12 +166,11 @@ class CorpusD:
 
     def find_topics(self):
 
-
         for row in self.data:
             others = [r for r in self.data if r.country != row.country]
             for ot in others:
 
-                cw = row.description.intersection(ot.description)
+                cw = intersect(row.description,ot.description)
                 cw = {w for w in cw if w[0].islower() or w in COUNTRIES}
 
                 if count_not_countries(cw) >= 2 and (count_countries(cw) >= 1 or row.countries.intersection(ot.countries)):
@@ -178,7 +200,6 @@ class CorpusD:
                 to_remove.add(topic)
 
         self.topics = [t for t in self.topics if t not in to_remove]
-
 
     def delete_small(self):
         all_names = {frozenset(topic.name) for topic in self.topics}
@@ -238,7 +259,15 @@ def count_not_countries(name):
     not_countries = name - countries
     return len(not_countries)
 
-
+def intersect(set1,set2):
+    new1 = set1.copy()
+    new2 = set2.copy()
+    for s1 in set1:
+        for s2 in set2:
+            if s2 == s1+'s' or s2 == s1+'es' or s2 == s1+'ies':
+                new2.remove(s2)
+                new2.add(s1)
+    return new1.intersection(new2)
 # if __name__ == '__main__':
 #
 #     db = input("DB name (default - day): ")

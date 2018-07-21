@@ -52,6 +52,9 @@ class Document:
         self.countries = {w for w in self.named_entities['content'] if w in COUNTRIES}
         self.descr_with_countries = self.description.union(self.countries)
 
+        self.all_text = self.description
+        self.all_text.update(self.named_entities['content'])
+
 
     def process(self, arr_of_types):
 
@@ -95,6 +98,9 @@ class Document:
             self.named_entities[typ].add(self.country.upper())
             self.tokens[typ].add(self.country.upper())
 
+            for t in self.tokens[typ]:
+                if t[0].isupper() and any(char.isdigit() for char in t):
+                    self.named_entities[typ].add(t)
 
             to_remove = set()
 
@@ -107,7 +113,6 @@ class Document:
             c.execute(f"UPDATE buffer SET nes_{typ}=(?), tokens_{typ}=(?) WHERE reference=(?)",
                       (','.join(self.named_entities[typ]), ','.join(self.tokens[typ]), self.url))
             self.conn.commit()
-
 
             # for date in self.dates:
             #     self.named_entities['content'].add(date)
@@ -129,8 +134,9 @@ class Document:
                 uppercase_words = []
 
                 for word in text:
-                    if word[0].isupper() and word.lower() not in STOP_WORDS:
-                        uppercase_words.append('Why did ' + word.lower() + ' say?')
+                    if word[0].isupper():
+                        if word.lower() not in STOP_WORDS:
+                            uppercase_words.append('Why did ' + word.lower() + ' say?')
 
                 uppercase_words.sort(reverse=True)
 
@@ -171,7 +177,7 @@ class Document:
                     except IndexError:
                         continue
 
-                self.named_entities[ty] = delete_duplicates(self.named_entities[ty])
+                # self.named_entities[ty] = delete_duplicates(self.named_entities[ty])
 
     def unite_countries_in(self, ty, type_of_data):
         conn = sqlite3.connect("db/countries.db")
