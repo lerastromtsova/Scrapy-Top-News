@@ -64,6 +64,7 @@ con
 could
 couldnt
 cry
+day
 de
 describe
 detail

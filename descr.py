@@ -3,9 +3,9 @@ from datetime import date
 
 import sqlite3
 
-
 from xl_stats import write_topics, write_news
 from document import Document
+import operator
 
 
 conn = sqlite3.connect("db/countries.db")
@@ -27,6 +27,11 @@ class Topic:
 
         self.main_words = set()
         self.unique_words = set()
+        self.objects = set()
+        self.obj = set()
+        self.frequent = []
+
+        self.method = set()
 
         self.subtopics = set()
 
@@ -40,7 +45,7 @@ class Topic:
                         self.sentences_by_words[word].append(sent)
 
         self.text_name = self.news[0].named_entities['content'].intersection(self.news[1].named_entities['content'])
-
+        self.freq_dict = {}
 
 
     def isvalid(self):
@@ -53,7 +58,15 @@ class Topic:
         f = self.point_f()
         self.valid = a | c | d
 
+        if a:
+            self.method.add("a")
+        if c:
+            self.method.add("c")
+        if d:
+            self.method.add("d")
+
         if e:
+            self.method.add("e")
             return self.valid
 
         return self.valid & f
@@ -139,6 +152,39 @@ class Topic:
         else:
             return True
 
+    def most_frequent(self):
+        freq_words = set(self.news[0].all_text)
+        for i in range(1,len(self.news)):
+            freq_words = intersect(freq_words, self.news[i].all_text)
+        freq_words = {word for word in freq_words if word not in COUNTRIES}
+        freq_dict = dict.fromkeys(freq_words, 0)
+
+        for word in freq_words:
+            for new in self.news:
+                all_text = new.translated['title'] + new.translated['lead'] + new.translated['content']
+                all_text = all_text.lower()
+                c = all_text.count(word.lower())
+                freq_dict[word] += c
+
+        for word, c in freq_dict.items():
+            for ent in self.name:
+                if word in ent and len(ent) > len(word):
+                    try:
+                        freq_dict[ent] += freq_dict[word]
+                        freq_dict[word] = 0
+                    except KeyError:
+                        try:
+                            freq_dict[ent] = freq_dict[word]
+                            del freq_dict[word]
+                        except KeyError:
+                            continue
+
+        ans = sorted(freq_dict.items(), key=operator.itemgetter(1), reverse=True)
+        ans = [a[0] for a in ans if a[1] != 0]
+
+        self.frequent = ans
+
+        return ans
 
 class CorpusD:
 
@@ -170,7 +216,7 @@ class CorpusD:
             others = [r for r in self.data if r.country != row.country]
             for ot in others:
 
-                cw = intersect(row.description,ot.description)
+                cw = intersect(row.description, ot.description)
                 cw = {w for w in cw if w[0].islower() or w in COUNTRIES}
 
                 if count_not_countries(cw) >= 2 and (count_countries(cw) >= 1 or row.countries.intersection(ot.countries)):
@@ -189,7 +235,6 @@ class CorpusD:
                 percent2 = len(cw) / len(ot.name)
 
                 if count_countries(cw) >= 1 and percent1 >= 0.5 and percent2 >= 0.5:
-
                     continue
                 else:
                     topic.new_name -= cw
@@ -252,6 +297,11 @@ class CorpusD:
 def count_countries(name):
     countries = {w for w in name if w.upper() in COUNTRIES}
     return len(countries)
+
+def iscountry(str):
+    if str in COUNTRIES:
+        return True
+    return False
 
 
 def count_not_countries(name):

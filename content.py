@@ -1,10 +1,7 @@
-
-from datetime import date
-
 import sqlite3
 
-from xl_stats import write_topics
 from document import Document
+import operator
 
 
 conn = sqlite3.connect("db/countries.db")
@@ -12,6 +9,7 @@ c = conn.cursor()
 c.execute("SELECT * FROM countries")
 all_rows = c.fetchall()
 COUNTRIES = [row[0] for row in all_rows]
+
 
 class Topic:
 
@@ -22,13 +20,17 @@ class Topic:
 
         self.news = init_news
 
-
         self.main_words = set()
         self.unique_words = set()
+        self.objects = set()
+        self.obj = set()
+        self.frequent = []
 
         self.subtopics = set()
 
         self.text_name = self.news[0].description.intersection(self.news[1].description)
+
+        self.method = set()
 
 
     def isvalid(self):
@@ -39,6 +41,12 @@ class Topic:
         d = self.point_d()
 
         self.valid = a | c | d
+        if a:
+            self.method.add("a")
+        if c:
+            self.method.add("c")
+        if d:
+            self.method.add("d")
         return self.valid
 
     def point_a(self):
@@ -99,10 +107,44 @@ class Topic:
         # un_words = {w for w in self.new_name if w[0].islower()}
         # if len(un_words) >= 2:
 
-        if count_not_countries(self.new_name) > 2:
+        if count_not_countries(self.new_name) >= 2:
             self.main_words.update(self.new_name)
             return True
         return False
+
+    def most_frequent(self):
+        freq_words = set(self.news[0].all_text)
+        for i in range(1,len(self.news)):
+            freq_words = intersect(freq_words, self.news[i].all_text)
+        freq_words = {word for word in freq_words if word not in COUNTRIES}
+        freq_dict = dict.fromkeys(freq_words, 0)
+
+        for word in freq_words:
+            for new in self.news:
+                all_text = new.translated['title'] + new.translated['lead'] + new.translated['content']
+                all_text = all_text.lower()
+                c = all_text.count(word.lower())
+                freq_dict[word] += c
+
+        for word, c in freq_dict.items():
+            for ent in self.name:
+                if word in ent and len(ent) > len(word):
+                    try:
+                        freq_dict[ent] += freq_dict[word]
+                        freq_dict[word] = 0
+                    except KeyError:
+                        try:
+                            freq_dict[ent] = freq_dict[word]
+                            del freq_dict[word]
+                        except KeyError:
+                            continue
+
+        ans = sorted(freq_dict.items(), key=operator.itemgetter(1), reverse=True)
+        ans = [a[0] for a in ans if a[1] != 0]
+
+        self.frequent = ans
+
+        return ans
 
 
 class CorpusC:
@@ -236,6 +278,7 @@ def intersect(set1,set2):
             if s2 == s1+'s' or s2 == s1+'es' or s2 == s1+'ies':
                 new2.remove(s2)
                 new2.add(s1)
+
     return new1.intersection(new2)
 # if __name__ == '__main__':
 #

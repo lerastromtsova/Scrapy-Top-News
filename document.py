@@ -41,6 +41,7 @@ class Document:
         self.process(['title','lead','content'])
         self.description = self.tokens['title'].union(self.tokens['lead'])
 
+
         # self.description.update(self.named_entities['title'])
         # self.description.update(self.named_entities['lead'])
 
@@ -52,12 +53,12 @@ class Document:
         self.countries = {w for w in self.named_entities['content'] if w in COUNTRIES}
         self.descr_with_countries = self.description.union(self.countries)
 
-        self.all_text = self.description
+        self.all_text = self.description.copy()
         self.all_text.update(self.named_entities['content'])
 
 
-    def process(self, arr_of_types):
 
+    def process(self, arr_of_types):
         c = self.conn.cursor()
         for typ in arr_of_types:
 
@@ -87,6 +88,15 @@ class Document:
             else:
                 self.tokens[typ] = {word for word in preprocess(self.translated[typ]) if
                                     word in preprocess(self.double_translated[typ])}
+
+            tokens_copy = self.tokens[typ].copy()
+
+            for w in self.tokens[typ]:
+                word = w.replace("í", "i")
+                tokens_copy.remove(w)
+                tokens_copy.add(word)
+
+            self.tokens[typ] = tokens_copy
 
             self.named_entities[typ] = find_countries(self.tokens[typ])
 
@@ -125,7 +135,12 @@ class Document:
             res = c.fetchone()[f"nes_{ty}"]
 
             if res:
-                self.named_entities[ty] = set(res.split(','))
+
+                for ent in res.split(','):
+                    word = ent.replace("í", "i")
+                    self.named_entities[ty].add(word)
+
+                #self.named_entities[ty] = set(res.split(','))
 
             else:
 
@@ -142,21 +157,21 @@ class Document:
 
                 str_to_translate = '\n'.join(uppercase_words)
 
-                with open("text_processing/1.txt","w") as f:
+                with open("text_processing/1.txt", "w") as f:
                     f.write(str_to_translate)
                 with open("text_processing/1.txt", "r") as f:
                     str_to_translate = f.read()
 
                 eng = translate(str_to_translate, arg='en')
 
-                with open("text_processing/2.txt","w") as f:
+                with open("text_processing/2.txt", "w") as f:
                     f.write(eng)
                 with open("text_processing/2.txt", "r") as f:
                     eng = f.read()
 
                 deu = translate(eng, arg='de')
 
-                with open("text_processing/3.txt","w") as f:
+                with open("text_processing/3.txt", "w") as f:
                     f.write(deu)
                 with open("text_processing/3.txt", "r") as f:
                     deu = f.read()
@@ -231,7 +246,7 @@ class Document:
         for part in text:
 
             eng_text = translate(part)
-            deu_text = translate(eng_text, self.country)
+            deu_text = translate(eng_text, 'de')
             eng1_text = translate(deu_text)
 
             self.translated[ty] += ' '
