@@ -1,4 +1,4 @@
-from text_processing.preprocess import preprocess
+from text_processing.preprocess import preprocess, check_first_entities
 from text_processing.translate import translate
 import re
 import nltk
@@ -39,8 +39,8 @@ class Document:
 
         # self.dates = process_dates(list(self.tokens)).append(self.date)
         self.process(['title','lead','content'])
-        self.description = self.tokens['title'].union(self.tokens['lead'])
 
+        self.description = self.tokens['title'].union(self.tokens['lead'])
 
         # self.description.update(self.named_entities['title'])
         # self.description.update(self.named_entities['lead'])
@@ -49,14 +49,14 @@ class Document:
         # self.title_without_countries = {d for d in self.tokens['title'] if d not in COUNTRIES}
 
         self.sentences = [replace_countries(preprocess(sent)) for sent in self.translated['content'].split('. ')]
+        self.first_words = check_first_entities([sent.split()[0] if sent and sent[1][0].islower() else '' for sent in self.sentences])
+        self.description = self.description.union(set(self.sentences[0].split()))
 
         self.countries = {w for w in self.named_entities['content'] if w in COUNTRIES}
         self.descr_with_countries = self.description.union(self.countries)
 
         self.all_text = self.description.copy()
         self.all_text.update(self.named_entities['content'])
-
-
 
     def process(self, arr_of_types):
         c = self.conn.cursor()
@@ -109,7 +109,7 @@ class Document:
             self.tokens[typ].add(self.country.upper())
 
             for t in self.tokens[typ]:
-                if t[0].isupper() and any(char.isdigit() for char in t):
+                if any(char.isdigit() for char in t):
                     self.named_entities[typ].add(t)
 
             to_remove = set()
@@ -157,23 +157,23 @@ class Document:
 
                 str_to_translate = '\n'.join(uppercase_words)
 
-                with open("text_processing/1.txt", "w") as f:
+                with open("text_processing/1.txt", "w", encoding="utf-8") as f:
                     f.write(str_to_translate)
-                with open("text_processing/1.txt", "r") as f:
+                with open("text_processing/1.txt", "r", encoding="utf-8") as f:
                     str_to_translate = f.read()
 
                 eng = translate(str_to_translate, arg='en')
 
-                with open("text_processing/2.txt", "w") as f:
+                with open("text_processing/2.txt", "w", encoding="utf-8") as f:
                     f.write(eng)
-                with open("text_processing/2.txt", "r") as f:
+                with open("text_processing/2.txt", "r", encoding="utf-8") as f:
                     eng = f.read()
 
                 deu = translate(eng, arg='de')
 
-                with open("text_processing/3.txt", "w") as f:
+                with open("text_processing/3.txt", "w", encoding="utf-8") as f:
                     f.write(deu)
-                with open("text_processing/3.txt", "r") as f:
+                with open("text_processing/3.txt", "r", encoding="utf-8") as f:
                     deu = f.read()
 
                 eng1 = translate(deu, arg='en')
@@ -193,6 +193,7 @@ class Document:
                         continue
 
                 # self.named_entities[ty] = delete_duplicates(self.named_entities[ty])
+
 
     def unite_countries_in(self, ty, type_of_data):
         conn = sqlite3.connect("db/countries.db")

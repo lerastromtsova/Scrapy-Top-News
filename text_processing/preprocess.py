@@ -28,15 +28,29 @@ def preprocess(text, with_uppercase=True):
     tokens = [wn.morphy(t) if wn.morphy(t) is not None else t for t in nltk.word_tokenize(text)]
 
     if with_uppercase:
-        tokens = {t for t in tokens if (t.lower() not in STOP_WORDS)
+        tokens = [t for t in tokens if (t.lower() not in STOP_WORDS)
                   and t not in PUNKTS and t not in string.punctuation
-                  and len(t) > 1}
+                  and len(t) > 1]
+
 
     else:
-        tokens = {t.lower() for t in tokens if
+        tokens = [t.lower() for t in tokens if
                   (t.lower() not in STOP_WORDS)
                   and t not in PUNKTS and t not in string.punctuation
-                  and len(t) > 1}
+                  and len(t) > 1]
+
+    to_add = []
+    to_remove = []
+    for i in range(len(tokens)-1):
+        if tokens[i].isdigit():
+            if tokens[i + 1].isdigit():
+                to_add.append(tokens[i] + tokens[i + 1])
+                to_remove.append(tokens[i])
+                to_remove.append(tokens[i + 1])
+
+    tokens.extend(to_add)
+    tokens = [t for t in tokens if t not in to_remove]
+
     return tokens
 
 
@@ -66,6 +80,31 @@ def find_entities(sentence):
             if len(word) > 1 and word1[0].isupper() and word.lower() == word1.lower():
                     named_entities.add(word1)
 
+    return named_entities
+
+
+def check_first_entities(list_of_ents):
+    uppercase_words = []
+    named_entities = {}
+    for word in list_of_ents:
+        uppercase_words.append('Why did ' + word.lower() + ' say?')
+    str_to_translate = '\n'.join(uppercase_words)
+
+    eng = translate(str_to_translate, arg='en')
+    deu = translate(eng, arg='de')
+    eng1 = translate(deu, arg='en')
+
+    eng = eng.split('\n')
+    eng1 = eng1.split('\n')
+
+    for i in range(len(eng)):
+        if eng[i]:
+            word = eng[i].split()[-2]
+            word1 = eng1[i].split()[-2]
+            if len(word) > 1 and word1[0].isupper() and word.lower() == word1.lower():
+                named_entities[word1] = True
+            else:
+                named_entities[word1] = False
     return named_entities
 
 def split_into_paragraphs(text):

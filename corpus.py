@@ -1,9 +1,5 @@
-
-from datetime import date
-
 import sqlite3
 
-from xl_stats import write_topics, write_news
 from document import Document
 import operator
 
@@ -23,29 +19,27 @@ class Topic:
         self.new_name = self.name.copy()
 
         self.news = init_news
-        self.sentences_by_words = dict.fromkeys(self.name)
+        # self.sentences_by_words = dict.fromkeys(self.name)
 
         self.main_words = set()
         self.unique_words = set()
         self.objects = set()
         self.obj = set()
-        self.frequent = []
-
+        self.frequent = list()
+        self.freq_dict = dict()
         self.method = set()
-
         self.subtopics = set()
 
-        for key in self.sentences_by_words:
-            self.sentences_by_words[key] = []
+        # for key in self.sentences_by_words:
+        #     self.sentences_by_words[key] = []
+        #
+        # for word in self.name:
+        #     for i, new in enumerate(self.news):
+        #         for sent in new.sentences:
+        #             if word in sent:
+        #                 self.sentences_by_words[word].append(sent)
 
-        for word in self.name:
-            for i, new in enumerate(self.news):
-                for sent in new.sentences:
-                    if word in sent:
-                        self.sentences_by_words[word].append(sent)
-
-        self.text_name = self.news[0].named_entities['content'].intersection(self.news[1].named_entities['content'])
-        self.freq_dict = {}
+        # self.text_name = self.news[0].named_entities['content'].intersection(self.news[1].named_entities['content'])
 
 
     def isvalid(self):
@@ -186,7 +180,8 @@ class Topic:
 
         return ans
 
-class CorpusD:
+
+class Corpus:
 
     def __init__(self, db, table):
 
@@ -206,9 +201,7 @@ class CorpusD:
 
         for i, row in enumerate(raw_data):
             doc = Document(i, row, self.conn, table)
-
             self.data.append(doc)
-
 
     def find_topics(self):
 
@@ -216,8 +209,8 @@ class CorpusD:
             others = [r for r in self.data if r.country != row.country]
             for ot in others:
 
-                cw = intersect(row.description, ot.description)
-                cw = {w for w in cw if w[0].islower() or w in COUNTRIES}
+                cw = intersect(row.all_text, ot.all_text)
+                # cw = {w for w in cw if w[0].islower() or w in COUNTRIES}
 
                 if count_not_countries(cw) >= 2 and (count_countries(cw) >= 1 or row.countries.intersection(ot.countries)):
                     news = [row, ot]
@@ -230,11 +223,12 @@ class CorpusD:
         for topic in self.topics:
             other_topics = [t for t in self.topics if t != topic]
             for ot in other_topics:
-                cw = topic.name.intersection(ot.name)
-                percent1 = len(cw) / len(topic.name)
+                # cw = topic.name.intersection(ot.name)
+                # percent1 = len(cw) / len(topic.name)
+                cw = intersect_with_two(topic.name, ot.name)
                 percent2 = len(cw) / len(ot.name)
 
-                if count_countries(cw) < 1 or (count_countries(cw) >= 1 and percent1 >= 0.5 and percent2 >= 0.5):
+                if percent2 > 0.5:
                     continue
                 else:
                     topic.new_name -= cw
@@ -311,7 +305,21 @@ def count_not_countries(name):
     return len(not_countries)
 
 
-def intersect(set1,set2):
+def intersect_with_two(set1, set2):
+    new1 = set1.copy()
+    new2 = set2.copy()
+    for s1 in set1:
+        for s2 in set2:
+            if s1 in s2:
+                cw = set(s1.split()).intersection(s2.split())
+                if len(cw) >= 2:
+                    new1.remove(s1)
+                    new1.add(s2)
+
+    return new1.intersection(new2)
+
+
+def intersect(set1, set2):
     new1 = set1.copy()
     new2 = set2.copy()
     for s1 in set1:
@@ -320,6 +328,8 @@ def intersect(set1,set2):
                 new2.remove(s2)
                 new2.add(s1)
     return new1.intersection(new2)
+
+
 # if __name__ == '__main__':
 #
 #     db = input("DB name (default - day): ")

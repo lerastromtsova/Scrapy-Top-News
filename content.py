@@ -196,7 +196,7 @@ class CorpusC:
                 percent1 = len(cw)/len(topic.name)
                 percent2 = len(cw) / len(ot.name)
 
-                if count_countries(cw) >= 1 and percent1 >= 0.5 and percent2 >= 0.5:
+                if count_countries(cw) < 1 or (count_countries(cw) >= 1 and percent1 >= 0.5 and percent2 >= 0.5):
                     continue
                 else:
                     topic.new_name -= cw

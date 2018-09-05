@@ -1,5 +1,6 @@
 from descr import CorpusD, count_countries, count_not_countries
 from content import CorpusC
+from corpus import Corpus
 from content import Topic
 from xl_stats import write_topics
 from datetime import datetime
@@ -7,8 +8,11 @@ from descr import intersect, iscountry
 from math import ceil
 from text_processing.preprocess import PUNKTS
 from string import punctuation
+import sqlite3
+import re
 from text_processing.preprocess import split_into_sentences, split_into_paragraphs, preprocess
 import cProfile
+
 
 # def profile(func):
 #     """Decorator for run function profile"""
@@ -22,7 +26,6 @@ import cProfile
 #
 # @profile
 def similar(topics):
-
     new_topics = list()
 
     for t in topics:
@@ -34,7 +37,7 @@ def similar(topics):
 
             similar = {t}
             freq_words = t.most_frequent()
-            freq_words = freq_words[:ceil(len(freq_words)/2)]
+            freq_words = freq_words[:ceil(len(freq_words) / 2)]
 
             for o in others:
                 if o is not None:
@@ -82,13 +85,14 @@ def similar(topics):
                             continue
 
                         # f
-                        if len(cw_in_unique)/len(t.new_name) > 0.5 and len(cw_in_unique)/len(o.new_name) > 0.5:
+                        if len(cw_in_unique) / len(t.new_name) > 0.5 and len(cw_in_unique) / len(o.new_name) > 0.5:
                             print("F", o.name, t.name)
                             similar.add(o)
                             continue
 
                         # g
-                        if (len(common_freq)/len(freq_words) > 0.5 and len(common_freq)/len(freq_words1) > 0.5) and len(cw_in_unique) >= 1:
+                        if (len(common_freq) / len(freq_words) > 0.5 and len(common_freq) / len(
+                                freq_words1) > 0.5) and len(cw_in_unique) >= 1:
                             print("G", o.name, t.name)
                             similar.add(o)
 
@@ -161,45 +165,42 @@ def similar(topics):
 
 
 def assign_news(topics, rows):
-
     for row in rows:
 
         for topic in topics:
 
-                cw_unique = {w for w in row.all_text if w in topic.new_name}
+            cw_unique = {w for w in row.all_text if w in topic.new_name}
 
-                if cw_unique:
-                    common_words = topic.name.intersection(row.all_text)
-                    where = {w for w in common_words if iscountry(w)}
-                    who = {w for w in common_words if w[0].isupper() and not iscountry(w)}
-                    what = {w for w in common_words if w[0].islower()}
-                    if len(where) >= 1 and (len(who) >= 1 and len(what) >= 2 or len(what) >= 3):
-                        print("a")
-                        print(topic.name)
-                        print(row.id)
-                        print(where, who, what)
+            if cw_unique:
+                common_words = topic.name.intersection(row.all_text)
+                where = {w for w in common_words if iscountry(w)}
+                who = {w for w in common_words if w[0].isupper() and not iscountry(w)}
+                what = {w for w in common_words if w[0].islower()}
+                if len(where) >= 1 and (len(who) >= 1 and len(what) >= 2 or len(what) >= 3):
+                    print("a")
+                    print(topic.name)
+                    print(row.id)
+                    print(where, who, what)
 
+                    topic.news.append(row)
 
-                        topic.news.append(row)
+                freq_words_50 = topic.most_frequent()[:ceil(len(topic.frequent) / 2)]
+                cw_freq_50 = set(row.all_text).intersection(set(freq_words_50))
 
+                try:
 
-                    freq_words_50 = topic.most_frequent()[:ceil(len(topic.frequent) / 2)]
-                    cw_freq_50 = set(row.all_text).intersection(set(freq_words_50))
+                    if len(cw_freq_50) / len(freq_words_50) > 0.5:
+                        if len(where) >= 1 and len(who) >= 1 and len(what) >= 1:
+                            if row not in topic.news:
+                                print("b")
+                                print(topic.name)
+                                print(row.id)
+                                print(where, who, what)
+                                print(cw_freq_50)
+                                topic.news.append(row)
 
-                    try:
-
-                        if len(cw_freq_50) / len(freq_words_50) > 0.5:
-                            if len(where) >= 1 and len(who) >= 1 and len(what) >= 1:
-                                if row not in topic.news:
-                                    print("b")
-                                    print(topic.name)
-                                    print(row.id)
-                                    print(where, who, what)
-                                    print(cw_freq_50)
-                                    topic.news.append(row)
-
-                    except ZeroDivisionError:
-                        continue
+                except ZeroDivisionError:
+                    continue
 
     for topic in topics:
         topic.news = delete_dupl_from_news(topic.news)
@@ -210,8 +211,7 @@ def assign_news(topics, rows):
 
 
 def delete_duplicates(topics):
-
-    for i,t in enumerate(topics):
+    for i, t in enumerate(topics):
         if t:
             others = [to for to in topics if to is not None]
             others = [to for to in others if t != to]
@@ -226,7 +226,6 @@ def delete_duplicates(topics):
 
 
 def redefine_unique(topics):
-
     for topic in topics:
         other_topics = [t for t in topics if t != topic]
         for ot in other_topics:
@@ -265,6 +264,7 @@ def redefine_unique(topics):
     topics = [t for t in topics if t not in to_remove]
     return topics
 
+
 def delete_dupl_from_news(news_list):
     new = list()
     for n in news_list:
@@ -284,7 +284,6 @@ def find_objects(topics):
             objects = new.description.intersection(topic.new_name)
 
             if len(objects) >= 1:
-
                 topic.objects.update(objects)
                 new_topics.add(topic)
 
@@ -327,16 +326,15 @@ def find_objects(topics):
 
                                 cw = intersect(set(new.sentences[i].split()), set(new1.sentences[j].split()))
 
-                                not_unique_cw = {word for word in cw-unique_cw if word[0].islower()}
+                                not_unique_cw = {word for word in cw - unique_cw if word[0].islower()}
 
                                 if unique_cw and not_unique_cw:
-
                                     topic.obj.update(cw)
                                     new_topics.add(topic)
 
         cw_in_descr = topic.news[0].description.intersection(topic.news[1].description)
 
-        topic.objects = {o for o in topic.objects if len(o)>2}
+        topic.objects = {o for o in topic.objects if len(o) > 2}
         topic.obj = {o for o in topic.obj if len(o) > 2}
 
         if all(True if w[0].isupper() else False for w in topic.name):
@@ -354,12 +352,244 @@ def extend_topic_names(topics):
             topic.name.update(topic.news[0].description.intersection(topic.news[1].description))
 
         if len([w for w in topic.name if w[0].islower()]) >= 1:
-            topic.name.update(topic.news[0].named_entities['content'].intersection(topic.news[1].named_entities['content']))
+            topic.name.update(
+                topic.news[0].named_entities['content'].intersection(topic.news[1].named_entities['content']))
 
     return topics
 
 
-TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen"}
+def unite_countries_in(data):
+    conn = sqlite3.connect("db/countries.db")
+    c = conn.cursor()
+    c.execute("SELECT * FROM countries")
+    all_rows = c.fetchall()
+    to_remove = set()
+    to_add = set()
+
+    for ent in data:
+        for row in all_rows:
+            low = [w.lower() for w in row if w is not None]
+
+            if ent:
+                if ent.lower() in low and ent != row[0]:
+                    print("Original: ", ent)
+                    print(row[0])
+                    to_remove.add(ent)
+                    to_add.add(row[0])
+                if len(ent) <= 1:
+                    to_remove.add(ent)
+
+            if len(ent.lower().split()) > 1 and ent != row[0]:
+                for e in ent.lower().split():
+                    if e in low:
+                        print("Original: ", ent)
+                        print(row[0])
+                        to_remove.add(ent)
+                        to_add.add(row[0])
+
+    data = (data - to_remove) | to_add
+
+    # data -= to_remove
+    # data.update(to_add)
+
+    return data
+
+
+TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister"}
+
+
+def unite_entities_copy(topics):
+    for topic in topics:
+
+        for i in range(2):
+
+            if i == 0:
+                j = 1
+            else:
+                j = 0
+
+            text1 = (topic.news[i].translated['title'] + topic.news[i].translated['lead']
+                     + topic.news[i].translated['content'])
+            text1_splitted = re.findall(r"[\w']+|[^\s\w]", text1)
+
+            text2 = (topic.news[j].translated['title'] + topic.news[j].translated['lead']
+                     + topic.news[j].translated['content'])
+            text2_splitted = re.findall(r"[\w']+|[^\s\w]", text2)
+
+            ent_dict = {}
+
+            for ent1 in topic.news[i].all_text:
+                for ent2 in topic.news[i].all_text:
+                    if ent1[0].isupper() and (
+                            ent1 in topic.news[i].first_words.keys() and topic.news[i].first_words[ent1] or ent1 not in
+                            topic.news[i].first_words.keys()):
+                        if ent2[0].isupper() and (
+                                ent2 in topic.news[i].first_words.keys() and topic.news[i].first_words[ent2] or ent2 not in
+                                topic.news[i].first_words.keys()):
+                            if ent1 not in TITLES and ent2 not in TITLES:
+
+                                previous_word1 = ''
+                                previous_word2 = ''
+                                next_word1 = ''
+                                next_word2 = ''
+
+                                try:
+                                    idx1 = text1_splitted.index(ent1)
+                                except ValueError:
+                                    continue
+
+                                try:
+                                    idx2 = text1_splitted.index(ent2)
+                                except ValueError:
+                                    continue
+
+                                if idx1 > idx2:
+                                    words_between = text1_splitted[idx2 + 1:idx1]
+                                    if len(words_between) <= 4:
+
+                                        between_str = ' '
+
+                                        for word in words_between:
+                                            if word == "-" or word == "'":
+                                                between_str += word
+                                            elif word.isalpha():
+                                                between_str += word
+                                                between_str += ' '
+                                            else:
+                                                break
+                                        st = ent2 + between_str + ent1
+                                        print(st)
+                                    else:
+                                        continue
+
+                                else:
+                                    words_between = text1_splitted[idx1 + 1:idx2]
+                                    if len(words_between) <= 4:
+
+                                        between_str = ' '
+
+                                        for word in words_between:
+                                            if word == "-" or word == "'":
+                                                between_str += word
+                                            elif word.isalpha():
+                                                between_str += word
+                                                between_str += ' '
+                                            else:
+                                                break
+                                        st = ent1 + between_str + ent2
+                                        print(st)
+                                    else:
+                                        continue
+
+                                if ent1 in text2_splitted:
+
+                                    i1 = text2_splitted.index(ent1)
+
+                                    try:
+                                        previous_word1 = text2_splitted[i1 - 1]
+                                    except IndexError:
+                                        previous_word1 = 'a'
+
+                                    try:
+                                        next_word1 = text2_splitted[i1 + 1]
+                                    except IndexError:
+                                        next_word1 = 'a'
+
+                                if ent2 in text2_splitted:
+
+                                    i2 = text2_splitted.index(ent2)
+
+                                    try:
+                                        previous_word2 = text2_splitted[i2 - 1]
+                                    except IndexError:
+                                        previous_word2 = 'a'
+
+                                    try:
+                                        next_word2 = text2_splitted[i2 + 1]
+                                    except IndexError:
+                                        next_word2 = 'a'
+
+                                if text1.count(st) >= 2 or text2.count(st) >= 2:
+
+                                    ent_dict[ent1] = st
+                                    ent_dict[ent2] = st
+                                    continue
+
+                                elif st in text1 and st in text2:
+                                    ent_dict[ent1] = st
+                                    ent_dict[ent2] = st
+                                    continue
+
+                                # elif st in topic.news[0].translated['content'] and ent1 in text:
+                                elif len(st.split()) == 2 and st in text1 and ent1 in text2_splitted and \
+                                        (previous_word1.islower() or previous_word1 in punctuation or previous_word1 in PUNKTS or previous_word1 in TITLES) \
+                                        and (next_word1.islower() or next_word1 in punctuation or next_word1 in PUNKTS or next_word1 in TITLES):
+                                    try:
+                                        # if text[text.index(ent1)-1][0].islower() and text[text.index(ent1)+1][0].islower():
+
+                                        ent_dict[ent1] = st
+                                        ent_dict[ent2] = st
+
+                                    except IndexError:
+                                        pass
+                                # elif st in topic.news[0].translated['content'] and ent2 in text:
+                                elif len(st.split()) == 2 and st in text1 and ent2 in text2_splitted and \
+                                        (previous_word2.islower() or previous_word2 in punctuation or previous_word2 in PUNKTS or previous_word2 in TITLES) \
+                                        and (next_word2.islower() or next_word2 in punctuation or next_word2 in PUNKTS or next_word2 in TITLES):
+                                    try:
+
+                                        # if text[text.index(ent2)-1][0].islower() and text[text.index(ent2)+1][0].islower():
+
+                                        ent_dict[ent1] = st
+                                        ent_dict[ent2] = st
+                                    except IndexError:
+                                        pass
+                                # elif st in text1 and ent2 in text and (previous_word2[0].isupper() or next_word2.isupper()):
+                                #     print(5)
+                                #     print(st)
+                                #     print(previous_word2+ent2+next_word2)
+                                #
+                                #     ent_dict[ent2] = ' '
+                                # elif st in text1 and ent1 in text and (previous_word1[0].isupper() or next_word1.isupper()):
+                                #     print(6)
+                                #     print(st)
+                                #     print(previous_word1 + ent1 + next_word1)
+                                #
+                                #     ent_dict[ent1] = ' '
+
+            for k in range(2):
+
+                all_text = topic.news[k].all_text.copy()
+                for ent in topic.news[k].all_text:
+                    if ent in ent_dict.keys() and ent_dict[ent] != ' ':
+
+                        if ent in all_text:
+                            all_text.remove(ent)
+                            all_text.add(ent_dict[ent])
+                    elif ent in ent_dict.keys() and ent_dict[ent] == ' ':
+
+                        if ent in all_text:
+                            all_text.remove(ent)
+
+                topic.news[k].all_text = all_text
+
+        topic.name = topic.news[0].all_text.intersection(topic.news[1].all_text)
+        name = topic.name.copy()
+
+        for word in topic.name:
+            if any(True if word in w else False for w in topic.name - {word}):
+                name -= {word}
+
+        name = unite_countries_in(name)
+
+        topic.name = name
+        topic.new_name = name.copy()
+        # if any(w for w in topic.name if w[0].islower()):
+        #     topic.name = intersect(topic.news[0].description, topic.news[1].description)
+        # else:
+        #     topic.name = intersect(topic.news[0].named_entities['content'], topic.news[1].named_entities['content'])
+
+    return topics
 
 
 def unite_entities(topics):
@@ -374,78 +604,162 @@ def unite_entities(topics):
             else:
                 j = 0
 
-            for ent1 in topic.news[i].named_entities['content']:
-                for ent2 in topic.news[i].named_entities['content']:
-                    if ent1 not in TITLES and ent2 not in TITLES:
-                        st = ent1 + ' ' + ent2
+            for ent1 in topic.news[i].all_text:
+                for ent2 in topic.news[i].all_text:
+                    if ent1[0].isupper() and (
+                            ent1 in topic.news[i].first_words.keys() and topic.news[i].first_words[ent1] or ent1 not in
+                            topic.news[i].first_words.keys()):
+                        if ent2[0].isupper() and (
+                                ent2 in topic.news[i].first_words.keys() and topic.news[i].first_words[
+                            ent2] or ent2 not in topic.news[i].first_words.keys()):
+                            if ent1 not in TITLES and ent2 not in TITLES:
 
-                        text = topic.news[j].translated['content'].split()
-                        # i1 = text.index(ent1)
-                        # i2 = text.index(ent2)
+                                st = ent1 + ' ' + ent2
 
-                        if ent1 in text:
+                                previous_word1 = ''
+                                previous_word2 = ''
+                                next_word1 = ''
+                                next_word2 = ''
 
-                            previous_word1 = text[text.index(ent1)-1]
-                            next_word1 = text[text.index(ent1)+1]
+                                text2 = (topic.news[j].translated['title'] + topic.news[j].translated['lead'] +
+                                         topic.news[j].translated['content'])
 
-                        if ent2 in text:
-                            previous_word2 = text[text.index(ent2) - 1]
-                            next_word2 = text[text.index(ent2) + 1]
+                                text = text2.split()
+                                text1 = (topic.news[i].translated['title'] + topic.news[i].translated['lead'] +
+                                         topic.news[i].translated['content'])
 
-                        if topic.news[i].translated['content'].count(st) >= 2 or topic.news[j].translated['content'].count(st) >= 2:
-                            ent_dict[ent1] = st
-                            ent_dict[ent2] = st
-                            continue
+                                if ent1 in text:
 
-                        elif st in topic.news[i].translated['content'] and st in topic.news[j].translated['content']:
-                            ent_dict[ent1] = st
-                            ent_dict[ent2] = st
-                            continue
-                        # elif st in topic.news[0].translated['content'] and ent1 in text:
-                        elif st in topic.news[i].translated['content'] and ent1 in text and previous_word1.islower() \
-                                and previous_word1 not in punctuation and previous_word1 not in PUNKTS \
-                                and next_word1.islower() and next_word1 not in punctuation and next_word1 not in PUNKTS:
-                            try:
-                                # if text[text.index(ent1)-1][0].islower() and text[text.index(ent1)+1][0].islower():
+                                    i1 = text.index(ent1)
+
+                                    try:
+                                        previous_word1 = text[i1 - 1]
+                                    except IndexError:
+                                        previous_word1 = 'a'
+
+                                    try:
+                                        next_word1 = text[i1 + 1]
+                                    except IndexError:
+                                        next_word1 = 'a'
+
+                                if ent2 in text:
+
+                                    i2 = text.index(ent2)
+
+                                    try:
+                                        previous_word2 = text[i2 - 1]
+                                    except IndexError:
+                                        previous_word2 = 'a'
+
+                                    try:
+                                        next_word2 = text[i2 + 1]
+                                    except IndexError:
+                                        next_word2 = 'a'
+
+                                if text1.count(st) >= 2 or text2.count(st) >= 2:
+
                                     ent_dict[ent1] = st
                                     ent_dict[ent2] = st
+                                    continue
 
-                            except IndexError:
-                                pass
-                        # elif st in topic.news[0].translated['content'] and ent2 in text:
-                        elif st in topic.news[i].translated['content'] and ent2 in text \
-                                and previous_word2.islower() \
-                                and previous_word2 not in punctuation and previous_word2 not in PUNKTS \
-                                and next_word2.islower() and next_word2 not in punctuation and next_word2 not in PUNKTS:
-                            try:
-                                # if text[text.index(ent2)-1][0].islower() and text[text.index(ent2)+1][0].islower():
+                                elif st in text1 and st in text2:
+
                                     ent_dict[ent1] = st
                                     ent_dict[ent2] = st
-                            except IndexError:
-                                pass
+                                    continue
 
-            nes_content = topic.news[i].named_entities['content'].copy()
+                                # elif st in topic.news[0].translated['content'] and ent1 in text:
+                                elif st in text1 and ent1 in text and \
+                                        (
+                                                previous_word1.islower() or previous_word1 in punctuation or previous_word1 in PUNKTS or previous_word1 in TITLES) \
+                                        and (
+                                        next_word1.islower() or next_word1 in punctuation or next_word1 in PUNKTS or next_word1 in TITLES):
+                                    try:
+                                        # if text[text.index(ent1)-1][0].islower() and text[text.index(ent1)+1][0].islower():
 
-            for ent in topic.news[i].named_entities['content']:
-                if ent in ent_dict.keys():
-                    nes_content.remove(ent)
-                    nes_content.add(ent_dict[ent])
+                                        ent_dict[ent1] = st
+                                        ent_dict[ent2] = st
 
-            topic.news[i].named_entities['content'] = nes_content
+                                    except IndexError:
+                                        pass
+                                # elif st in topic.news[0].translated['content'] and ent2 in text:
+                                elif st in text1 and ent2 in text and \
+                                        (
+                                                previous_word2.islower() or previous_word2 in punctuation or previous_word2 in PUNKTS or previous_word2 in TITLES) \
+                                        and (
+                                        next_word2.islower() or next_word2 in punctuation or next_word2 in PUNKTS or next_word2 in TITLES):
+                                    try:
 
-            nes_descr = topic.news[i].description.copy()
+                                        # if text[text.index(ent2)-1][0].islower() and text[text.index(ent2)+1][0].islower():
 
-            for ent in topic.news[i].description:
-                if ent in ent_dict.keys():
-                    nes_descr.remove(ent)
-                    nes_descr.add(ent_dict[ent])
+                                        ent_dict[ent1] = st
+                                        ent_dict[ent2] = st
+                                    except IndexError:
+                                        pass
+                                # elif st in text1 and ent2 in text and (previous_word2[0].isupper() or next_word2.isupper()):
+                                #     print(5)
+                                #     print(st)
+                                #     print(previous_word2+ent2+next_word2)
+                                #
+                                #     ent_dict[ent2] = ' '
+                                # elif st in text1 and ent1 in text and (previous_word1[0].isupper() or next_word1.isupper()):
+                                #     print(6)
+                                #     print(st)
+                                #     print(previous_word1 + ent1 + next_word1)
+                                #
+                                #     ent_dict[ent1] = ' '
 
-            topic.news[i].description = nes_descr
+            for k in range(2):
 
-        if any(w for w in topic.name if w[0].islower()):
-            topic.name = intersect(topic.news[0].description, topic.news[1].description)
-        else:
-            topic.name = intersect(topic.news[0].named_entities['content'], topic.news[1].named_entities['content'])
+                all_text = topic.news[k].all_text.copy()
+                for ent in topic.news[k].all_text:
+                    if ent in ent_dict.keys() and ent_dict[ent] != ' ':
+
+                        if ent in all_text:
+                            all_text.remove(ent)
+                            all_text.add(ent_dict[ent])
+                    elif ent in ent_dict.keys() and ent_dict[ent] == ' ':
+
+                        if ent in all_text:
+                            all_text.remove(ent)
+
+                topic.news[k].all_text = all_text
+
+            # nes_content = topic.news[i].named_entities['content'].copy()
+            #
+            # for ent in topic.news[i].named_entities['content']:
+            #     if ent in ent_dict.keys():
+            #         nes_content.remove(ent)
+            #         nes_content.add(ent_dict[ent])
+            #
+            # topic.news[i].named_entities['content'] = nes_content
+            #
+            # nes_descr = topic.news[i].description.copy()
+            #
+            # for ent in topic.news[i].description:
+            #     if ent in ent_dict.keys():
+            #         nes_descr.remove(ent)
+            #         nes_descr.add(ent_dict[ent])
+            #
+            # topic.news[i].description = nes_descr
+            #
+            # topic.news[i].all_text = nes_descr.union(nes_content)
+
+        topic.name = topic.news[0].all_text.intersection(topic.news[1].all_text)
+        name = topic.name.copy()
+
+        for word in topic.name:
+            if any(True if word in w else False for w in topic.name - {word}):
+                name -= {word}
+
+        name = unite_countries_in(name)
+
+        topic.name = name
+        topic.new_name = name.copy()
+        # if any(w for w in topic.name if w[0].islower()):
+        #     topic.name = intersect(topic.news[0].description, topic.news[1].description)
+        # else:
+        #     topic.name = intersect(topic.news[0].named_entities['content'], topic.news[1].named_entities['content'])
 
     return topics
 
@@ -483,45 +797,64 @@ def intersection_with_substrings(set1, set2):
     return result_set
 
 
+def check_topics(topics):
+    new_topics = []
+    for topic in topics:
+        print(topic.name)
+        if count_not_countries(topic.name) >= 2 and count_countries(topic.name) >= 1:
+            new_topics.append(topic)
+    return new_topics
+
+
 if __name__ == '__main__':
     db = input("DB name (default - day): ")
     table = input("Table name (default - buffer): ")
 
     if not db:
-            db = "day"
+        db = "day"
     if not table:
-            table = "buffer"
+        table = "buffer"
 
     time = datetime.now()
 
-    c_descr = CorpusD(db, table)
-    c_descr.find_topics()
-    write_topics("Descriptions.xlsx", c_descr.topics)
+    # c_descr = CorpusD(db, table)
+    # c_descr.find_topics()
+    # write_topics("Descriptions.xlsx", c_descr.topics)
+    #
+    # c_descr.delete_small()
+    # c_descr.check_unique()
+    # c_descr.topics = unite_entities(c_descr.topics)
+    # c_descr.topics = [t for t in c_descr.topics if t.isvalid()]
+    #
+    # c_content = CorpusC(db, table)
+    # c_content.find_topics()
+    # write_topics("Texts.xlsx", c_content.topics)
+    #
+    # c_content.delete_small()
+    # c_content.check_unique()
+    # c_content.topics = unite_entities(c_content.topics)
+    # c_content.topics = [t for t in c_content.topics if t.isvalid()]
+    #
+    # all_topics = c_descr.topics
+    # all_topics.extend(c_content.topics)
 
-    c_descr.delete_small()
-    c_descr.check_unique()
-    c_descr.topics = unite_entities(c_descr.topics)
-    c_descr.topics = [t for t in c_descr.topics if t.isvalid()]
+    corpus = Corpus(db, table)
+    corpus.find_topics()
+    corpus.delete_small()
+    write_topics("0.xlsx", corpus.topics)
 
-    c_content = CorpusC(db, table)
-    c_content.find_topics()
-    write_topics("Texts.xlsx", c_content.topics)
+    corpus.topics = unite_entities_copy(corpus.topics)
+    write_topics("1.xlsx", corpus.topics)
 
-    c_content.delete_small()
-    # write_topics("1-texts.xlsx", c_content.topics)
+    corpus.topics = check_topics(corpus.topics)
+    write_topics("2.xlsx", corpus.topics)
 
-    c_content.check_unique()
-    # write_topics("2-texts.xlsx", c_content.topics)
+    corpus.check_unique()
+    write_topics("3.xlsx", corpus.topics)
 
-    c_content.topics = unite_entities(c_content.topics)
-    # write_topics("3-texts.xlsx", c_content.topics)
+    print(datetime.now() - time)
 
-    c_content.topics = [t for t in c_content.topics if t.isvalid()]
-    # write_topics("4-texts.xlsx", c_content.topics)
-
-    all_topics = c_descr.topics
-    all_topics.extend(c_content.topics)
-
+"""
     write_topics("0.xlsx", all_topics)
 
     all_topics = extend_topic_names(all_topics)
@@ -555,4 +888,5 @@ if __name__ == '__main__':
 
     write_topics(f"{i+5}.xlsx", all_topics)
 
-    print(datetime.now()-time)
+    
+    """
