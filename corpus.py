@@ -41,6 +41,41 @@ class Topic:
 
         # self.text_name = self.news[0].named_entities['content'].intersection(self.news[1].named_entities['content'])
 
+    def all_words(self, text):
+        return text, len(text)
+
+    def all_wo_countries(self, text):
+        all_wo_countries = [w for w in text if w not in COUNTRIES]
+        return all_wo_countries, len(all_wo_countries)
+
+    def all_wo_countries_and_small(self, text):
+        all_wo_countries_and_small = [w for w in self.all_wo_countries(text)[0] if w[0].isupper()]
+        return all_wo_countries_and_small, len(all_wo_countries_and_small)
+
+    def fio(self, text):
+        fio = [w for w in text if ' ' in w and w not in COUNTRIES]
+        return fio, len(fio)
+
+    def big(self, text):
+        big = [w for w in text if w not in COUNTRIES and w not in self.fio(text)[0] and w[0].isupper()]
+        return big, len(big)
+
+    def small(self, text):
+        small = [w for w in text if w[0].islower()]
+        return small, len(small)
+
+    def countries(self, text):
+        countries = [w for w in text if w in COUNTRIES]
+        return countries, len(countries)
+
+    def numbers(self, text):
+        numbers = [w for w in text if all(char.isdigit() for char in w)]
+        return numbers, len(numbers)
+
+    def ids(self, text):
+        ids = [w for w in text if any(char.isdigit() for char in w) and any(char.isalpha() for char in w)]
+
+        return ids, len(ids)
 
     def isvalid(self):
 
@@ -210,6 +245,7 @@ class Corpus:
             for ot in others:
 
                 cw = intersect(row.all_text, ot.all_text)
+
                 # cw = {w for w in cw if w[0].islower() or w in COUNTRIES}
 
                 if count_not_countries(cw) >= 2 and (count_countries(cw) >= 1 or row.countries.intersection(ot.countries)):
@@ -222,16 +258,34 @@ class Corpus:
     def check_unique(self):
         for topic in self.topics:
             other_topics = [t for t in self.topics if t != topic]
+            not_similar_topic_names = [word for t in other_topics for word in t.name if len(intersect_with_two(topic.name, t.name))/len(t.name) <= 0.5]
+
+            # print("Do imya temy", topic.name)
+            # for word in topic.name:
+            #     max_freq_word = ''
+            #     word_list = word.split()
+            #     if len(word_list) >= 3:
+            #         freqs = [not_similar_topic_names.count(w) for w in word_list]
+            #         max_freq_idx = freqs.index(max(freqs))
+            #         max_freq_word = word_list[max_freq_idx]
+            #     print("Do slovo ", word)
+            #     topic.name -= {word}
+            #     word = ' '.join([w for w in word_list if w != max_freq_word])
+            #     topic.name.add(word)
+            #     print("Posle slovo ", word)
+            # print("Posle imya temy", topic.name)
+
             for ot in other_topics:
                 # cw = topic.name.intersection(ot.name)
                 # percent1 = len(cw) / len(topic.name)
-                cw = intersect_with_two(topic.name, ot.name)
-                percent2 = len(cw) / len(ot.name)
+                if ot.name:
+                    cw = intersect_with_two(topic.name, ot.name)
+                    percent2 = len(cw) / len(ot.name)
 
-                if percent2 > 0.5:
-                    continue
-                else:
-                    topic.new_name -= cw
+                    if percent2 > 0.5:
+                        continue
+                    else:
+                        topic.new_name -= cw
 
         to_remove = set()
         for topic in self.topics:
@@ -287,21 +341,19 @@ class Corpus:
                 to_remove.add(topic)
         self.topics = [t for t in self.topics if t not in to_remove]
 
-
-def count_countries(name):
-    countries = {w for w in name if w.upper() in COUNTRIES}
-    return len(countries)
-
-
 def iscountry(str):
     if str in COUNTRIES:
         return True
     return False
 
 
+def count_countries(name):
+    countries = {w for w in name if iscountry(w)}
+    return len(countries)
+
+
 def count_not_countries(name):
-    countries = {w for w in name if w.upper() in COUNTRIES}
-    not_countries = name - countries
+    not_countries = {w for w in name if not iscountry(w)}
     return len(not_countries)
 
 
@@ -313,7 +365,8 @@ def intersect_with_two(set1, set2):
             if s1 in s2:
                 cw = set(s1.split()).intersection(s2.split())
                 if len(cw) >= 2:
-                    new1.remove(s1)
+                    if s1 in new1:
+                        new1.remove(s1)
                     new1.add(s2)
 
     return new1.intersection(new2)
@@ -324,9 +377,10 @@ def intersect(set1, set2):
     new2 = set2.copy()
     for s1 in set1:
         for s2 in set2:
-            if s2 == s1+'s' or s2 == s1+'es' or s2 == s1+'ies':
-                new2.remove(s2)
-                new2.add(s1)
+            if s2.lower() == s1.lower()+'s' or s2.lower() == s1.lower()+'es' or s2.lower() == s1.lower()+'ies':
+                if s2 in new2:
+                    new2.remove(s2)
+                    new2.add(s1)
     return new1.intersection(new2)
 
 

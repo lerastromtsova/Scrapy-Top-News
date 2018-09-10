@@ -69,6 +69,8 @@ de
 describe
 detail
 do
+doesn
+don
 done
 down
 due

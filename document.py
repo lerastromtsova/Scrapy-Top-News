@@ -31,6 +31,8 @@ class Document:
         self.double_translated = dict.fromkeys(types)
         self.tokens = dict.fromkeys(types)
         self.named_entities = dict.fromkeys(types)
+        self.sentences = []
+        self.first_words = {}
 
         self.conn = conn
         self.c = self.conn.cursor()
@@ -48,15 +50,20 @@ class Document:
         self.descr_with_countries = set()
         # self.title_without_countries = {d for d in self.tokens['title'] if d not in COUNTRIES}
 
-        self.sentences = [replace_countries(preprocess(sent)) for sent in self.translated['content'].split('. ')]
-        self.first_words = check_first_entities([sent.split()[0] if sent and sent[1][0].islower() else '' for sent in self.sentences])
-        self.description = self.description.union(set(self.sentences[0].split()))
+        # self.description = self.description.union(set(self.sentences[0].split()))
 
         self.countries = {w for w in self.named_entities['content'] if w in COUNTRIES}
         self.descr_with_countries = self.description.union(self.countries)
 
         self.all_text = self.description.copy()
         self.all_text.update(self.named_entities['content'])
+
+
+        self.all_text_splitted = re.findall(r"[\w]+|[^\s\w]", self.translated["title"])
+        self.all_text_splitted.extend(re.findall(r"[\w]+|[^\s\w]", self.translated["lead"]))
+        self.all_text_splitted.extend(re.findall(r"[\w]+|[^\s\w]", self.translated["content"]))
+
+
 
     def process(self, arr_of_types):
         c = self.conn.cursor()
@@ -74,6 +81,7 @@ class Document:
                 self.translated[typ] = self.raw[col]
             else:
                 self.double_translate(typ)
+
 
             if self.raw[col1]:
                 self.double_translated[typ] = self.raw[col1]
@@ -107,10 +115,6 @@ class Document:
 
             self.named_entities[typ].add(self.country.upper())
             self.tokens[typ].add(self.country.upper())
-
-            for t in self.tokens[typ]:
-                if any(char.isdigit() for char in t):
-                    self.named_entities[typ].add(t)
 
             to_remove = set()
 
@@ -146,51 +150,60 @@ class Document:
 
                 text = re.findall(r"[\w]+|[^\s\w]", self.translated[ty])
 
-                uppercase_words = []
+                self.sentences.extend([replace_countries(preprocess(sent)) for sent in
+                                  self.translated[ty].split('. ')])
+                self.first_words.update(check_first_entities(
+                    [sent.split()[0] if sent and sent[1][0].islower() else '' for sent in self.sentences]))
+
+                # uppercase_words = []
 
                 for word in text:
                     if word[0].isupper():
                         if word.lower() not in STOP_WORDS:
-                            uppercase_words.append('Why did ' + word.lower() + ' say?')
+                            if word not in self.first_words.keys():
+                                self.named_entities[ty].add(word)
+                            else:
+                                if self.first_words[word]:
+                                    self.named_entities[ty].add(word)
 
-                uppercase_words.sort(reverse=True)
+                # uppercase_words.sort(reverse=True)
+                #
+                # str_to_translate = '\n'.join(uppercase_words)
 
-                str_to_translate = '\n'.join(uppercase_words)
+                # with open("text_processing/1.txt", "w", encoding="utf-8") as f:
+                #     f.write(str_to_translate)
+                # with open("text_processing/1.txt", "r", encoding="utf-8") as f:
+                #     str_to_translate = f.read()
+                #
+                # eng = translate(str_to_translate, arg='en')
+                #
+                # with open("text_processing/2.txt", "w", encoding="utf-8") as f:
+                #     f.write(eng)
+                # with open("text_processing/2.txt", "r", encoding="utf-8") as f:
+                #     eng = f.read()
+                #
+                # deu = translate(eng, arg='de')
+                #
+                # with open("text_processing/3.txt", "w", encoding="utf-8") as f:
+                #     f.write(deu)
+                # with open("text_processing/3.txt", "r", encoding="utf-8") as f:
+                #     deu = f.read()
+                #
+                # eng1 = translate(deu, arg='en')
+                #
+                # uppercase_words_en = eng.split('\n')
+                # uppercase_words_en1 = eng1.split('\n')
 
-                with open("text_processing/1.txt", "w", encoding="utf-8") as f:
-                    f.write(str_to_translate)
-                with open("text_processing/1.txt", "r", encoding="utf-8") as f:
-                    str_to_translate = f.read()
-
-                eng = translate(str_to_translate, arg='en')
-
-                with open("text_processing/2.txt", "w", encoding="utf-8") as f:
-                    f.write(eng)
-                with open("text_processing/2.txt", "r", encoding="utf-8") as f:
-                    eng = f.read()
-
-                deu = translate(eng, arg='de')
-
-                with open("text_processing/3.txt", "w", encoding="utf-8") as f:
-                    f.write(deu)
-                with open("text_processing/3.txt", "r", encoding="utf-8") as f:
-                    deu = f.read()
-
-                eng1 = translate(deu, arg='en')
-
-                uppercase_words_en = eng.split('\n')
-                uppercase_words_en1 = eng1.split('\n')
-
-                for i in range(len(uppercase_words_en)):
-                    try:
-                        w = uppercase_words_en[i].split()[-2]
-                        w1 = uppercase_words_en1[i].split()[-2]
-                        if w and w1:
-
-                            if len(w) > 1 and w1[0].isupper() and w.lower() == w1.lower():
-                                self.named_entities[ty].add(w1)
-                    except IndexError:
-                        continue
+                # for i in range(len(uppercase_words_en)):
+                #     try:
+                #         w = uppercase_words_en[i].split()[-2]
+                #         w1 = uppercase_words_en1[i].split()[-2]
+                #         if w and w1:
+                #
+                #             if len(w) > 1 and w1[0].isupper() and w.lower() == w1.lower():
+                #                 self.named_entities[ty].add(w1)
+                #     except IndexError:
+                #         continue
 
                 # self.named_entities[ty] = delete_duplicates(self.named_entities[ty])
 
