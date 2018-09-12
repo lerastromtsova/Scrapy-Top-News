@@ -173,7 +173,6 @@ def write_rows_title(fname, similarities):
 def write_topics(fname, topics):
     wb = openpyxl.Workbook()
     sheet = wb.active
-    # sheet.cell(row=1, column=1).value = "# of news"
 
     sheet.cell(row=1, column=1).value = "All"
     sheet.cell(row=1, column=2).value = "All-countries"
@@ -191,35 +190,37 @@ def write_topics(fname, topics):
     sheet.cell(row=1, column=14).value = "IDs"
     sheet.cell(row=1, column=15).value = "# of IDs"
 
-    sheet.cell(row=1, column=16).value = "All unique"
-    sheet.cell(row=1, column=17).value = "All-countries (unique)"
-    sheet.cell(row=1, column=18).value = "All-countries-small (unique)"
-    sheet.cell(row=1, column=19).value = "FIO (unique)"
-    sheet.cell(row=1, column=20).value = "# of FIO (unique)"
-    sheet.cell(row=1, column=21).value = "Big letter (unique)"
-    sheet.cell(row=1, column=22).value = "# of Big letter (unique)"
-    sheet.cell(row=1, column=23).value = "Small letter (unique)"
-    sheet.cell(row=1, column=24).value = "# of Small letter (unique)"
-    sheet.cell(row=1, column=25).value = "Countries (unique)"
-    sheet.cell(row=1, column=26).value = "# of Countries (unique)"
-    sheet.cell(row=1, column=27).value = "Numbers (unique)"
-    sheet.cell(row=1, column=28).value = "# of Numbers (unique)"
-    sheet.cell(row=1, column=29).value = "IDs (unique)"
-    sheet.cell(row=1, column=30).value = "# of IDs (unique)"
+    sheet.cell(row=1, column=16).value = "All unique words"
+    sheet.cell(row=1, column=17).value = "# of unique"
+    sheet.cell(row=1, column=18).value = "All-countries (unique)"
+    sheet.cell(row=1, column=19).value = "All-countries-small (unique)"
+    sheet.cell(row=1, column=20).value = "FIO (unique)"
+    sheet.cell(row=1, column=21).value = "# of FIO (unique)"
+    sheet.cell(row=1, column=22).value = "Big letter (unique)"
+    sheet.cell(row=1, column=23).value = "# of Big letter (unique)"
+    sheet.cell(row=1, column=24).value = "Small letter (unique)"
+    sheet.cell(row=1, column=25).value = "# of Small letter (unique)"
+    sheet.cell(row=1, column=26).value = "Countries (unique)"
+    sheet.cell(row=1, column=27).value = "# of Countries (unique)"
+    sheet.cell(row=1, column=28).value = "Numbers (unique)"
+    sheet.cell(row=1, column=29).value = "# of Numbers (unique)"
+    sheet.cell(row=1, column=30).value = "IDs (unique)"
+    sheet.cell(row=1, column=31).value = "# of IDs (unique)"
 
-    sheet.cell(row=1, column=31).value = "Method of check"
-    sheet.cell(row=1, column=32).value = "Check"
-    sheet.cell(row=1, column=33).value = "Most frequent"
-    sheet.cell(row=1, column=34).value = "50% frequent"
-    sheet.cell(row=1, column=35).value = "What"
-    sheet.cell(row=1, column=36).value = "What2"
-    sheet.cell(row=1, column=37).value = "Common in descriptions"
-    sheet.cell(row=1, column=38).value = "Common in text"
+    sheet.cell(row=1, column=32).value = "Method of check"
+    sheet.cell(row=1, column=33).value = "Check"
+    sheet.cell(row=1, column=34).value = "Most frequent"
+    sheet.cell(row=1, column=35).value = "50% frequent"
+    sheet.cell(row=1, column=36).value = "What"
+    sheet.cell(row=1, column=37).value = "What2"
+    sheet.cell(row=1, column=38).value = "Common in descriptions"
+    sheet.cell(row=1, column=39).value = "Common in text"
 
-    sheet.cell(row=1, column=39).value = "Comment"  # should be empty
-    sheet.cell(row=1, column=40).value = "Name"
-    sheet.cell(row=1, column=41).value = "Topic"
-    sheet.cell(row=1, column=42).value = "News"
+    sheet.cell(row=1, column=40).value = "Comment"  # should be empty
+    sheet.cell(row=1, column=41).value = "Name"
+    sheet.cell(row=1, column=42).value = "Topic"
+    sheet.cell(row=1, column=43).value = "News"
+    sheet.cell(row=1, column=44).value = "Method"
 
     # counts = [0]*7
 
@@ -284,35 +285,37 @@ def write_topics(fname, topics):
 
         sheet.cell(row=i + 3, column=15).value = num_ids
 
-        sheet.cell(row=i + 3, column=16).value = len(unique_words)
+        sheet.cell(row=i + 3, column=16).value = ", ".join(unique_words)
 
-        sheet.cell(row=i + 3, column=17).value = ", ".join(unique_wo_countries)
+        sheet.cell(row=i + 3, column=17).value = len(unique_words)
 
-        sheet.cell(row=i + 3, column=18).value = ", ".join(unique_wo_countries_small)
+        sheet.cell(row=i + 3, column=18).value = ", ".join(unique_wo_countries)
 
-        sheet.cell(row=i + 3, column=19).value = ", ".join(unique_fio)
+        sheet.cell(row=i + 3, column=19).value = ", ".join(unique_wo_countries_small)
 
-        sheet.cell(row=i + 3, column=20).value = unique_num_fio
+        sheet.cell(row=i + 3, column=20).value = ", ".join(unique_fio)
 
-        sheet.cell(row=i + 3, column=21).value = ", ".join(unique_big)
+        sheet.cell(row=i + 3, column=21).value = unique_num_fio
 
-        sheet.cell(row=i + 3, column=22).value = unique_num_big
+        sheet.cell(row=i + 3, column=22).value = ", ".join(unique_big)
 
-        sheet.cell(row=i + 3, column=23).value = ", ".join(unique_small)
+        sheet.cell(row=i + 3, column=23).value = unique_num_big
 
-        sheet.cell(row=i + 3, column=24).value = unique_num_small
+        sheet.cell(row=i + 3, column=24).value = ", ".join(unique_small)
 
-        sheet.cell(row=i + 3, column=25).value = ", ".join(unique_countries)
+        sheet.cell(row=i + 3, column=25).value = unique_num_small
 
-        sheet.cell(row=i + 3, column=26).value = unique_num_countries
+        sheet.cell(row=i + 3, column=26).value = ", ".join(unique_countries)
 
-        sheet.cell(row=i + 3, column=27).value = ", ".join(unique_numbers)
+        sheet.cell(row=i + 3, column=27).value = unique_num_countries
 
-        sheet.cell(row=i + 3, column=28).value = unique_num_numbers
+        sheet.cell(row=i + 3, column=28).value = ", ".join(unique_numbers)
 
-        sheet.cell(row=i + 3, column=29).value = ", ".join(unique_ids)
+        sheet.cell(row=i + 3, column=29).value = unique_num_numbers
 
-        sheet.cell(row=i + 3, column=30).value = unique_num_ids
+        sheet.cell(row=i + 3, column=30).value = ", ".join(unique_ids)
+
+        sheet.cell(row=i + 3, column=31).value = unique_num_ids
 
 
         # counts[0] += 1
@@ -348,29 +351,36 @@ def write_topics(fname, topics):
         #     sheet.cell(row=i + 3, column=7).value = count_fio
         #     counts[6] += 1
 
-        sheet.cell(row=i + 3, column=31).value = " ".join(topic.method)
+        sheet.cell(row=i + 3, column=32).value = " ".join(topic.method)
 
-        sheet.cell(row=i + 3, column=32).value = ', '.join(topic.main_words)
+        sheet.cell(row=i + 3, column=33).value = ', '.join(topic.main_words)
         if topic.frequent:
-            sheet.cell(row=i + 3, column=33).value = ', '.join(topic.frequent)
-            sheet.cell(row=i + 3, column=34).value = ', '.join(topic.frequent[:ceil(len(topic.frequent) / 2)])
+            sheet.cell(row=i + 3, column=34).value = ', '.join(topic.frequent)
+            sheet.cell(row=i + 3, column=35).value = ', '.join(topic.frequent[:ceil(len(topic.frequent) / 2)])
         else:
-            sheet.cell(row=i + 3, column=33).value = ', '.join(topic.most_frequent())
-            sheet.cell(row=i + 3, column=34).value = ', '.join(topic.most_frequent()[:ceil(len(topic.frequent) / 2)])
-        sheet.cell(row=i + 3, column=35).value = ', '.join(topic.objects)
-        sheet.cell(row=i + 3, column=36).value = ', '.join(topic.obj)
-        sheet.cell(row=i + 3, column=37).value = ', '.join(topic.news[0].description.intersection(topic.news[1].description))
-        sheet.cell(row=i + 3, column=38).value = ', '.join(topic.news[0].named_entities['content'].intersection(topic.news[1].named_entities['content']))
+            sheet.cell(row=i + 3, column=34).value = ', '.join(topic.most_frequent())
+            sheet.cell(row=i + 3, column=35).value = ', '.join(topic.most_frequent()[:ceil(len(topic.frequent) / 2)])
+        sheet.cell(row=i + 3, column=36).value = ', '.join(topic.objects)
+        sheet.cell(row=i + 3, column=37).value = ', '.join(topic.obj)
+        sheet.cell(row=i + 3, column=38).value = ', '.join(topic.news[0].description.intersection(topic.news[1].description))
+        sheet.cell(row=i + 3, column=39).value = ', '.join(topic.news[0].named_entities['content'].intersection(topic.news[1].named_entities['content']))
 
-        sheet.cell(row=i + 3, column=39).value = ' '
         sheet.cell(row=i + 3, column=40).value = ' '
-        sheet.cell(row=i + 3, column=41).value = ', '.join(topic.name)
+        sheet.cell(row=i + 3, column=41).value = ' '
+        sheet.cell(row=i + 3, column=42).value = ', '.join(topic.name)
+
+        col = 43
 
         for j, doc in enumerate(topic.news):
 
-            sheet.cell(row=i + 3, column=j+42).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+            sheet.cell(row=i + 3, column=col).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                f"{doc.translated['lead']} | " \
                                                f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
+            try:
+                sheet.cell(row=i + 3, column=col+1).value = ", ".join(topic.methods_for_news[doc.id])
+            except KeyError:
+                sheet.cell(row=i + 3, column=col + 1).value = ""
+            col += 2
 
     wb.save(fname)
 

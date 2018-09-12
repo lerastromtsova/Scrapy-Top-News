@@ -1,8 +1,8 @@
 from descr import count_countries, count_not_countries
-from corpus import Corpus, Topic
+from corpus import Corpus, Topic, intersect
 from xl_stats import write_topics
 from datetime import datetime
-from descr import intersect, iscountry
+from descr import iscountry
 from math import ceil
 from text_processing.preprocess import PUNKTS
 from string import punctuation
@@ -401,18 +401,24 @@ def add_words_to_topics(topics):
             common_words = set()
 
             for i, new in enumerate(topic.news):
-                sent_dict[i] = {word: [w for w in sent.split() for sent in new.sentences if word in sent]}
+                sent_dict[i] = {word: {w for sent in new.sentences for w in sent.split() if word in sent}}
 
             for i, new in enumerate(topic.news):
                 common_words &= sent_dict[i][word]
 
-            topic.name.add(common_words)
+            topic.name.update(common_words)
 
     return topics
 
 
 def unite_fio(topics):
     for topic in topics:
+
+        debug = False
+
+        if "Zor" in topic.name:
+            debug = True
+            print("Name0", topic.name)
 
         fios = set()
 
@@ -443,30 +449,58 @@ def unite_fio(topics):
                     else:
                         fios.add(word1)
 
+        if debug:
+            print("FIO",fios)
+
         topic.news[0].all_text.update(set(fios))
         topic.news[1].all_text.update(set(fios))
 
-        topic.name = intersection_with_substrings(topic.news[0].all_text, topic.news[1].all_text)
+        if debug:
+            print(topic.news[0].all_text)
+            print(topic.news[1].all_text)
+
+        topic.name = intersect(topic.news[0].all_text, topic.news[1].all_text)
         name = topic.name.copy()
+        if debug:
+            print("Name1", name)
 
         name = unite_countries_in(name)
+        if debug:
+            print("Name2", name)
+
 
         for word in topic.name:
             if any(True if word in w else False for w in topic.name - {word}):
                 name -= {word}
 
-        ids, _ = topic.ids(topic.name)
+        if debug:
+            print("Name3", name)
+
+
+        # ids, _ = topic.ids(topic.name)
 
         short_to_check = {w for w in name if len(w.split()) == 1 and w not in COUNTRIES and w[0].isupper()}
+        if debug:
+            print("STC", short_to_check)
 
         long = name - short_to_check
+        if debug:
+            print("Long", long)
 
         checked_entities = check_first_entities(short_to_check)
         checked_lower = {w for w in checked_entities.keys() if not checked_entities[w]}
         checked_upper = {w for w in checked_entities.keys() if checked_entities[w]}
+        if debug:
+            print(checked_lower)
+            print(checked_upper)
+
 
         name = long | checked_upper
+        if debug:
+            print("Name4", name)
         name = name | checked_lower
+        if debug:
+            print("Name5", name)
 
         topic.name = name
         # print(topic.name)
@@ -620,12 +654,15 @@ def check_neutral_topics(topics):
             12)	 Хотя бы есть 5 Всех слов, 2 прописных, среди уникальных 1 Загл
             13)	Хотя бы есть 1 ФИО, среди уникальных 2 Загл
             14)	Хотя бы есть 4 прописных, среди уникальных 3 прописных
+            15) 1 ФИО, 3 прописных - проходит 
+            16) 2 Загл, 2 прописных - проходит
+            17) 1 прописное, среди уникальных 2 Загл - проходит 
         """
         all_words, num_all_words = topic.all_words(topic.name)
         # all_wo_countries, num_all_wo_countries = topic.all_wo_countries(all_words)
         # all_wo_small_and_countries, num_all_wo_small_and_countries = topic.all_wo_small_and_countries(all_words)
         fio, num_fio = topic.fio(all_words)
-        # big, num_big = topic.big(all_words)
+        big, num_big = topic.big(all_words)
         small, num_small = topic.small(all_words)
         # countries, num_countries = topic.countries(all_words)
 
@@ -715,6 +752,25 @@ def check_neutral_topics(topics):
             positive.add(topic)
             topic.method.add('14) 4 прописных, среди уникальных 3 прописных - проходит')
             continue
+
+        # 15
+        if num_fio >= 1 and num_small >= 3:
+            positive.add(topic)
+            topic.method.add('15) 1 ФИО, 3 прописных - проходит ')
+            continue
+
+        # 16
+        if num_big >= 2 and num_small >= 2:
+            positive.add(topic)
+            topic.method.add('16) 2 Загл, 2 прописных - проходит ')
+            continue
+
+        # 17
+        if num_big >= 1 and num_unique_big >= 2:
+            positive.add(topic)
+            topic.method.add('17) 1 прописное, среди уникальных 2 Загл - проходит ')
+            continue
+
     return positive
 
 
@@ -1289,7 +1345,7 @@ if __name__ == '__main__':
 
     corpus.topics = check_topics(corpus.topics)
     write_topics("2.xlsx", corpus.topics)
-    initial_topics = corpus.topics.copy()
+    # initial_topics = corpus.topics.copy()
     print(2, len(corpus.topics))
 
     corpus.check_unique()
@@ -1315,19 +1371,39 @@ if __name__ == '__main__':
 
     united_topics = set()
 
-    for topic1 in initial_topics:
-        for topic2 in topics:
-            new_name = topic1.name.intersection(topic2.name)
-            if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
-                news_list = topic1.news
-                news_list.extend(topic2.news)
-                new_topic = Topic(new_name, news_list)
-                pos, _, _ = filter_topics([new_topic])
-                if pos:
-                    united_topics.add(new_topic)
+    # for topic1 in initial_topics:
+    #     for topic2 in topics:
+    #         new_name = topic1.name.intersection(topic2.name)
+    #         if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
+    #             news_list = topic1.news
+    #             news_list.extend(topic2.news)
+    #             new_topic = Topic(new_name, news_list)
+    #             pos, _, _ = filter_topics([new_topic])
+    #             if pos:
+    #                 united_topics.add(new_topic)
 
-    write_topics("7.xlsx", united_topics)
-    print(7, len(united_topics))
+    for topic in topics:
+        for new in corpus.data:
+            if new not in topic.news:
+                new_name = topic.name.intersection(new.all_text)
+                if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
+                        news_list = topic.news
+                        news_list.append(new)
+                        new_topic = Topic(new_name, news_list)
+                        pos, neu, _ = filter_topics([new_topic])
+                        if pos:
+                            p = pos.pop()
+                            topic.methods_for_news[new.id] = p.method
+                            topic.news.append(new)
+                        if neu:
+                            checked = check_neutral_topics(neu)
+                            if checked:
+                                c = checked.pop()
+                                topic.methods_for_news[new.id] = c.method
+                                topic.news.append(new)
+
+    write_topics("7.xlsx", topics)
+    print(7, len(topics))
 
     print(datetime.now() - time)
 

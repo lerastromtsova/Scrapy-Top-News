@@ -29,6 +29,7 @@ class Topic:
         self.freq_dict = dict()
         self.method = set()
         self.subtopics = set()
+        self.methods_for_news = {}
 
         # for key in self.sentences_by_words:
         #     self.sentences_by_words[key] = []
@@ -183,7 +184,7 @@ class Topic:
 
     def most_frequent(self):
         freq_words = set(self.news[0].all_text)
-        for i in range(1,len(self.news)):
+        for i in range(1, len(self.news)):
             freq_words = intersect(freq_words, self.news[i].all_text)
         freq_words = {word for word in freq_words if word not in COUNTRIES}
         freq_dict = dict.fromkeys(freq_words, 0)
@@ -232,6 +233,7 @@ class Corpus:
         self.similarities = []
         self.frequencies = {}
 
+
         raw_data = self.c.fetchall()
 
         for i, row in enumerate(raw_data):
@@ -245,6 +247,10 @@ class Corpus:
             for ot in others:
 
                 cw = intersect(row.all_text, ot.all_text)
+                if row.id==33 and ot.id==71 or row.id==71 and ot.id==33:
+                    print(row.all_text)
+                    print(ot.all_text)
+                    print(cw)
 
                 # cw = {w for w in cw if w[0].islower() or w in COUNTRIES}
 
@@ -380,7 +386,19 @@ def intersect(set1, set2):
             if s2.lower() == s1.lower()+'s' or s2.lower() == s1.lower()+'es' or s2.lower() == s1.lower()+'ies':
                 if s2 in new2:
                     new2.remove(s2)
-                    new2.add(s1)
+                new2.add(s1)
+            elif s1.lower() == s2.lower()+'s' or s1.lower() == s2.lower()+'es' or s1.lower() == s2.lower()+'ies':
+                if s1 in new1:
+                    new1.remove(s1)
+                new1.add(s2)
+            elif s1.lower() == s2:
+                if s1 in new1:
+                    new1.remove(s1)
+                new1.add(s2)
+            elif s1 == s2.lower():
+                if s2 in new2:
+                    new2.remove(s2)
+                new2.add(s1)
     return new1.intersection(new2)
 
 

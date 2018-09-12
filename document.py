@@ -58,11 +58,9 @@ class Document:
         self.all_text = self.description.copy()
         self.all_text.update(self.named_entities['content'])
 
-
         self.all_text_splitted = re.findall(r"[\w]+|[^\s\w]", self.translated["title"])
         self.all_text_splitted.extend(re.findall(r"[\w]+|[^\s\w]", self.translated["lead"]))
         self.all_text_splitted.extend(re.findall(r"[\w]+|[^\s\w]", self.translated["content"]))
-
 
 
     def process(self, arr_of_types):
