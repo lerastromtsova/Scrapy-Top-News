@@ -1,5 +1,5 @@
 from descr import count_countries, count_not_countries
-from corpus import Corpus, Topic, intersect
+from corpus import Corpus, Topic, intersect, intersect_with_two
 from xl_stats import write_topics
 from datetime import datetime
 from descr import iscountry
@@ -414,21 +414,20 @@ def add_words_to_topics(topics):
 def unite_fio(topics):
     for topic in topics:
 
-        debug = False
-
-        if "Zor" in topic.name:
-            debug = True
-            print("Name0", topic.name)
-
         fios = set()
 
         text1 = topic.news[0].all_text_splitted.copy()
         strings_to_check1 = find_all_uppercase_sequences(text1)
 
+        # .union(topic.name)
+
         text2 = topic.news[1].all_text_splitted.copy()
         strings_to_check2 = find_all_uppercase_sequences(text2)
 
-        common_strings = strings_to_check1.intersection(strings_to_check2)
+        common_strings = intersect_with_two(strings_to_check1, strings_to_check2)
+        # print(1, strings_to_check1)
+        # print(2, strings_to_check2)
+        # print(3, common_strings)
 
         fios.update(common_strings)
 
@@ -438,69 +437,87 @@ def unite_fio(topics):
 
         for word1 in short_strings1:
             for word2 in short_strings2:
-                if word1 in word2:
-                    if any(w for w in strings_to_check1 if word1 in w):
+                if word1 == word2.split()[-1]:
+                    if any(w for w in strings_to_check1 if word1 == w.split()[-1] and word1 != w):
                         pass
                     else:
                         fios.add(word2)
-                elif word2 in word1:
-                    if any(w for w in strings_to_check2 if word2 in w):
+                elif word2 == word1.split()[-1]:
+                    if any(w for w in strings_to_check2 if word2 == w.split()[-1] and word2 != w):
                         pass
                     else:
                         fios.add(word1)
 
-        if debug:
-            print("FIO",fios)
 
         topic.news[0].all_text.update(set(fios))
         topic.news[1].all_text.update(set(fios))
 
-        if debug:
-            print(topic.news[0].all_text)
-            print(topic.news[1].all_text)
-
         topic.name = intersect(topic.news[0].all_text, topic.news[1].all_text)
+        print(0, topic.name)
+
+        # to_remove = set()
+        #
+        # for str1 in strings_to_check1:
+        #     for str2 in strings_to_check2:
+        #         if str1.split()[0] == str2.split()[0]:
+        #             if str1 != str2:
+        #                 if str1.split()[0] in topic.name:
+        #                     to_remove.add(str1.split()[0])
+        #
+        # topic.name -= to_remove
+
         name = topic.name.copy()
-        if debug:
-            print("Name1", name)
 
         name = unite_countries_in(name)
-        if debug:
-            print("Name2", name)
-
+        print(2, topic.name)
 
         for word in topic.name:
             if any(True if word in w else False for w in topic.name - {word}):
                 name -= {word}
-
-        if debug:
-            print("Name3", name)
-
-
         # ids, _ = topic.ids(topic.name)
 
         short_to_check = {w for w in name if len(w.split()) == 1 and w not in COUNTRIES and w[0].isupper()}
-        if debug:
-            print("STC", short_to_check)
 
         long = name - short_to_check
-        if debug:
-            print("Long", long)
 
         checked_entities = check_first_entities(short_to_check)
         checked_lower = {w for w in checked_entities.keys() if not checked_entities[w]}
         checked_upper = {w for w in checked_entities.keys() if checked_entities[w]}
-        if debug:
-            print(checked_lower)
-            print(checked_upper)
-
 
         name = long | checked_upper
-        if debug:
-            print("Name4", name)
+
         name = name | checked_lower
-        if debug:
-            print("Name5", name)
+
+        to_remove = set()
+
+        for word in topic.name:
+
+            """Если захочешь предыдущую версию, убери у 4 строчек ниже знак #, а у строк 500-507 наоборот, поставь знак # перед строкой """
+            # words1_containing = {w for w in strings_to_check1 if
+            #                      word == w.split()[0] and word != w}
+            # words2_containing = {w for w in strings_to_check2 if
+            #                      word == w.split()[0] and word != w}
+            try:
+                words1_containing = {w for w in strings_to_check1 if word == w.split()[-2] or word == w.split()[-2]+"s" and word != w}
+            except IndexError:
+                words1_containing = {w for w in strings_to_check1 if word == w.split()[0] or word == w.split()[0]+"s" and word != w}
+            try:
+                words2_containing = {w for w in strings_to_check2 if word == w.split()[-2] or word == w.split()[-2]+"s" and word != w}
+            except IndexError:
+                words2_containing = {w for w in strings_to_check2 if word == w.split()[0] or word == w.split()[0]+"s" and word != w}
+
+            if words1_containing and words2_containing and not words1_containing.intersection(words2_containing):
+                to_remove.add(word)
+
+        topic.name -= to_remove
+        
+        for word in topic.name:
+            if any(True if word in w else False for w in topic.name - {word}):
+                name -= {word}
+                
+
+        print(1, topic.name)
+
 
         topic.name = name
         # print(topic.name)
@@ -766,7 +783,7 @@ def check_neutral_topics(topics):
             continue
 
         # 17
-        if num_big >= 1 and num_unique_big >= 2:
+        if num_small >= 1 and num_unique_big >= 2:
             positive.add(topic)
             topic.method.add('17) 1 прописное, среди уникальных 2 Загл - проходит ')
             continue
@@ -787,7 +804,7 @@ def unite_fio_copy(topics):
             strings_to_check1 = [word if len(word) > 1 and not word.split()[-1][0].islower() else " ".join(word.split()[:-1]) for word in strings_to_check1]
             strings_to_check1 = [word if word.lower() not in STOP_WORDS else "" for word in strings_to_check1]
         strings_to_check1 = [word for word in strings_to_check1 if word]
-        print("1", strings_to_check1)
+
 
         def split_by_two_words(strings_to_check):
             strings_to_check_copy = strings_to_check.copy()
@@ -805,7 +822,7 @@ def unite_fio_copy(topics):
             return strings_to_check_copy
 
         strings_to_check1 = split_by_two_words(strings_to_check1)
-        print("2", strings_to_check1)
+
         text2 = topic.news[1].all_text_splitted.copy()
         strings_to_check2 = [' '.join(b) for a, b in itertools.groupby(text2, key=lambda x: x[0].isupper() and x.lower() not in STOP_WORDS or x[0].isupper()) if a]
         for k in range(3):
@@ -894,8 +911,7 @@ def unite_entities_copy(topics):
             text1 = (topic.news[i].translated['title'] + topic.news[i].translated['lead']
                      + topic.news[i].translated['content'])
             text1_splitted = re.findall(r"[\w']+|[^\s\w]", text1)
-            if debug:
-                print(text1_splitted)
+
 
             text2 = (topic.news[j].translated['title'] + topic.news[j].translated['lead']
                      + topic.news[j].translated['content'])
@@ -1387,9 +1403,10 @@ if __name__ == '__main__':
             if new not in topic.news:
                 new_name = topic.name.intersection(new.all_text)
                 if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
-                        news_list = topic.news
+                        news_list = topic.news.copy()
                         news_list.append(new)
                         new_topic = Topic(new_name, news_list)
+                        new_topic.new_name = intersect(topic.new_name, new.all_text)
                         pos, neu, _ = filter_topics([new_topic])
                         if pos:
                             p = pos.pop()
@@ -1401,7 +1418,8 @@ if __name__ == '__main__':
                                 c = checked.pop()
                                 topic.methods_for_news[new.id] = c.method
                                 topic.news.append(new)
-
+        topic.news = delete_dupl_from_news(topic.news)
+    # topics = delete_duplicates(topics)
     write_topics("7.xlsx", topics)
     print(7, len(topics))
 

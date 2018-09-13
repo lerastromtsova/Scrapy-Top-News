@@ -247,11 +247,6 @@ class Corpus:
             for ot in others:
 
                 cw = intersect(row.all_text, ot.all_text)
-                if row.id==33 and ot.id==71 or row.id==71 and ot.id==33:
-                    print(row.all_text)
-                    print(ot.all_text)
-                    print(cw)
-
                 # cw = {w for w in cw if w[0].islower() or w in COUNTRIES}
 
                 if count_not_countries(cw) >= 2 and (count_countries(cw) >= 1 or row.countries.intersection(ot.countries)):
@@ -368,13 +363,20 @@ def intersect_with_two(set1, set2):
     new2 = set2.copy()
     for s1 in set1:
         for s2 in set2:
-            if s1 in s2:
-                cw = set(s1.split()).intersection(s2.split())
-                if len(cw) >= 2:
-                    if s1 in new1:
-                        new1.remove(s1)
-                    new1.add(s2)
-
+            words_1 = set(s1.split())
+            words_2 = set(s2.split())
+            if len(words_1) >= 2:
+                if len(words_2) >= 2:
+                    cw = words_1.intersection(words_2)
+                    if len(cw) >= 2:
+                        if len(words_1) > len(words_2):
+                            if s1 in new1:
+                                new1.remove(s1)
+                            new1.add(s2)
+                        else:
+                            if s2 in new2:
+                                new2.remove(s2)
+                            new2.add(s1)
     return new1.intersection(new2)
 
 

@@ -399,3 +399,4 @@ congress
 cnn
 reuters
 department
+news
