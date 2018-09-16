@@ -444,6 +444,9 @@ def get_other(number):
 def unite_fio(topics):
     for topic in topics:
 
+        countries_in_name, _ = topic.countries(topic.name)
+        small_in_name, _ = topic.small(topic.name)
+
         fios = {}
         strings_to_check = {}
         check_len_1 = {}
@@ -655,7 +658,12 @@ def unite_fio(topics):
         topic.news[0].all_text.update(fios[0])
         topic.news[1].all_text.update(fios[1])
 
-        topic.name = intersect(topic.news[0].all_text, topic.news[1].all_text)
+        topic.name = countries_in_name
+        topic.name.update(small_in_name)
+        common_fios = intersect(fios[0], fios[1])
+        topic.name.update(common_fios)
+
+        # topic.name = intersect(topic.news[0].all_text, topic.news[1].all_text)
         numbers = topic.news[0].numbers.intersection(topic.news[1].numbers)
         topic.name.update(numbers)
         print(topic.name)
