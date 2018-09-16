@@ -1,6 +1,3 @@
-openpyxl
-googletrans
-scrapy
-nltk
 sqlite3
-gensim
+nltk
+googletrans

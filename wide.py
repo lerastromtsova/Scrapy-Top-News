@@ -1,4 +1,4 @@
-from descr import count_countries, count_not_countries
+from corpus import count_countries, count_not_countries
 from corpus import Corpus, Topic, intersect, intersect_with_two
 from xl_stats import write_topics
 from datetime import datetime
@@ -14,6 +14,8 @@ from text_processing.preprocess import STOP_WORDS, check_first_entities
 
 with open("text_processing/between-words.txt", "r") as f:
     BETWEEN_WORDS = f.read().split('\n')
+
+TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime"}
 
 
 def similar(topics):
@@ -383,12 +385,9 @@ def unite_countries_in(data):
     return data
 
 
-TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister"}
-
-
-def find_all_uppercase_sequences(words_list):
-    seq = {' '.join(b) for a, b in itertools.groupby(words_list, key=lambda x: x[0].isupper() and x.lower() not in STOP_WORDS) if a}
-    return seq
+# def find_all_uppercase_sequences(words_list):
+#     seq = {' '.join(b) for a, b in itertools.groupby(words_list, key=lambda x: x[0].isupper() and x.lower() not in STOP_WORDS or len(x) <= 2 and x.islower() or x.isdigit()) if a}
+#     return seq
 
 
 def add_words_to_topics(topics):
@@ -411,20 +410,289 @@ def add_words_to_topics(topics):
     return topics
 
 
+# def trim_words(text):
+#     for k in range(3):
+#         strings_to_check = {word if len(word) > 1 and not word.split()[0][0].islower() else " ".join(word.split()[1:]) for word in text}  # trim first words if lower
+#         strings_to_check = {word if len(word) > 1 and not word.split()[-1][0].islower() else " ".join(word.split()[:-1]) for word in strings_to_check}  # trim last words if lower
+#         strings_to_check = {word if word.lower() not in STOP_WORDS else "" for word in strings_to_check}  # delete stop words
+#     strings_to_check = {word for word in strings_to_check if word}
+#     return strings_to_check
+
+def sublist(l1, l2):
+    s1 = ''.join(map(str, l1))
+    s2 = ''.join(map(str, l2))
+    return re.search(s1, s2)
+
+
+def count_similar(word, words_list):
+    c = 0
+    for w in words_list:
+        if w == word:
+            c += 1
+            continue
+        if sublist(word, w) and len(w.split()) > 1:
+            c += 1
+    return c
+
+
+def get_other(number):
+    if number == 1:
+        return 0
+    return 1
+
+
 def unite_fio(topics):
     for topic in topics:
 
+        fios = {}
+        strings_to_check = {}
+        check_len_1 = {}
+        check_len_2 = {}
+        check_len_4_all_big = {}
+        check_len_4_some_small = {}
+        to_remove = {}
+
+        to_remove[0] = set()
+        to_remove[1] = set()
+
+        fios[0] = set()
+        fios[1] = set()
+
+        strings_to_check[0] = topic.news[0].uppercase_sequences
+        strings_to_check[1] = topic.news[1].uppercase_sequences
+
+        if topic.news[0].id == 124 or topic.news[1].id == 124:
+            print(124)
+            print(strings_to_check[0])
+            print(strings_to_check[1])
+
+        check_len_1[0] = [s for s in strings_to_check[0] if len(s.split()) == 1]
+        check_len_1[1] = [s for s in strings_to_check[1] if len(s.split()) == 1]
+
+        check_len_2[0] = [s for s in strings_to_check[0] if len(s.split()) == 2]
+        check_len_2[1] = [s for s in strings_to_check[1] if len(s.split()) == 2]
+
+        check_len_4_all_big[0] = [s for s in strings_to_check[0] if len(s.split()) > 2 and s[0].isupper()]
+        check_len_4_all_big[1] = [s for s in strings_to_check[1] if len(s.split()) > 2 and s[0].isupper()]
+
+        check_len_4_some_small[0] = [s for s in strings_to_check[0] if len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
+        check_len_4_some_small[1] = [s for s in strings_to_check[1] if len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
+
+        """ Check if some word is repeating twice in one news or once in each news """
+        for i in range(2):
+            j = get_other(i)
+            for word in strings_to_check[i]:
+                if len(word.split()) >= 2:
+                    if strings_to_check[i].count(word) >= 2 or strings_to_check[j].count(word) >= 2:
+                        fios[i].add(word)
+                        # print(topic.news[i].id)
+                        # print("Word is repeated twice | ", word)
+                    elif strings_to_check[i].count(word) >= 1 and strings_to_check[j].count(word) >= 1:
+                        fios[i].add(word)
+                        # print(topic.news[i].id)
+                        # print("Word is repeated once in each | ", word)
+
+        """ Checking two-words fio """
+
+        for i in range(2):
+            j = get_other(i)
+            for word in check_len_2[i]:
+                last_word = word.split()[-1]
+                if last_word in check_len_1[i] or last_word in check_len_1[j]:
+                    words_containing1 = {w for w in strings_to_check[i] if last_word == w.split()[-1] and last_word != w}
+                    words_containing2 = {w for w in strings_to_check[j] if last_word == w.split()[-1] and last_word != w}
+                    if len(words_containing1) > 1 or len(words_containing2) > 1:
+                        fios[i].add(last_word)
+                        # print(topic.news[i].id)
+                        # print("Word is in different FIOs | ", last_word)
+                        continue
+                    else:
+                        fios[i].add(word)
+                        # print(topic.news[i].id)
+                        # print("Word is not in different FIOs | ", word)
+                        continue
+        # print("Text1", topic.news[0].all_text_splitted)
+        # print(fios[0])
+        # print("\n")
+        # print("Text2", topic.news[1].all_text_splitted)
+        # print(fios[1])
+        # print("\n")
+
+        """ Checking multi-words fio (all big letters)"""
+
+        for i in range(2):
+            j = get_other(i)
+            for word in check_len_4_all_big[i]:
+                one_last = ' '.join(word.split()[-1:])
+                two_last = ' '.join(word.split()[-2:])
+                two_middle = ' '.join(word.split()[1:3])
+                two_first = ' '.join(word.split()[:2])
+                three_last = ' '.join(word.split()[-3:])
+                three_first = ' '.join(word.split()[:3])
+
+                for w in check_len_4_all_big[i]:
+                    if w == three_last:
+                        # print(topic.news[i].id)
+                        # print(f"Replaced word with length 4 {word} with {three_last}")
+                        fios[i].add(three_last)
+                        continue
+                    elif w == three_first:
+                        # print(topic.news[i].id)
+                        # print(f"Replaced word with length 4 {word} with {three_last}")
+                        fios[i].add(three_first)
+                        continue
+
+                for w in check_len_4_all_big[j]:
+                    if w == three_last:
+                        # print(topic.news[j].id)
+                        # print(f"Replaced word with length 4 {word} with {three_last}")
+                        fios[j].add(three_last)
+                        continue
+                    elif w == three_first:
+                        # print(topic.news[j].id)
+                        # print(f"Replaced word with length 4 {word} with {three_last}")
+                        fios[j].add(three_first)
+                        continue
+
+                for w in check_len_2[i]:
+                    if w == two_last:
+                        # print(topic.news[i].id)
+                        # print(f"Replaced word with length 4 {word} with {two_last}")
+                        fios[i].add(two_last)
+                        continue
+                    elif w == two_middle:
+                        # print(topic.news[i].id)
+                        # print(f"Replaced word with length 4 {word} with {two_last}")
+                        fios[i].add(two_middle)
+                        continue
+                    elif w == two_first:
+                        # print(topic.news[i].id)
+                        # print(f"Replaced word with length 4 {word} with {two_last}")
+                        fios[i].add(two_first)
+                        continue
+
+                for w in check_len_2[j]:
+                    if w == two_last:
+                        # print(topic.news[j].id)
+                        # print(f"Replaced word with length 4 {word} with {two_last}")
+                        fios[j].add(two_last)
+                        continue
+                    elif w == two_middle:
+                        # print(topic.news[j].id)
+                        # print(f"Replaced word with length 4 {word} with {two_last}")
+                        fios[j].add(two_middle)
+                        continue
+                    elif w == two_first:
+                        # print(topic.news[j].id)
+                        # print(f"Replaced word with length 4 {word} with {two_last}")
+                        fios[j].add(two_first)
+                        continue
+
+                for w in check_len_1[i]:
+                    if w == one_last:
+                        # print(topic.news[i].id)
+                        # print(f"Replaced word with length 4 {word} with {one_last}")
+                        fios[i].add(one_last)
+                        continue
+
+                for w in check_len_1[j]:
+                    if w == one_last:
+                        # print(topic.news[j].id)
+                        # print(f"Replaced word with length 4 {word} with {one_last}")
+                        fios[j].add(one_last)
+                        continue
+
+        # for word in strings_to_check1:
+        #     if len(word.split()) >= 2:
+        #         if count_similar(word, strings_to_check1) >= 2:
+        #             fios.add(word)
+        #         if count_similar(word, strings_to_check2) >= 1:
+        #             fios.add(word)
+        #
+        # for word in strings_to_check2:
+        #     if len(word.split()) >= 2:
+        #         if count_similar(word, strings_to_check2) >= 2:
+        #             fios.add(word)
+        #         if count_similar(word, strings_to_check1) >= 1:
+        #             fios.add(word)
+
+        # common_strings = set(strings_to_check1).intersection(set(strings_to_check2))
+
+        """ Checking multi-words fio (some small letters)"""
+        for i in range(2):
+            j = get_other(i)
+            for word in check_len_4_some_small[i]:
+                all_big = ' '.join([w for w in word.split() if w[0].isupper()])
+                for w in check_len_4_all_big[i]:
+                    if all_big == w:
+                        # print(topic.news[i].id)
+                        # print("Some words were the same", word, "to", all_big)
+                        fios[i].add(all_big)
+                for w in check_len_4_all_big[j]:
+                    if all_big == w:
+                        # print(topic.news[j].id)
+                        # print("Some words were the same", word, "to", all_big)
+                        fios[j].add(all_big)
+
+                for w in check_len_2[i]:
+                    if all_big == w:
+                        # print(topic.news[i].id)
+                        # print("Some words were the same", word, "to", all_big)
+                        fios[i].add(all_big)
+                for w in check_len_2[j]:
+                    if all_big == w:
+                        # print(topic.news[j].id)
+                        # print("Some words were the same", word, "to", all_big)
+                        fios[j].add(all_big)
+
+        # print("FIO1", fios[0])
+        # print("ID1", topic.news[0].id)
+        # print("FIO2", fios[1])
+        # print("ID2", topic.news[1].id)
+
+        # print(topic.name)
+
+        topic.news[0].all_text.update(fios[0])
+        topic.news[1].all_text.update(fios[1])
+
+        topic.name = intersect(topic.news[0].all_text, topic.news[1].all_text)
+        numbers = topic.news[0].numbers.intersection(topic.news[1].numbers)
+        topic.name.update(numbers)
+        print(topic.name)
+
+        name = topic.name.copy()
+
+        for word in topic.name:
+            if any(True if word in w else False for w in topic.name - {word}):
+                name -= {word}
+                print(word)
+
+        topic.name = unite_countries_in(topic.name)
+
+        topic.name = name
+        topic.new_name = name.copy()
+
+    return topics
+
+
+def unite_fio1(topics):
+    for topic in topics:
+
         fios = set()
+        # text1 = topic.news[0].all_text_splitted.copy()
+        # text1 = [w for w in text1 if len(w) > 1]
+        # # print(text1)
+        # strings_to_check1 = find_all_uppercase_sequences(text1)
+        # strings_to_check2 = trim_words(strings_to_check2)
 
-        text1 = topic.news[0].all_text_splitted.copy()
-        strings_to_check1 = find_all_uppercase_sequences(text1)
+        strings_to_check1 = topic.news[0].uppercase_sequences
+        strings_to_check2 = topic.news[1].uppercase_sequences
 
-        # .union(topic.name)
-
-        text2 = topic.news[1].all_text_splitted.copy()
-        strings_to_check2 = find_all_uppercase_sequences(text2)
+        print(1, strings_to_check1)
+        print(2, strings_to_check2)
 
         common_strings = intersect_with_two(strings_to_check1, strings_to_check2)
+        print(3, common_strings)
         # print(1, strings_to_check1)
         # print(2, strings_to_check2)
         # print(3, common_strings)
@@ -434,26 +702,33 @@ def unite_fio(topics):
         short_strings1 = {w for w in strings_to_check1 if len(w.split()) <= 2}
 
         short_strings2 = {w for w in strings_to_check2 if len(w.split()) <= 2}
+        print("short1", short_strings1)
+        print("short2", short_strings2)
 
         for word1 in short_strings1:
             for word2 in short_strings2:
-                if word1 == word2.split()[-1]:
-                    if any(w for w in strings_to_check1 if word1 == w.split()[-1] and word1 != w):
-                        pass
-                    else:
-                        fios.add(word2)
-                elif word2 == word1.split()[-1]:
-                    if any(w for w in strings_to_check2 if word2 == w.split()[-1] and word2 != w):
-                        pass
-                    else:
-                        fios.add(word1)
-
+                if len(word2.split()) >= 2:
+                    if word1 == word2.split()[-1]:
+                        if any(w for w in strings_to_check1 if word1 == w.split()[-1] and word1 != w and w != word2)\
+                                and any(w for w in strings_to_check2 if word1 == w.split()[-1] and word1 != w and w != word2):  # if word1 consists in any fios in sequences1 and 2
+                            pass
+                        else:
+                            print(word2)
+                            fios.add(word2)
+                if len(word1.split()) >= 2:
+                    if word2 == word1.split()[-1]:
+                        if any(w for w in strings_to_check2 if word2 == w.split()[-1] and word2 != w and w != word1)\
+                                and any(w for w in strings_to_check1 if word2 == w.split()[-1] and word2 != w and w != word1):
+                            pass
+                        else:
+                            print(word1)
+                            fios.add(word1)
 
         topic.news[0].all_text.update(set(fios))
         topic.news[1].all_text.update(set(fios))
 
         topic.name = intersect(topic.news[0].all_text, topic.news[1].all_text)
-        print(0, topic.name)
+        print("Name", topic.name)
 
         # to_remove = set()
         #
@@ -469,12 +744,14 @@ def unite_fio(topics):
         name = topic.name.copy()
 
         name = unite_countries_in(name)
-        print(2, topic.name)
+        print("Countries", name)
 
         for word in topic.name:
             if any(True if word in w else False for w in topic.name - {word}):
                 name -= {word}
-        # ids, _ = topic.ids(topic.name)
+                print(word)
+
+        topic.name = name
 
         short_to_check = {w for w in name if len(w.split()) == 1 and w not in COUNTRIES and w[0].isupper()}
 
@@ -483,16 +760,20 @@ def unite_fio(topics):
         checked_entities = check_first_entities(short_to_check)
         checked_lower = {w for w in checked_entities.keys() if not checked_entities[w]}
         checked_upper = {w for w in checked_entities.keys() if checked_entities[w]}
+        print("checked U", checked_upper)
+        print("checked L", checked_lower)
 
         name = long | checked_upper
 
         name = name | checked_lower
 
+        topic.name = name
+
         to_remove = set()
 
         for word in topic.name:
 
-            """Если захочешь предыдущую версию, убери у 4 строчек ниже знак #, а у строк 500-507 наоборот, поставь знак # перед строкой """
+            """Если захочешь предыдущую версию, убери у 4 строчек ниже знак #, а у строк 519-526 наоборот, поставь знак # перед строкой """
             # words1_containing = {w for w in strings_to_check1 if
             #                      word == w.split()[0] and word != w}
             # words2_containing = {w for w in strings_to_check2 if
@@ -507,20 +788,21 @@ def unite_fio(topics):
                 words2_containing = {w for w in strings_to_check2 if word == w.split()[0] or word == w.split()[0]+"s" and word != w}
 
             if words1_containing and words2_containing and not words1_containing.intersection(words2_containing):
+                print("1 containing", words1_containing)
+                print("2 containing", words2_containing)
+                print("word", word)
                 to_remove.add(word)
 
-        topic.name -= to_remove
+        name -= to_remove
+        topic.name = name
         
         for word in topic.name:
             if any(True if word in w else False for w in topic.name - {word}):
                 name -= {word}
-                
-
-        print(1, topic.name)
-
 
         topic.name = name
         # print(topic.name)
+        # print("\n")
         topic.new_name = topic.name.copy()
         # print(topic.name)
 
@@ -530,132 +812,307 @@ def unite_fio(topics):
 def filter_topics(topics):
 
     positive = set()
-    negative = set()
-    neutral = set()
-
     for topic in topics:
+
         # All words
         all_words, num_all_words = topic.all_words(topic.name)
-        if num_all_words >= 9:
-            positive.add(topic)
-            topic.method.add('9 "ВСЕ СЛОВА" - проходит ')
-            continue
-        elif num_all_words <= 1:
-            negative.add(topic)
-            continue
+        # if num_all_words >= 9:
+        #     positive.add(topic)
+        #     topic.method.add('9 "ВСЕ СЛОВА" - проходит ')
+        #     continue
+        # elif num_all_words <= 1:
+        #     negative.add(topic)
+        #     continue
 
         # All w/o countries
         all_wo_countries, num_all_wo_countries = topic.all_wo_countries(all_words)
-        if num_all_wo_countries >= 5:
-            positive.add(topic)
-            topic.method.add('5 "ВСЕ СЛОВА – Страны" - проходит')
-            continue
-        elif num_all_wo_countries <= 1:
-            negative.add(topic)
-            continue
+        # if num_all_wo_countries >= 5:
+        #     positive.add(topic)
+        #     topic.method.add('5 "ВСЕ СЛОВА – Страны" - проходит')
+        #     continue
+        # elif num_all_wo_countries <= 1:
+        #     negative.add(topic)
+        #     continue
 
         # All w/o small & countries
         all_wo_small_and_countries, num_all_wo_small_and_countries = topic.all_wo_countries_and_small(all_words)
-        if num_all_wo_small_and_countries >= 5:
-            positive.add(topic)
-            topic.method.add('5 "ВСЕ СЛОВА - Прописные и Страны" - проходит ')
-            continue
+        # if num_all_wo_small_and_countries >= 5:
+        #     positive.add(topic)
+        #     topic.method.add('5 "ВСЕ СЛОВА - Прописные и Страны" - проходит ')
+        #     continue
 
         # FIO
         fio, num_fio = topic.fio(all_words)
-        if num_fio >= 3:
-            positive.add(topic)
-            topic.method.add('3 "ФИО" - проходит ')
-            continue
+        # if num_fio >= 3:
+        #     positive.add(topic)
+        #     topic.method.add('3 "ФИО" - проходит ')
+        #     continue
 
         # Big letter
         big, num_big = topic.big(all_words)
-        if num_big >= 4:
-            positive.add(topic)
-            topic.method.add('4 "ЗАГЛАВНЫЕ" - проходит ')
-            continue
+        # if num_big >= 4:
+        #     positive.add(topic)
+        #     topic.method.add('4 "ЗАГЛАВНЫЕ" - проходит ')
+        #     continue
 
         # Small - already count
         small, num_small = topic.small(all_words)
-        if num_small >= 5:
-            positive.add(topic)
-            topic.method.add('5 "ПРОПИСНЫЕ" - проходит ')
-            continue
+        # if num_small >= 5:
+        #     positive.add(topic)
+        #     topic.method.add('5 "ПРОПИСНЫЕ" - проходит ')
+        #     continue
 
         # Countries - already count
         countries, num_countries = topic.countries(all_words)
-        if num_countries >= 5:
-            positive.add(topic)
-            topic.method.add('5 "СТРАНЫ" - проходит ')
-            continue
+        # if num_countries >= 5:
+        #     positive.add(topic)
+        #     topic.method.add('5 "СТРАНЫ" - проходит ')
+        #     continue
 
         # All unique
         unique_words, num_unique_words = topic.all_words(topic.new_name)
-        if num_unique_words >= 5:
-            positive.add(topic)
-            topic.method.add('5 "ВСЕ УНИКАЛЬНЫЕ" - проходит ')
-            continue
-        elif num_unique_words == 0:
-            negative.add(topic)
-            continue
+        # if num_unique_words >= 5:
+        #     positive.add(topic)
+        #     topic.method.add('5 "ВСЕ УНИКАЛЬНЫЕ" - проходит ')
+        #     continue
+        # elif num_unique_words == 0:
+        #     negative.add(topic)
+        #     continue
 
         # Unique w/o countries
         unique_wo_countries, num_unique_wo_countries = topic.all_wo_countries(unique_words)
-        if num_unique_wo_countries >= 5:
-            positive.add(topic)
-            topic.method.add('5 "ВСЕ УНИКАЛЬНЫЕ - Страны" - проходит ')
-            continue
-        elif num_unique_wo_countries == 0:
-            negative.add(topic)
-            continue
+        # if num_unique_wo_countries >= 5:
+        #     positive.add(topic)
+        #     topic.method.add('5 "ВСЕ УНИКАЛЬНЫЕ - Страны" - проходит ')
+        #     continue
+        # elif num_unique_wo_countries == 0:
+        #     negative.add(topic)
+        #     continue
 
         # Unique w/o countries and small
         unique_wo_small_countries, num_unique_wo_small_countries = topic.all_wo_countries_and_small(unique_words)
-        if num_unique_wo_small_countries >= 3:
-            positive.add(topic)
-            topic.method.add('3 "ВСЕ УНИКАЛЬНЫЕ - Страны и Прописные" - проходит ')
-            continue
+        # if num_unique_wo_small_countries >= 3:
+        #     positive.add(topic)
+        #     topic.method.add('3 "ВСЕ УНИКАЛЬНЫЕ - Страны и Прописные" - проходит ')
+        #     continue
 
         # Unique FIO
         unique_fio, num_unique_fio = topic.fio(unique_words)
-        if num_unique_fio >= 2:
-            positive.add(topic)
-            topic.method.add('2 "УНИКАЛЬНЫЕ ФИО" - проходит ')
-            continue
+        # if num_unique_fio >= 2:
+        #     positive.add(topic)
+        #     topic.method.add('2 "УНИКАЛЬНЫЕ ФИО" - проходит ')
+        #     continue
 
         # Unique big
         unique_big, num_unique_big = topic.big(unique_words)
-        if num_unique_big >= 3:
-            positive.add(topic)
-            topic.method.add('3 "УНИКАЛЬНЫЕ ЗАГЛАВНЫЕ" - проходит ')
-            continue
+        # if num_unique_big >= 3:
+        #     positive.add(topic)
+        #     topic.method.add('3 "УНИКАЛЬНЫЕ ЗАГЛАВНЫЕ" - проходит ')
+        #     continue
 
         # Unique small - already count
         unique_small, num_unique_small = topic.small(unique_words)
-        if num_unique_small >= 4:
-            positive.add(topic)
-            topic.method.add('4 "УНИКАЛЬНЫЕ ПРОПИСНЫЕ" - проходит ')
-            continue
+        # if num_unique_small >= 4:
+        #     positive.add(topic)
+        #     topic.method.add('4 "УНИКАЛЬНЫЕ ПРОПИСНЫЕ" - проходит ')
+        #     continue
 
         # Unique countries - already count
         unique_countries, num_unique_countries = topic.countries(unique_words)
-        if num_unique_countries >= 3:
-            positive.add(topic)
-            topic.method.add('3 "УНИКАЛЬНЫЕ СТРАНЫ" - проходит ')
-            continue
+        # if num_unique_countries >= 3:
+        #     positive.add(topic)
+        #     topic.method.add('3 "УНИКАЛЬНЫЕ СТРАНЫ" - проходит ')
+        #     continue
 
         # Unique IDs
         unique_ids, _ = topic.ids(unique_words)
-        if unique_ids:
-            positive.add(topic)
-            topic.method.add('1 "УНИКАЛЬНЫЕ id" - проходит ')
-            continue
+        # if unique_ids:
+        #     positive.add(topic)
+        #     topic.method.add('1 "УНИКАЛЬНЫЕ id" - проходит ')
+        #     continue
 
-    neutral = {topic for topic in topics if topic not in positive and topic not in negative}
-    return positive, neutral, negative
+        # 1) 1 уФИО + 2 ФИО
+        if num_unique_fio >= 1 and num_fio >= 2 and num_countries >= 1 and (
+                    num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('1) уФИО + 2 ФИО')
+                continue
+
+            # 2) 1 уФИО + 1 оЗагл
+        if num_unique_fio >= 1 and num_big >= 1 and num_countries >= 1 and (
+                    num_fio >= 2 or num_big >= 2 or num_small >= 1 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('1 уФИО + 1 оЗагл')
+                continue
+
+            # 3) 1 уФИО + 1 оПроп
+        if num_unique_fio >= 1 and num_small >= 1 and num_countries >= 1 and (
+                    num_fio >= 2 or num_big >= 1 or num_small >= 2 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('3) 1 уФИО + 1 оПроп')
+                continue
+
+            # 4) 1 уЗагл + 1 оФИО
+        if num_unique_big >= 1 and num_fio >= 1 and (
+                    num_fio >= 2 or num_big >= 2 or num_small >= 1 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('4) 1 уЗагл + 1 оФИО')
+                continue
+
+            # 5) 1 уЗагл + 2 оЗагл
+        if num_unique_big >= 1 and num_big >= 2 and (
+                    num_unique_fio >= 1 or num_unique_big >= 2 or num_unique_small >= 1 or num_unique_countries >= 2):
+                positive.add(topic)
+                topic.method.add('5) 1 уЗагл + 2 оЗагл')
+                continue
+
+            # 6) 1 уЗагл + 1 оФИО
+        if num_unique_big >= 1 and num_small >= 1 and (
+                    num_unique_fio >= 1 or num_unique_big >= 2 or num_unique_small >= 2 or num_unique_countries >= 2):
+                positive.add(topic)
+                topic.method.add('6) 1 уЗагл + 1 оФИО')
+                continue
+
+            # 7) 1 уЗагл + 2 оСтр
+        if num_unique_big >= 1 and num_countries >= 2 and (
+                    num_unique_fio >= 1 or num_unique_big >= 2 or num_unique_small >= 1 or num_unique_countries >= 1):
+                positive.add(topic)
+                topic.method.add('7) 1 уЗагл + 2 оСтр')
+                continue
+
+            # 8) 1 уПроп + 2 оФИО
+        if num_unique_small >= 1 and num_fio >= 2 and (
+                    num_fio >= 3 or num_big >= 1 or num_small >= 2 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('8) 1 уПроп + 2 оФИО')
+                continue
+
+            # 9) 1 уПроп + 2 оЗагл
+        if num_unique_small >= 1 and num_big >= 2 and (
+                    num_unique_fio >= 1 or num_unique_big >= 1 or num_unique_small >= 2 or num_unique_countries >= 2):
+                positive.add(topic)
+                topic.method.add('9) 1 уПроп + 2 оЗагл')
+                continue
+
+            # 10) 4 уПроп
+        if num_unique_small >= 4 and (num_fio >= 1 or num_big >= 1 or num_small >= 5 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('10) 4 уПроп ')
+                continue
+
+            # 11) 3 оФИО
+        if num_fio >= 3:
+                positive.add(topic)
+                topic.method.add('11) 3 оФИО')
+                continue
+
+            # 12) 1 оФИО + 2 оЗагл
+        if num_fio >= 1 and num_big >= 2 and (num_fio >= 2 or num_big >= 3 or num_small >= 1 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('12) 1 оФИО + 2 оЗагл')
+                continue
+
+            # 13) 1 оФИО + 2 оПроп
+        if num_fio >= 1 and num_small >= 2 and (
+                    num_fio >= 2 or num_big >= 1 or num_small >= 4 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('13) 1 оФИО + 2 оПроп')
+                continue
+
+            # 14) 2 уФИО
+        if num_unique_fio >= 2 and (num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('14) 2 уФИО ')
+                continue
+
+            # 15) 3 уПроп + 1 оФИО
+        if num_unique_small >= 3 and num_fio >= 1 and num_countries >= 1 and (num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('15) 3 уПроп + 1 оФИО')
+                continue
+
+            # 16) 4 оЗагл
+        if num_unique_big >= 4:
+                positive.add(topic)
+                topic.method.add('16) 4 оЗагл')
+                continue
+
+            # 17) 1 оЗагл + 2 оПроп
+        if num_big >= 1 and num_small >= 2 and (
+                    num_fio >= 1 or num_big >= 2 or num_small >= 4 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('17) 1 оЗагл + 2 оПроп')
+                continue
+
+            # 18) 3 уЗагл
+        if num_unique_big >= 3:
+                positive.add(topic)
+                topic.method.add('18) 3 уЗагл')
+                continue
+
+            # 19) 3 оЗагл + 1 оПроп
+        if num_big >= 3 and num_small >= 1 and (
+                    num_fio >= 1 or num_big >= 4 or num_small >= 2 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('19) 3 оЗагл + 1 оПроп')
+                continue
+
+            # 20) 5 оСтран
+        if num_countries >= 5:
+                positive.add(topic)
+                topic.method.add('20) 5 оСтран')
+                continue
+
+            # 21) 2 уПроп + 1 оЗагл
+        if num_unique_small >= 2 and num_big >= 1 and (
+                    num_fio >= 1 or num_big >= 42 or num_small >= 3 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('21) 2 уПроп + 1 оЗагл')
+                continue
+
+            # 22) 1 уЗагл + 1 уПроп
+        if num_unique_fio >= 1 and num_unique_small >= 1 and (
+                    num_fio >= 2 or num_big >= 1 or num_small >= 2 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('22) 1 уЗагл + 1 уПроп')
+                continue
+
+            # 23) 4 уПроп
+        if num_unique_small >= 4 and (num_fio >= 1 or num_big >= 1 or num_small >= 5 or num_countries >= 2):
+                positive.add(topic)
+                topic.method.add('23) 4 уПроп')
+                continue
+
+            # 24) 4 оСтран
+        if num_countries >= 4 and (num_fio >= 1 or num_big >= 1 or num_small >= 1 or num_countries >= 5):
+                positive.add(topic)
+                topic.method.add('24) 4 оСтран')
+                continue
+
+            # 25) 1 уФИО + 2 уСтран
+        if num_unique_fio >= 1 and num_unique_countries >= 2:
+                positive.add(topic)
+                topic.method.add('25) 1 уФИО + 2 уСтран')
+                continue
+
+            # 26) 1 упроп + 1 уПроп
+        if num_unique_small >= 1 and num_unique_countries >= 2 and (
+                    num_fio >= 1 or num_big >= 1 or num_small >= 2 or num_countries >= 3):
+                positive.add(topic)
+                topic.method.add('26) 1 упроп + 1 уПроп')
+                continue
+
+            # 27) 3 уСтр
+        if num_unique_countries >= 3 and (num_fio >= 1 or num_big >= 1 or num_small >= 1 or num_countries >= 4):
+                positive.add(topic)
+                topic.method.add('27) 3 уСтр')
+                continue
+
+    # neutral = {topic for topic in topics if topic not in positive and topic not in negative}
+    return positive
 
 
-def check_neutral_topics(topics):
+def check_neutral_topics_copy(topics):
     positive = set()
     for topic in topics:
         """ 2)	Хотя бы есть среди уникальных 1Загл, 1ФИО, 1 прописн
@@ -787,6 +1244,49 @@ def check_neutral_topics(topics):
             positive.add(topic)
             topic.method.add('17) 1 прописное, среди уникальных 2 Загл - проходит ')
             continue
+
+    return positive
+
+
+def check_neutral_topics(topics, coefficients):
+    positive = set()
+    for topic in topics:
+        all_words, num_all_words = topic.all_words(topic.name)
+        # all_wo_countries, num_all_wo_countries = topic.all_wo_countries(all_words)
+        # all_wo_small_and_countries, num_all_wo_small_and_countries = topic.all_wo_small_and_countries(all_words)
+        fio, num_fio = topic.fio(all_words)
+        big, num_big = topic.big(all_words)
+        small, num_small = topic.small(all_words)
+        ids, num_ids = topic.ids(all_words)
+        countries, num_countries = topic.countries(all_words)
+
+        unique_words, num_unique_words = topic.all_words(topic.new_name)
+        # unique_wo_countries, num_unique_wo_countries = topic.all_wo_countries(unique_words)
+        # unique_wo_small_countries, num_unique_wo_small_countries = topic.all_wo_small_and_countries(unique_words)
+        unique_fio, num_unique_fio = topic.fio(unique_words)
+        unique_big, num_unique_big = topic.big(unique_words)
+        unique_small, num_unique_small = topic.small(unique_words)
+        unique_countries, num_unique_countries = topic.countries(unique_words)
+        unique_ids, num_unique_ids = topic.ids(unique_words)
+
+        result = 0
+
+        result += num_fio * coefficients['fio']
+        result += num_big * coefficients['big']
+        result += num_small * coefficients['small']
+        result += num_ids * coefficients['ids']
+        if num_countries >= 2:
+            result += num_countries * coefficients['countries']
+
+        result += num_unique_fio * coefficients['ufio']
+        result += num_unique_big * coefficients['ubig']
+        result += num_unique_small * coefficients['usmall']
+        result += num_unique_ids * coefficients['uids']
+        result += num_unique_countries * coefficients['ucountries']
+
+        if result >= 1:
+            topic.result = result
+            positive.add(topic)
 
     return positive
 
@@ -1372,18 +1872,28 @@ if __name__ == '__main__':
     write_topics("4.xlsx", corpus.topics)
     print(4, len(corpus.topics))
 
-    pos, neu, neg = filter_topics(corpus.topics)
-    write_topics("5-Positive.xlsx", pos)
-    write_topics("5-Neutral.xlsx", neu)
-    write_topics("5-Negative.xlsx", neg)
-    print(5, len(pos), len(neu), len(neg))
+    # pos, neu, neg = filter_topics(corpus.topics)
+    # write_topics("5-Positive.xlsx", pos)
+    # write_topics("5-Neutral.xlsx", neu)
+    # write_topics("5-Negative.xlsx", neg)
+    # print(5, len(pos), len(neu), len(neg))
 
-    pos_1 = check_neutral_topics(neu)
-    topics = pos
-    topics.update(pos_1)
+    # coefs = {'fio': 0.35,
+    #          'big': 0.1,
+    #          'small': 0.25,
+    #          'ids': 1,
+    #          'countries': 0.05,
+    #
+    #          'ufio': 0.49,
+    #          'ubig': 0.35,
+    #          'usmall': 0.2,
+    #          'uids': 1,
+    #          'ucountries': 0.08}
 
-    write_topics("6.xlsx", topics)
-    print(6, len(topics))
+    corpus.topics = filter_topics(corpus.topics)
+
+    write_topics("6.xlsx", corpus.topics)
+    print(6, len(corpus.topics))
 
     united_topics = set()
 
@@ -1398,30 +1908,36 @@ if __name__ == '__main__':
     #             if pos:
     #                 united_topics.add(new_topic)
 
-    for topic in topics:
+    for topic in corpus.topics:
         for new in corpus.data:
             if new not in topic.news:
                 new_name = topic.name.intersection(new.all_text)
                 if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
                         news_list = topic.news.copy()
-                        news_list.append(new)
+                        new_copy = new.copy()
+                        news_list.append(new_copy)
+                        new_copy.all_text = new_copy.description
+                        new_copy.all_text.update(new_copy.tokens['content'])
                         new_topic = Topic(new_name, news_list)
-                        new_topic.new_name = intersect(topic.new_name, new.all_text)
-                        pos, neu, _ = filter_topics([new_topic])
-                        if pos:
-                            p = pos.pop()
-                            topic.methods_for_news[new.id] = p.method
-                            topic.news.append(new)
-                        if neu:
-                            checked = check_neutral_topics(neu)
-                            if checked:
-                                c = checked.pop()
-                                topic.methods_for_news[new.id] = c.method
-                                topic.news.append(new)
+                        new_topic.new_name = intersect(topic.new_name, new_copy.all_text)
+                        t = filter_topics([new_topic])
+                        if t:
+                            topic.news.append(new_copy)
+                        # pos, neu, _ = filter_topics([new_topic])
+                        # if pos:
+                        #     p = pos.pop()
+                        #     topic.methods_for_news[new.id] = p.method
+                        #     topic.news.append(new)
+                        # if neu:
+                        #     checked = check_neutral_topics(neu, coefs)
+                        #     if checked:
+                        #         c = checked.pop()
+                        #         topic.methods_for_news[new.id] = c.method
+                        #         topic.news.append(new)
         topic.news = delete_dupl_from_news(topic.news)
     # topics = delete_duplicates(topics)
-    write_topics("7.xlsx", topics)
-    print(7, len(topics))
+    write_topics("7.xlsx", corpus. topics)
+    print(7, len(corpus.topics))
 
     print(datetime.now() - time)
 

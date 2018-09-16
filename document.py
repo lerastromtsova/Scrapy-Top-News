@@ -3,6 +3,12 @@ from text_processing.translate import translate
 import re
 import nltk
 import sqlite3
+import itertools
+from string import punctuation
+
+
+PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––']
+TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime"}
 
 
 class Document:
@@ -40,7 +46,7 @@ class Document:
         self.table = table
 
         # self.dates = process_dates(list(self.tokens)).append(self.date)
-        self.process(['title','lead','content'])
+        self.process(['title', 'lead', 'content'])
 
         self.description = self.tokens['title'].union(self.tokens['lead'])
 
@@ -62,6 +68,13 @@ class Document:
         self.all_text_splitted.extend(re.findall(r"[\w]+|[^\s\w]", self.translated["lead"]))
         self.all_text_splitted.extend(re.findall(r"[\w]+|[^\s\w]", self.translated["content"]))
 
+        text = [w for w in self.all_text_splitted if len(w) > 1 or w in punctuation or w in PUNKTS]
+
+        self.uppercase_sequences = find_all_uppercase_sequences(text)
+        self.numbers = {w for w in self.all_text_splitted if w.isdigit()}
+        # print("Text: ", " ".join(text))
+        # print("Uppercase: ", ", ".join(self.uppercase_sequences))
+        # # self.uppercase_sequences = trim_words(self.uppercase_sequences)
 
     def process(self, arr_of_types):
         c = self.conn.cursor()
@@ -79,7 +92,6 @@ class Document:
                 self.translated[typ] = self.raw[col]
             else:
                 self.double_translate(typ)
-
 
             if self.raw[col1]:
                 self.double_translated[typ] = self.raw[col1]
@@ -142,7 +154,7 @@ class Document:
                     word = ent.replace("í", "i")
                     self.named_entities[ty].add(word)
 
-                #self.named_entities[ty] = set(res.split(','))
+                # self.named_entities[ty] = set(res.split(','))
 
             else:
 
@@ -204,7 +216,6 @@ class Document:
                 #         continue
 
                 # self.named_entities[ty] = delete_duplicates(self.named_entities[ty])
-
 
     def unite_countries_in(self, ty, type_of_data):
         conn = sqlite3.connect("db/countries.db")
@@ -290,8 +301,8 @@ def find_countries(data):
                 if ent.lower() in low:
                     countries.add(row[0])
 
-
     return countries
+
 
 def replace_countries(data):
     to_remove = set()
@@ -308,6 +319,7 @@ def replace_countries(data):
     data.extend(to_add)
     return ' '.join(data)
 
+
 def delete_duplicates(text):
     to_remove = set()
     for word in text:
@@ -317,6 +329,149 @@ def delete_duplicates(text):
                 to_remove.add(word)
     text = text - to_remove
     return text
+
+
+def can_be_between(word, prev_word):
+    if len(word) == 2 and word.islower() or prev_word[0].isupper() and len(prev_word) == 1 and word == "." or word=="-":
+        return True
+    return False
+
+
+def can_be_big(word):
+    if word[0].isupper() and word.lower() not in STOP_WORDS and word not in TITLES:
+        return True
+    return False
+
+
+def find_all_uppercase_sequences(w_list):
+    seq = []
+    words_list = w_list.copy()
+    for i in range(len(words_list)):
+        word = words_list[i]
+        if can_be_big(word):
+            try:
+                n_word = words_list[i+1]
+                words_list[i + 1] = ' '
+
+                if can_be_big(n_word):
+                    try:
+                        nn_word = words_list[i+2]
+                        words_list[i + 2] = ' '
+                        if can_be_big(nn_word):
+                            try:
+                                nnn_word = words_list[i+3]
+                                words_list[i + 3] = ' '
+                                if can_be_big(nnn_word):
+                                    fio = " ".join([word, n_word, nn_word, nnn_word])  # BBBB
+                                    seq.append(fio)
+                                else:
+                                    fio = " ".join([word, n_word, nn_word])  # BBB
+                                    seq.append(fio)
+                            except IndexError:
+                                fio = " ".join([word, n_word, nn_word])  # BBB
+                                seq.append(fio)
+                        elif can_be_between(nn_word, n_word):
+                            try:
+                                nnn_word = words_list[i + 3]
+                                words_list[i + 3] = ' '
+                                if can_be_big(nnn_word):
+                                    fio = " ".join([word, n_word, nn_word, nnn_word])  # BBsB
+                                    seq.append(fio)
+                                else:
+                                    fio = " ".join([word, n_word])  # BB
+                                    seq.append(fio)
+                            except IndexError:
+                                fio = " ".join([word, n_word])  # BB
+                                seq.append(fio)
+                        else:
+                            fio = " ".join([word, n_word])  # BB
+                            seq.append(fio)
+                    except IndexError:
+                        fio = " ".join([word, n_word])  # BB
+                        seq.append(fio)
+
+                elif can_be_between(n_word, word):
+                    try:
+                        nn_word = words_list[i + 2]
+                        words_list[i + 2] = ' '
+                        if nn_word[0].isupper():
+                            try:
+                                nnn_word = words_list[i + 3]
+                                words_list[i + 3] = ' '
+                                if nnn_word[0].isupper():
+                                    fio = " ".join([word, n_word, nn_word, nnn_word])  # BsBB
+                                    seq.append(fio)
+                                else:
+                                    fio = " ".join([word, n_word, nn_word])  # BsB
+                                    seq.append(fio)
+                            except IndexError:
+                                fio = " ".join([word, n_word, nn_word])  # BsB
+                                seq.append(fio)
+                        elif can_be_between(nn_word, n_word):
+                            try:
+                                nnn_word = words_list[i + 3]
+                                words_list[i + 3] = ' '
+                                if nnn_word[0].isupper():
+                                    fio = " ".join([word, n_word, nn_word, nnn_word])  # BssB
+                                    seq.append(fio)
+                                else:
+                                    fio = word  # B
+                                    seq.append(fio)
+                            except IndexError:
+                                fio = word  # B
+                                seq.append(fio)
+                        else:
+                            fio = word  # B
+                            seq.append(fio)
+                    except IndexError:
+                        fio = word
+                        seq.append(fio)
+                else:
+                    fio = word
+                    seq.append(fio)
+            except IndexError:
+                fio = word
+                seq.append(fio)
+
+    to_remove = set()
+    to_add = []
+
+    for s in seq:
+        if "." in s:
+
+            rem = s
+            ad = s.split()
+            point_idx = ad.index(".")
+            ad = [a for a in ad if ad.index(a) != point_idx and ad.index(a) != point_idx-1]
+            to_remove.add(rem)
+            to_add.append(" ".join(ad))
+
+        if "-" in s:
+
+            rem = s
+            ad = s.split()
+            point_idx = ad.index("-")
+            ad = [a for a in ad if ad.index(a) != point_idx]
+            to_remove.add(rem)
+            to_add.append(" ".join(ad))
+
+        if s in STOP_WORDS:
+            to_remove.add(s)
+
+    seq = [s for s in seq if s not in to_remove]
+    seq.extend(to_add)
+
+    # seq = {' '.join(b) for a, b in itertools.groupby(words_list, key=lambda x: x[0].isupper() and x.lower() not in STOP_WORDS or len(x) <= 2 and x.islower() and words_list[words_list.index(x)+1][0].isupper() or x.isdigit()) if a}
+    return seq
+
+
+# def trim_words(text):
+#     for k in range(3):
+#         strings_to_check = {word if len(word) > 1 and not word.split()[0][0].islower() else " ".join(word.split()[1:]) for word in text}  # trim first words if lower
+#         strings_to_check = {word if len(word) > 1 and not word.split()[-1][0].islower() else " ".join(word.split()[:-1]) for word in strings_to_check}  # trim last words if lower
+#         strings_to_check = {word if word.lower() not in STOP_WORDS else "" for word in strings_to_check}  # delete stop words
+#     strings_to_check = {word for word in strings_to_check if word}
+#     return strings_to_check
 
 
 STOP_PATH = './text_processing/stop-words.txt'

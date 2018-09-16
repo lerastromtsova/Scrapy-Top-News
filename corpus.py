@@ -30,6 +30,7 @@ class Topic:
         self.method = set()
         self.subtopics = set()
         self.methods_for_news = {}
+        self.result = 0
 
         # for key in self.sentences_by_words:
         #     self.sentences_by_words[key] = []
@@ -249,7 +250,8 @@ class Corpus:
                 cw = intersect(row.all_text, ot.all_text)
                 # cw = {w for w in cw if w[0].islower() or w in COUNTRIES}
 
-                if count_not_countries(cw) >= 2 and (count_countries(cw) >= 1 or row.countries.intersection(ot.countries)):
+                # if count_not_countries(cw) >= 2 and (count_countries(cw) >= 1 or row.countries.intersection(ot.countries)):
+                if len(cw) >= 4 and count_countries(cw) >= 1:
                     news = [row, ot]
                     new_topic = Topic(cw, news)
                     self.topics.append(new_topic)
@@ -342,6 +344,7 @@ class Corpus:
                 to_remove.add(topic)
         self.topics = [t for t in self.topics if t not in to_remove]
 
+
 def iscountry(str):
     if str in COUNTRIES:
         return True
@@ -372,11 +375,15 @@ def intersect_with_two(set1, set2):
                         if len(words_1) > len(words_2):
                             if s1 in new1:
                                 new1.remove(s1)
-                            new1.add(s2)
+                                # print("removed: ", s1)
+                                new1.add(s2)
+                                # print("added: ", s2)
                         else:
                             if s2 in new2:
                                 new2.remove(s2)
-                            new2.add(s1)
+                                # print("removed: ", s2)
+                                new2.add(s1)
+                                # print("added: ", s1)
     return new1.intersection(new2)
 
 

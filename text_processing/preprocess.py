@@ -13,9 +13,12 @@ import sqlite3
 
 # STOP_PATH = '../../text_processing/stop-words.txt'
 STOP_PATH = os.getcwd()+'/text_processing/stop-words.txt'
-PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––']
+PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––', " | "]
+SYM_MAP = {'â': 'a', 'Ç': 'C', 'ç': 'c', 'Ğ': 'g', 'ğ': 'g', 'İ':'I', 'ı':'i', 'î':'i', 'Ö':'O', 'ö': 'oe',
+           'Ş': 'S', 'ş': 's', 'Ü': 'U', 'ü': 'u', 'é': 'e', 'à': 'a', 'è': 'e' , 'û': 'u', 'ô': 'o', 'œ': 'o',
+           'ñ': 'n', 'á': 'a', 'í': 'i', 'ú': 'u', '¿': '', 'č': 'c', 'ć': 'c', 'ů': 'u', 'ei': 'ey', 'oe': 'o'}
 
-with open(STOP_PATH,"r") as f:
+with open(STOP_PATH, "r") as f:
     STOP_WORDS = f.read().split('\n')
 
 
@@ -33,12 +36,14 @@ def preprocess(text, with_uppercase=True):
                   and t not in PUNKTS and t not in string.punctuation
                   and len(t) > 1]
 
-
     else:
         tokens = [t.lower() for t in tokens if
                   (t.lower() not in STOP_WORDS)
                   and t not in PUNKTS and t not in string.punctuation
                   and len(t) > 1]
+
+    for key, value in SYM_MAP.values():
+        tokens = [t.replace(key, value) for t in tokens]
 
     # to_add = []
     # to_remove = []
@@ -60,6 +65,7 @@ c = conn.cursor()
 c.execute("SELECT * FROM entities")
 all_rows = c.fetchall()
 DEFINITELY_ENTITIES = [row[0] for row in all_rows]
+
 
 def find_entities(sentence):
 
