@@ -658,8 +658,8 @@ def unite_fio(topics):
         topic.news[0].all_text.update(fios[0])
         topic.news[1].all_text.update(fios[1])
 
-        topic.name = countries_in_name
-        topic.name.update(small_in_name)
+        topic.name = set(countries_in_name)
+        topic.name.update(set(small_in_name))
         common_fios = intersect(fios[0], fios[1])
         topic.name.update(common_fios)
 
