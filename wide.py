@@ -11,6 +11,7 @@ import re
 from document import COUNTRIES
 import itertools
 from text_processing.preprocess import STOP_WORDS, check_first_entities
+from copy import deepcopy
 
 with open("text_processing/between-words.txt", "r") as f:
     BETWEEN_WORDS = f.read().split('\n')
@@ -1922,7 +1923,7 @@ if __name__ == '__main__':
                 new_name = topic.name.intersection(new.all_text)
                 if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
                         news_list = topic.news.copy()
-                        new_copy = new.copy()
+                        new_copy = deepcopy(new)
                         news_list.append(new_copy)
                         new_copy.all_text = new_copy.description
                         new_copy.all_text.update(new_copy.tokens['content'])
