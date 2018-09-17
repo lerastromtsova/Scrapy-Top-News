@@ -205,6 +205,7 @@ def assign_news(topics, rows):
 
 
 def delete_duplicates(topics):
+    topics = list(topics)
     for i, t in enumerate(topics):
         if t:
             others = [to for to in topics if to is not None]
@@ -215,7 +216,7 @@ def delete_duplicates(topics):
                     other_ids = {n.id for n in o.news}
                     if ids == other_ids:
                         topics[i] = None
-    topics = [t for t in topics if t is not None]
+    topics = {t for t in topics if t is not None}
     return topics
 
 
@@ -447,6 +448,9 @@ def unite_fio(topics):
 
         countries_in_name, _ = topic.countries(topic.name)
         small_in_name, _ = topic.small(topic.name)
+        ids_in_name, _ = topic.ids(topic.name)
+        # big_in_name, _ = topic.big(topic.name)
+        # big_to_leave = {w for w in big_in_name if w in topic.frequent}
 
         fios = {}
         strings_to_check = {}
@@ -464,13 +468,12 @@ def unite_fio(topics):
 
         strings_to_check[0] = topic.news[0].uppercase_sequences
         strings_to_check[1] = topic.news[1].uppercase_sequences
+        # print("ID1", topic.news[0].id)
+        # print(1, strings_to_check[0])
+        # print("ID2", topic.news[1].id)
+        # print(2, strings_to_check[1])
 
         # big_in_name = [w for w in topic.name if w in strings_to_check[0] or w in strings_to_check[1]]
-
-        if topic.news[0].id == 124 or topic.news[1].id == 124:
-            print(124)
-            print(strings_to_check[0])
-            print(strings_to_check[1])
 
         check_len_1[0] = [s for s in strings_to_check[0] if len(s.split()) == 1]
         check_len_1[1] = [s for s in strings_to_check[1] if len(s.split()) == 1]
@@ -485,6 +488,7 @@ def unite_fio(topics):
         check_len_4_some_small[1] = [s for s in strings_to_check[1] if len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
 
         """ Check if some word is repeated twice in one news or once in each news """
+
         for i in range(2):
             j = get_other(i)
             for word in strings_to_check[i]:
@@ -507,7 +511,9 @@ def unite_fio(topics):
                 if last_word in check_len_1[i] or last_word in check_len_1[j]:
                     words_containing1 = {w for w in strings_to_check[i] if last_word == w.split()[-1] and last_word != w}
                     words_containing2 = {w for w in strings_to_check[j] if last_word == w.split()[-1] and last_word != w}
-                    if len(words_containing1) > 1 or len(words_containing2) > 1:
+                    c1 = len(words_containing1)
+                    c2 = len(words_containing2)
+                    if c1 > 1 or c2 > 1 or (c1 + c2 >= 2 and words_containing1 != words_containing2):
                         fios[i].add(last_word)
                         # print(topic.news[i].id)
                         # print("Word is in different FIOs | ", last_word)
@@ -652,7 +658,7 @@ def unite_fio(topics):
                         fios[j].add(all_big)
 
         # print("FIO1", fios[0])
-        # print("ID1", topic.news[0].id)
+        #
         # print("FIO2", fios[1])
         # print("ID2", topic.news[1].id)
 
@@ -663,6 +669,9 @@ def unite_fio(topics):
 
         topic.name = set(countries_in_name)
         topic.name.update(set(small_in_name))
+        topic.name.update(set(ids_in_name))
+        # topic.name.update(set(big_in_name))
+
         # topic.name.update(set(big_in_name))
 
         common_fios = intersect(fios[0], fios[1])
@@ -671,18 +680,18 @@ def unite_fio(topics):
         # topic.name = intersect(topic.news[0].all_text, topic.news[1].all_text)
         numbers = topic.news[0].numbers.intersection(topic.news[1].numbers)
         topic.all_numbers = numbers
-        print(topic.name)
+        # print(topic.name)
 
         name = topic.name.copy()
 
         for word in topic.name:
             if any(True if word in w else False for w in topic.name - {word}):
                 name -= {word}
-                print(word)
 
         topic.name = name
         topic.name = unite_countries_in(topic.name)
         topic.new_name = topic.name.copy()
+        topic.frequent = topic.most_frequent()
 
     return topics
 
@@ -756,7 +765,6 @@ def unite_fio1(topics):
         name = topic.name.copy()
 
         name = unite_countries_in(name)
-        print("Countries", name)
 
         for word in topic.name:
             if any(True if word in w else False for w in topic.name - {word}):
@@ -772,8 +780,6 @@ def unite_fio1(topics):
         checked_entities = check_first_entities(short_to_check)
         checked_lower = {w for w in checked_entities.keys() if not checked_entities[w]}
         checked_upper = {w for w in checked_entities.keys() if checked_entities[w]}
-        print("checked U", checked_upper)
-        print("checked L", checked_lower)
 
         name = long | checked_upper
 
@@ -800,9 +806,6 @@ def unite_fio1(topics):
                 words2_containing = {w for w in strings_to_check2 if word == w.split()[0] or word == w.split()[0]+"s" and word != w}
 
             if words1_containing and words2_containing and not words1_containing.intersection(words2_containing):
-                print("1 containing", words1_containing)
-                print("2 containing", words2_containing)
-                print("word", word)
                 to_remove.add(word)
 
         name -= to_remove
@@ -1120,8 +1123,31 @@ def filter_topics(topics):
                 topic.method.add('27) 3 уСтр')
                 continue
 
-    # neutral = {topic for topic in topics if topic not in positive and topic not in negative}
-    return positive
+    negative = {topic for topic in topics if topic not in positive}
+    return positive, negative
+
+
+def last_check_topics(topics):
+    positive = set()
+    negative = set()
+    for topic in topics:
+
+        topic.frequent = topic.most_frequent()
+
+        if len(topic.frequent) >= 8:
+            freq_50 = topic.frequent[:ceil(len(topic.frequent) / 2)]
+        elif 4 <= len(topic.frequent) <= 8:
+            freq_50 = topic.frequent[:4]
+        else:
+            freq_50 = topic.frequent[:len(topic.frequent)]
+
+        if len(freq_50) >= 3:
+            positive.add(topic)
+        elif len(freq_50) >= 2 and len(topic.new_name) >= 1 and count_countries(topic.name) >= 1:
+            positive.add(topic)
+    negative = {t for t in topics if t not in positive}
+    return positive, negative
+
 
 
 def check_neutral_topics_copy(topics):
@@ -1902,10 +1928,12 @@ if __name__ == '__main__':
     #          'uids': 1,
     #          'ucountries': 0.08}
 
-    corpus.topics = filter_topics(corpus.topics)
+    corpus.topics, neg = filter_topics(corpus.topics)
 
-    write_topics("6.xlsx", corpus.topics)
-    print(6, len(corpus.topics))
+    write_topics("5-прошли.xlsx", corpus.topics)
+
+    write_topics("5-не прошли.xlsx", neg)
+    print(5, len(corpus.topics))
 
     united_topics = set()
 
@@ -1931,7 +1959,7 @@ if __name__ == '__main__':
                         new.all_text.update(new.tokens['content'])
                         new_topic = Topic(new_name, news_list)
                         new_topic.new_name = intersect(topic.new_name, new.all_text)
-                        t = filter_topics([new_topic])
+                        t, _ = filter_topics([new_topic])
                         if t:
                             topic.methods_for_news[new.id] = new_topic.method
                             topic.news.append(new)
@@ -1948,8 +1976,47 @@ if __name__ == '__main__':
                         #         topic.news.append(new)
         topic.news = delete_dupl_from_news(topic.news)
     # topics = delete_duplicates(topics)
-    write_topics("7.xlsx", corpus. topics)
-    print(7, len(corpus.topics))
+    corpus.topics = delete_duplicates(corpus.topics)
+    write_topics("6.xlsx", corpus. topics)
+
+    print(6, len(corpus.topics))
+
+    corpus.check_unique()
+
+    # corpus.topics, neg2 = last_check_topics(corpus.topics)
+    # corpus.topics = delete_duplicates(corpus.topics)
+    # write_topics("7-прошли.xlsx", corpus.topics)
+    # write_topics("7-не прошли.xlsx", neg2)
+    # print(7, len(corpus.topics))
+
+    new_topics = set()
+
+    for topic in corpus.topics:
+        others = [t for t in corpus.topics if set(t.news) != set(topic.news)]
+        similar = set()
+        for ot in others:
+            new_name = topic.name.intersection(ot.name)
+            news_list = list(set(topic.news).union(set(ot.news)))
+            new_topic = Topic(new_name, news_list)
+            t, _ = filter_topics([new_topic])
+            if t:
+                new_topics.add(new_topic)
+                similar.add(ot)
+        if not similar:
+            new_topics.add(topic)
+
+    corpus.topics = new_topics
+    corpus.topics = delete_duplicates(corpus.topics)
+
+    corpus.check_unique()
+
+    write_topics("8.xlsx", corpus.topics)
+    print(8, len(corpus.topics))
+    corpus.topics, neg3 = last_check_topics(corpus.topics)
+    corpus.topics = delete_duplicates(corpus.topics)
+    write_topics("9-прошли.xlsx", corpus.topics)
+    write_topics("9-не прошли.xlsx", neg3)
+    # print(9, len(corpus.topics))
 
     print(datetime.now() - time)
 

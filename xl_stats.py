@@ -312,12 +312,20 @@ def write_topics(fname, topics):
         sheet.cell(row=i + 3, column=39).value = unique_num_numbers
         sheet.cell(row=i + 3, column=40).value = unique_num_ids
 
-        if topic.frequent:
-            sheet.cell(row=i + 3, column=41).value = ', '.join(topic.frequent)
-            sheet.cell(row=i + 3, column=42).value = ', '.join(topic.frequent[:ceil(len(topic.frequent) / 2)])
+        if not topic.frequent:
+            topic.frequent = topic.most_frequent()
+
+        sheet.cell(row=i + 3, column=41).value = ', '.join(topic.frequent)
+
+        if len(topic.frequent) >= 8:
+            freq_50 = topic.frequent[:ceil(len(topic.frequent) / 2)]
+        elif 4 <= len(topic.frequent) <= 8:
+            freq_50 = topic.frequent[:4]
         else:
-            sheet.cell(row=i + 3, column=41).value = ', '.join(topic.most_frequent())
-            sheet.cell(row=i + 3, column=42).value = ', '.join(topic.most_frequent()[:ceil(len(topic.frequent) / 2)])
+            freq_50 = topic.frequent[:len(topic.frequent)]
+
+        sheet.cell(row=i + 3, column=42).value = ', '.join(freq_50)
+
         sheet.cell(row=i + 3, column=43).value = ', '.join(topic.objects)
         sheet.cell(row=i + 3, column=44).value = ', '.join(topic.obj)
         sheet.cell(row=i + 3, column=45).value = ', '.join(topic.news[0].description.intersection(topic.news[1].description))
@@ -327,9 +335,9 @@ def write_topics(fname, topics):
         sheet.cell(row=i + 3, column=48).value = ''
         sheet.cell(row=i + 3, column=49).value = ', '.join(all_words)
         # sheet.cell(row=i + 3, column=51).value = ', '.join(topic.method)
-        sheet.cell(row=i + 3, column=50).value = ', '.join(topic.all_numbers)
+        # sheet.cell(row=i + 3, column=50).value = ', '.join(topic.all_numbers)
 
-        col = 51
+        col = 50
 
         for j in range(2, len(topic.news)):
 

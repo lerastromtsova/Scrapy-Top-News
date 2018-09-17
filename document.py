@@ -9,6 +9,7 @@ from string import punctuation
 
 PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––']
 TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime"}
+PREPS = ['at', 'on', 'in', 'by', 'of', 'to']
 
 
 class Document:
@@ -338,7 +339,7 @@ def can_be_between(word, prev_word):
 
 
 def can_be_big(word):
-    if word[0].isupper() and word.lower() not in STOP_WORDS and word not in TITLES:
+    if word[0].isupper() and word.lower() not in STOP_WORDS and word not in TITLES and word not in PREPS:
         return True
     return False
 

@@ -186,9 +186,11 @@ class Topic:
 
     def most_frequent(self):
         freq_words = set(self.news[0].all_text)
+
         for i in range(1, len(self.news)):
             freq_words = intersect(freq_words, self.news[i].all_text)
-        freq_words = {word for word in freq_words if word not in COUNTRIES}
+
+        freq_words = {word for word in freq_words if word.upper() not in COUNTRIES}
         freq_dict = dict.fromkeys(freq_words, 0)
 
         for word in freq_words:
