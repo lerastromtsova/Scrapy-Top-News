@@ -31,7 +31,7 @@ class Topic:
         self.subtopics = set()
         self.methods_for_news = {}
         self.result = 0
-        self.numbers = set()
+        self.all_numbers = set()
 
         # for key in self.sentences_by_words:
         #     self.sentences_by_words[key] = []

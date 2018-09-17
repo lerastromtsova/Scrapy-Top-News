@@ -670,7 +670,7 @@ def unite_fio(topics):
 
         # topic.name = intersect(topic.news[0].all_text, topic.news[1].all_text)
         numbers = topic.news[0].numbers.intersection(topic.news[1].numbers)
-        topic.numbers = numbers
+        topic.all_numbers = numbers
         print(topic.name)
 
         name = topic.name.copy()
