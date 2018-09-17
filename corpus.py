@@ -235,12 +235,34 @@ class Corpus:
         self.similarities = []
         self.frequencies = {}
 
-
         raw_data = self.c.fetchall()
 
-        for i, row in enumerate(raw_data):
-            doc = Document(i, row, self.conn, table)
+        try:
+            self.create_documents(raw_data)
+
+        except IndexError:
+            self.create_columns_and_documents(raw_data)
+
+    def create_documents(self, data):
+        for i, row in enumerate(data):
+            doc = Document(i, row, self.conn, self.table)
             self.data.append(doc)
+
+    def create_columns_and_documents(self, raw_data):
+        add_column(self.table, 'translated', 10000, self.c)
+        add_column(self.table, 'translated1', 10000, self.c)
+        add_column(self.table, 'translated_lead', 1000, self.c)
+        add_column(self.table, 'translated1_lead', 1000, self.c)
+        add_column(self.table, 'translated_title', 1000, self.c)
+        add_column(self.table, 'translated1_title', 1000, self.c)
+        add_column(self.table, 'nes_content', 1000, self.c)
+        add_column(self.table, 'nes_lead', 1000, self.c)
+        add_column(self.table, 'nes_title', 1000, self.c)
+        add_column(self.table, 'tokens_content', 10000, self.c)
+        add_column(self.table, 'tokens_lead', 1000, self.c)
+        add_column(self.table, 'tokens_title', 1000, self.c)
+        self.conn.commit()
+        self.create_documents(raw_data)
 
     def find_topics(self):
 
@@ -411,7 +433,11 @@ def intersect(set1, set2):
                 new2.add(s1)
     return new1.intersection(new2)
 
-
+def add_column(table, column_name, length, cursor):
+    try:
+        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column_name} TEXT({length})")
+    except sqlite3.OperationalError:
+        pass
 # if __name__ == '__main__':
 #
 #     db = input("DB name (default - day): ")

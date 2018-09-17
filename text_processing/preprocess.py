@@ -42,7 +42,7 @@ def preprocess(text, with_uppercase=True):
                   and t not in PUNKTS and t not in string.punctuation
                   and len(t) > 1]
 
-    for key, value in SYM_MAP.values():
+    for key, value in SYM_MAP.items():
         tokens = [t.replace(key, value) for t in tokens]
 
     # to_add = []
