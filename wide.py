@@ -1933,6 +1933,7 @@ if __name__ == '__main__':
                         new_topic.new_name = intersect(topic.new_name, new.all_text)
                         t = filter_topics([new_topic])
                         if t:
+                            topic.methods_for_news[new.id] = new_topic.method
                             topic.news.append(new)
                         # pos, neu, _ = filter_topics([new_topic])
                         # if pos:
