@@ -326,6 +326,7 @@ def write_topics(fname, topics):
         sheet.cell(row=i + 3, column=47).value = ''
         sheet.cell(row=i + 3, column=48).value = ''
         sheet.cell(row=i + 3, column=49).value = ', '.join(all_words)
+        sheet.cell(row=i + 3, column=51).value = ', '.join(topic.method)
 
         col = 50
 

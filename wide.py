@@ -465,6 +465,8 @@ def unite_fio(topics):
         strings_to_check[0] = topic.news[0].uppercase_sequences
         strings_to_check[1] = topic.news[1].uppercase_sequences
 
+        # big_in_name = [w for w in topic.name if w in strings_to_check[0] or w in strings_to_check[1]]
+
         if topic.news[0].id == 124 or topic.news[1].id == 124:
             print(124)
             print(strings_to_check[0])
@@ -482,7 +484,7 @@ def unite_fio(topics):
         check_len_4_some_small[0] = [s for s in strings_to_check[0] if len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
         check_len_4_some_small[1] = [s for s in strings_to_check[1] if len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
 
-        """ Check if some word is repeating twice in one news or once in each news """
+        """ Check if some word is repeated twice in one news or once in each news """
         for i in range(2):
             j = get_other(i)
             for word in strings_to_check[i]:
@@ -661,6 +663,8 @@ def unite_fio(topics):
 
         topic.name = set(countries_in_name)
         topic.name.update(set(small_in_name))
+        # topic.name.update(set(big_in_name))
+
         common_fios = intersect(fios[0], fios[1])
         topic.name.update(common_fios)
 
@@ -676,10 +680,9 @@ def unite_fio(topics):
                 name -= {word}
                 print(word)
 
-        topic.name = unite_countries_in(topic.name)
-
         topic.name = name
-        topic.new_name = name.copy()
+        topic.name = unite_countries_in(topic.name)
+        topic.new_name = topic.name.copy()
 
     return topics
 
@@ -1923,15 +1926,14 @@ if __name__ == '__main__':
                 new_name = topic.name.intersection(new.all_text)
                 if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
                         news_list = topic.news.copy()
-                        new_copy = deepcopy(new)
-                        news_list.append(new_copy)
-                        new_copy.all_text = new_copy.description
-                        new_copy.all_text.update(new_copy.tokens['content'])
+                        news_list.append(new)
+                        new.all_text = new.description
+                        new.all_text.update(new.tokens['content'])
                         new_topic = Topic(new_name, news_list)
-                        new_topic.new_name = intersect(topic.new_name, new_copy.all_text)
+                        new_topic.new_name = intersect(topic.new_name, new.all_text)
                         t = filter_topics([new_topic])
                         if t:
-                            topic.news.append(new_copy)
+                            topic.news.append(new)
                         # pos, neu, _ = filter_topics([new_topic])
                         # if pos:
                         #     p = pos.pop()
