@@ -58,7 +58,7 @@ class Document:
         self.all_text_splitted.extend(re.findall(r"[\w]+|[^\s\w]", self.translated["lead"]))
         self.all_text_splitted.extend(re.findall(r"[\w]+|[^\s\w]", self.translated["content"]))
 
-        text = [w for w in self.all_text_splitted if len(w) > 1 or w in punctuation or w in PUNKTS]
+        text = [w for w in self.all_text_splitted if len(w) >= 1 or w in punctuation or w in PUNKTS]
 
         self.uppercase_sequences = find_all_uppercase_sequences(text)
         self.numbers = {w for w in self.all_text_splitted if w.isdigit()}
@@ -85,7 +85,6 @@ class Document:
             else:
                 self.double_translate(typ)
 
-
             self.translated[typ] = replace_special_symbols(self.translated[typ])
             self.double_translated[typ] = replace_special_symbols(self.double_translated[typ])
 
@@ -111,6 +110,8 @@ class Document:
 
             self.unite_countries_in(typ, 'tokens')
             self.unite_countries_in(typ, 'nes')
+            # self.translated[typ] = unite_countries_in(self.translated[typ])
+            # self.double_translated[typ] = unite_countries_in(self.double_translated[typ])
 
             self.named_entities[typ].add(self.country.upper())
             self.tokens[typ].add(self.country.upper())
@@ -320,14 +321,14 @@ def delete_duplicates(text):
     return text
 
 
-def can_be_between(word, prev_word):
-    if len(word) == 2 and word.islower() and word not in PREPS or prev_word[0].isupper() and len(prev_word) == 1 and word == "." or word=="-":
+def can_be_between(word):
+    if len(word) == 2 and word.islower() and word not in PREPS or word[0].isupper() and len(word) == 1 or word == "-":
         return True
     return False
 
 
 def can_be_big(word):
-    if word[0].isupper() and word not in TITLES and word not in COUNTRIES:
+    if word[0].isupper() and word not in TITLES and word.upper() not in COUNTRIES:
         return True
     return False
 
@@ -336,6 +337,10 @@ def find_all_uppercase_sequences(w_list):
     seq = []
     words_list = w_list.copy()
     words_list = unite_countries_in(words_list)
+    words_list = [words_list[i] for i in range(len(words_list)) if words_list[i] != '.' or len(words_list[i-1]) != 1]
+    debug = False
+    if debug:
+        print(words_list)
     for i in range(len(words_list)):
         word = words_list[i]
         if can_be_big(word):
@@ -360,7 +365,7 @@ def find_all_uppercase_sequences(w_list):
                             except IndexError:
                                 fio = " ".join([word, n_word, nn_word])  # BBB
                                 seq.append(fio)
-                        elif can_be_between(nn_word, n_word):
+                        elif can_be_between(nn_word):
                             try:
                                 nnn_word = words_list[i + 3]
                                 words_list[i + 3] = ' '
@@ -380,7 +385,7 @@ def find_all_uppercase_sequences(w_list):
                         fio = " ".join([word, n_word])  # BB
                         seq.append(fio)
 
-                elif can_be_between(n_word, word):
+                elif can_be_between(n_word):
                     try:
                         nn_word = words_list[i + 2]
                         words_list[i + 2] = ' '
@@ -397,7 +402,7 @@ def find_all_uppercase_sequences(w_list):
                             except IndexError:
                                 fio = " ".join([word, n_word, nn_word])  # BsB
                                 seq.append(fio)
-                        elif can_be_between(nn_word, n_word):
+                        elif can_be_between(nn_word):
                             try:
                                 nnn_word = words_list[i + 3]
                                 words_list[i + 3] = ' '
@@ -426,30 +431,36 @@ def find_all_uppercase_sequences(w_list):
     to_remove = set()
     to_add = []
 
-    for s in seq:
-        if "." in s:
-
-            rem = s
-            ad = s.split()
-            point_idx = ad.index(".")
-            ad = [a for a in ad if ad.index(a) != point_idx and ad.index(a) != point_idx-1]
-            to_remove.add(rem)
-            to_add.append(" ".join(ad))
-
-        if "-" in s:
-
-            rem = s
-            ad = s.split()
-            point_idx = ad.index("-")
-            ad = [a for a in ad if ad.index(a) != point_idx]
-            to_remove.add(rem)
-            to_add.append(" ".join(ad))
-
-        if s in STOP_WORDS:
-            to_remove.add(s)
+    # for s in seq:
+    #     # if "." in s:
+    #     #
+    #     #     rem = s
+    #     #     ad = s.split()
+    #     #     point_idx = ad.index(".")
+    #     #     ad = [a for a in ad if ad.index(a) != point_idx and ad.index(a) != point_idx-1]
+    #     #     to_remove.add(rem)
+    #     #     to_add.append(" ".join(ad))
+    #     #
+    #     # if "-" in s:
+    #     #
+    #     #     rem = s
+    #     #     ad = s.split()
+    #     #     point_idx = ad.index("-")
+    #     #     ad = [a for a in ad if ad.index(a) != point_idx]
+    #     #     to_remove.add(rem)
+    #     #     to_add.append(" ".join(ad))
+    #
+    #     if s in STOP_WORDS:
+    #         to_remove.add(s)
 
     seq = [s for s in seq if s not in to_remove]
     seq = [s for s in seq if s.lower() not in STOP_WORDS]
+
+    for i in range(len(seq)):
+        for w in seq[i].split():
+            if len(w) == 1:
+                seq[i] = seq[i].replace(w+' ', '')
+
     seq.extend(to_add)
 
     # seq = {' '.join(b) for a, b in itertools.groupby(words_list, key=lambda x: x[0].isupper() and x.lower() not in STOP_WORDS or len(x) <= 2 and x.islower() and words_list[words_list.index(x)+1][0].isupper() or x.isdigit()) if a}

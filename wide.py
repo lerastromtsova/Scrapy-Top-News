@@ -9,7 +9,7 @@ from string import punctuation
 import re
 from document import COUNTRIES
 import itertools
-from text_processing.preprocess import STOP_WORDS, check_first_entities, unite_countries_in
+from text_processing.preprocess import STOP_WORDS, check_first_entities, unite_countries_in, unite_countries_in_topic_names
 
 
 with open("text_processing/between-words.txt", "r") as f:
@@ -408,6 +408,7 @@ def get_other(number):
     return 1
 
 
+
 def unite_fio(topics):
     for topic in topics:
 
@@ -425,7 +426,7 @@ def unite_fio(topics):
         check_len_4_some_small = {}
         to_remove = {}
         debug = False
-        if topic.news[0].id == 165 and topic.news[1].id == 104 or topic.news[0].id == 104 and topic.news[1].id == 165:
+        if topic.news[0].id == 80 and topic.news[1].id == 32 or topic.news[0].id == 32 and topic.news[1].id == 80:
             debug = True
 
         to_remove[0] = set()
@@ -491,50 +492,6 @@ def unite_fio(topics):
                         if debug:
                             print("Word is repeated once in each | ", word)
 
-        """ Checking two-words fio """
-
-        for i in range(2):
-            j = get_other(i)
-            for word in check_len_2[i]:
-                last_word = word.split()[-1]
-                if last_word in check_len_1[i] or last_word in check_len_1[j]:
-                    words_containing1 = {w for w in strings_to_check[i] if last_word == w.split()[-1] and last_word != w}
-                    words_containing2 = {w for w in strings_to_check[j] if last_word == w.split()[-1] and last_word != w}
-                    c1 = len(words_containing1)
-                    c2 = len(words_containing2)
-                    if last_word == "Putin" and debug:
-                        print(1, words_containing1)
-                        print(2, words_containing2)
-                        print(c1)
-                        print(c2)
-                    if c1 > 1 or c2 > 1 or (c1 + c2 >= 2 and words_containing1 != words_containing2):
-                        fios[i].add(last_word)
-                        if debug:
-                            print("Word is in different FIOs | ", last_word)
-                        continue
-                    # elif not words_containing1 and c2 == 1:
-                    #     fios[i].add(word)
-                    #     fios[j].add(word)
-                    #     if debug:
-                    #         print("Word is not in different FIOs | ", word)
-                    # elif not words_containing2 and c1 == 1:
-                    #     fios[j].add(word)
-                    #     fios[j].add(word)
-                    #     if debug:
-                    #         print("Word is not in different FIOs | ", word)
-                    else:
-                        fios[i].add(word)
-                        # fios[j].add(word)
-                        if debug:
-                            print("Word is not in different FIOs | ", word)
-                        continue
-        # print("Text1", topic.news[0].all_text_splitted)
-        # print(fios[0])
-        # print("\n")
-        # print("Text2", topic.news[1].all_text_splitted)
-        # print(fios[1])
-        # print("\n")
-
         """ Checking multi-words fio (all big letters)"""
         continuei = ContinueI()
 
@@ -548,31 +505,41 @@ def unite_fio(topics):
                 three_last = ' '.join(word.split()[-3:])
                 three_first = ' '.join(word.split()[:3])
 
+                if debug:
+                    print(one_last)
+                    print(two_last)
+                    print(two_middle)
+                    print(two_first)
+
                 try:
 
                     for w in check_len_4_all_big[i]:
-                        if w == three_last:
-                            if debug:
-                                print(f"Replaced word with length 4 {word} with {three_last}")
-                            fios[i].add(three_last)
-                            raise continuei
-                        elif w == three_first:
-                            if debug:
-                                print(f"Replaced word with length 4 {word} with {three_last}")
-                            fios[i].add(three_first)
-                            raise continuei
+                        if w != word:
+                            if w == three_last:
+                                if debug:
+                                    print(f"Replaced word with length 4 {word} with {three_last}")
+                                fios[i].add(three_last)
+                                raise continuei
+                            elif w == three_first:
+                                if debug:
+                                    print(f"Replaced word with length 4 {word} with {three_last}")
+                                fios[i].add(three_first)
+                                raise continuei
 
                     for w in check_len_4_all_big[j]:
-                        if w == three_last:
-                            if debug:
-                                print(f"Replaced word with length 4 {word} with {three_last}")
-                            fios[j].add(three_last)
-                            raise continuei
-                        elif w == three_first:
-                            if debug:
-                                print(f"Replaced word with length 4 {word} with {three_last}")
-                            fios[j].add(three_first)
-                            raise continuei
+                        if w != word:
+                            if w == three_last:
+                                if debug:
+                                    print(f"Replaced word with length 4 {word} with {three_last}")
+                                fios[i].add(three_last)
+                                fios[j].add(three_last)
+                                raise continuei
+                            elif w == three_first:
+                                if debug:
+                                    print(f"Replaced word with length 4 {word} with {three_last}")
+                                fios[i].add(three_first)
+                                fios[j].add(three_first)
+                                raise continuei
 
                     for w in check_len_2[i]:
                         if w == two_last:
@@ -595,16 +562,19 @@ def unite_fio(topics):
                         if w == two_last:
                             if debug:
                                 print(f"Replaced word with length 4 {word} with {two_last}")
+                            fios[i].add(two_last)
                             fios[j].add(two_last)
                             raise continuei
                         elif w == two_middle:
                             if debug:
                                 print(f"Replaced word with length 4 {word} with {two_last}")
+                            fios[i].add(two_middle)
                             fios[j].add(two_middle)
                             raise continuei
                         elif w == two_first:
                             if debug:
                                 print(f"Replaced word with length 4 {word} with {two_last}")
+                            fios[i].add(two_first)
                             fios[j].add(two_first)
                             raise continuei
 
@@ -619,6 +589,7 @@ def unite_fio(topics):
                         if w == one_last:
                             if debug:
                                 print(f"Replaced word with length 4 {word} with {one_last}")
+                            fios[i].add(one_last)
                             fios[j].add(one_last)
                             raise continuei
 
@@ -668,6 +639,50 @@ def unite_fio(topics):
                             print("Some words were the same", word, "to", all_big)
                         fios[j].add(all_big)
 
+        """ Checking two-words fio """
+
+        for i in range(2):
+            j = get_other(i)
+            for word in check_len_2[i]:
+                last_word = word.split()[-1]
+                if last_word in check_len_1[i] or last_word in check_len_1[j]:
+                    words_containing1 = {w for w in strings_to_check[i] if last_word == w.split()[-1] and last_word != w}
+                    words_containing2 = {w for w in strings_to_check[j] if last_word == w.split()[-1] and last_word != w}
+                    if debug:
+                        print(words_containing1)
+                        print(words_containing2)
+                    c1 = len(words_containing1)
+                    c2 = len(words_containing2)
+                    if c1 > 1 or c2 > 1 or (c1 + c2 >= 2 and words_containing1 != words_containing2):
+                        fios[i].add(last_word)
+                        if debug:
+                            print("Word is in different FIOs | ", last_word)
+                        continue
+                    # elif not words_containing1 and c2 == 1:
+                    #     fios[i].add(word)
+                    #     fios[j].add(word)
+                    #     if debug:
+                    #         print("Word is not in different FIOs | ", word)
+                    # elif not words_containing2 and c1 == 1:
+                    #     fios[j].add(word)
+                    #     fios[j].add(word)
+                    #     if debug:
+                    #         print("Word is not in different FIOs | ", word)
+                    else:
+                        fios[i].add(word)
+                        # fios[j].add(word)
+                        if debug:
+                            print("Word is not in different FIOs | ", word)
+                        continue
+        # print("Text1", topic.news[0].all_text_splitted)
+        # print(fios[0])
+        # print("\n")
+        # print("Text2", topic.news[1].all_text_splitted)
+        # print(fios[1])
+        # print("\n")
+
+
+
         if debug:
             print("FIO1", fios[0])
             print("FIO2", fios[1])
@@ -697,6 +712,8 @@ def unite_fio(topics):
 
         topic.name = name
         topic.name = unite_countries_in(topic.name)
+        topic.name = unite_countries_in_topic_names(topic.name)
+        topic.name = {w for w in topic.name if w.lower() not in STOP_WORDS}
         topic.new_name = topic.name.copy()
         topic.frequent = topic.most_frequent()
 

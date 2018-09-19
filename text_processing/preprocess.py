@@ -20,6 +20,21 @@ SYM_MAP = {'â': 'a', 'Ç': 'C', 'ç': 'c', 'Ğ': 'g', 'ğ': 'g', 'İ': 'I', 'î
            'ñ': 'n', 'á': 'a', 'í': 'i', 'ú': 'u', 'č': 'c', 'ć': 'c', 'ů': 'u', 'ey': 'ei', 'yo': 'e',
            'ye': 'e', 'yu': 'iu', 'ya': 'ia'}
 
+
+def unite_countries_in_topic_names(name):
+    to_remove = set()
+    to_add = set()
+    for word in name:
+        for word2 in name:
+            d1 = unite_countries_in([word, word2])
+            if d1 != [word, word2]:
+                to_remove.add(word)
+                to_remove.add(word2)
+                to_add.add(d1[0])
+    name -= to_remove
+    name |= to_add
+    return name
+
 def unite_countries_in(data):
     conn = sqlite3.connect("db/countries.db")
     c = conn.cursor()
@@ -27,6 +42,25 @@ def unite_countries_in(data):
     all_rows = c.fetchall()
     to_remove = set()
     to_add = set()
+
+    def unite_in_list(data):
+        for i in range(len(data)-1):
+            ent = data[i]
+            for row in all_rows:
+                low = [w.lower() for w in row if w is not None]
+
+                if ent:
+                    if ent.lower() in low and ent != row[0]:
+                        data[i] = row[0]
+                    elif (ent+' '+data[i+1]).lower() in low:
+                        data[i] = row[0]
+                        data[i+1] = ''
+                if len(ent.lower().split()) > 1 and ent != row[0]:
+                    for e in ent.lower().split():
+                        if e in low:
+                            data[i] = row[0]
+        data = [w for w in data if w]
+        return data
 
     if isinstance(data, set):
         for ent in data:
@@ -49,20 +83,12 @@ def unite_countries_in(data):
         data = (data - to_remove) | to_add
 
     elif isinstance(data, list):
-        for i in range(len(data)-1):
-            ent = data[i]
-            for row in all_rows:
-                low = [w.lower() for w in row if w is not None]
+        data = unite_in_list(data)
 
-                if ent:
-                    if ent.lower() in low and ent != row[0] or (ent+' '+data[i+1]).lower() in low:
-                        data[i] = row[0]
-                        data[i+1] = ''
-                if len(ent.lower().split()) > 1 and ent != row[0]:
-                    for e in ent.lower().split():
-                        if e in low:
-                            data[i] = row[0]
-        data = [w for w in data if w]
+    elif isinstance(data, str):
+        data = re.findall(r"[\w]+|[^\s\w]", data)
+        data = unite_in_list(data)
+        data = ' '.join(data)
 
     return data
 

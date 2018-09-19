@@ -313,7 +313,7 @@ class Corpus:
 
                     if percent2 > 0.5:
                         continue
-                    else:
+                    elif count_countries(cw):
                         topic.new_name -= cw
 
         to_remove = set()
