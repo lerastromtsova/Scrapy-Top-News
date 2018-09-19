@@ -31,6 +31,8 @@ def unite_countries_in_topic_names(name):
                 to_remove.add(word)
                 to_remove.add(word2)
                 to_add.add(d1[0])
+        if word.upper() == 'UNITED':
+            to_remove.add(word)
     name -= to_remove
     name |= to_add
     return name
@@ -219,3 +221,6 @@ def split_into_sentences(paragraph):
     sentenceEnders = re.compile('[.!?]')
     sentenceList = sentenceEnders.split(paragraph)
     return sentenceList
+
+
+unite_countries_in_topic_names({"White", "House"})

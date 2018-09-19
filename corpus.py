@@ -308,7 +308,10 @@ class Corpus:
                 # cw = topic.name.intersection(ot.name)
                 # percent1 = len(cw) / len(topic.name)
                 if ot.name:
-                    cw = intersect_with_two(topic.name, ot.name)
+                    cw = intersect_with_2_and_1(topic.name, ot.name)
+                    print("000", topic.name)
+                    print("111",ot.name)
+                    print(cw)
                     percent2 = len(cw) / len(ot.name)
 
                     if percent2 > 0.5:
@@ -412,6 +415,37 @@ def intersect_with_two(set1, set2):
                                 # print("added: ", s1)
     return new1.intersection(new2)
 
+def intersect_with_2_and_1(set1, set2):
+    new1 = set1.copy()
+    new2 = set2.copy()
+    for s1 in set1:
+        for s2 in set2:
+            words_1 = set(s1.split())
+            words_2 = set(s2.split())
+            if len(words_1) >= 2:
+                if len(words_2) >= 2:
+                    cw = words_1.intersection(words_2)
+                    if len(cw) >= 2:
+                        if len(words_1) > len(words_2):
+                            if s1 in new1:
+                                new1.remove(s1)
+                                new1.add(s2)
+                        else:
+                            if s2 in new2:
+                                new2.remove(s2)
+                                new2.add(s1)
+                if len(words_2) == 1:
+                    cw = words_1.intersection(words_2)
+                    if cw:
+                        new1.remove(s1)
+                        new1.add(s2)
+            if len(words_1) == 1:
+                if len(words_2) >= 2:
+                    cw = words_1.intersection(words_2)
+                    if cw:
+                        new2.remove(s2)
+                        new2.add(s1)
+    return new1.intersection(new2)
 
 def intersect(set1, set2):
     new1 = set1.copy()

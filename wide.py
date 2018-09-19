@@ -681,8 +681,6 @@ def unite_fio(topics):
         # print(fios[1])
         # print("\n")
 
-
-
         if debug:
             print("FIO1", fios[0])
             print("FIO2", fios[1])
@@ -712,7 +710,9 @@ def unite_fio(topics):
 
         topic.name = name
         topic.name = unite_countries_in(topic.name)
+        print(0, topic.name)
         topic.name = unite_countries_in_topic_names(topic.name)
+        print(1, topic.name)
         topic.name = {w for w in topic.name if w.lower() not in STOP_WORDS}
         topic.new_name = topic.name.copy()
         topic.frequent = topic.most_frequent()
@@ -1702,7 +1702,7 @@ def unite_entities(topics):
                         if ent2[0].isupper() and (
                                 ent2 in topic.news[i].first_words.keys() and topic.news[i].first_words[
                             ent2] or ent2 not in topic.news[i].first_words.keys()):
-                            if ent1 not in TITLES and ent2 not in TITLES:
+                            # if ent1 not in TITLES and ent2 not in TITLES:
 
                                 st = ent1 + ' ' + ent2
 
