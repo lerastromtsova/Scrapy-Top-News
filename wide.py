@@ -435,7 +435,13 @@ def unite_fio(topics):
         fios[1] = set()
 
         strings_to_check[0] = topic.news[0].uppercase_sequences
+        strings_to_check[0] = unite_countries_in(strings_to_check[0])
+        strings_to_check[0] = [w for w in strings_to_check[0] if not iscountry(w)]
+
         strings_to_check[1] = topic.news[1].uppercase_sequences
+        strings_to_check[1] = unite_countries_in(strings_to_check[1])
+        strings_to_check[1] = [w for w in strings_to_check[1] if not iscountry(w)]
+
         if debug:
             print("ID1", topic.news[0].id)
             print(1, strings_to_check[0])
@@ -792,11 +798,6 @@ def unite_fio1(topics):
 
         for word in topic.name:
 
-            """Если захочешь предыдущую версию, убери у 4 строчек ниже знак #, а у строк 519-526 наоборот, поставь знак # перед строкой """
-            # words1_containing = {w for w in strings_to_check1 if
-            #                      word == w.split()[0] and word != w}
-            # words2_containing = {w for w in strings_to_check2 if
-            #                      word == w.split()[0] and word != w}
             try:
                 words1_containing = {w for w in strings_to_check1 if word == w.split()[-2] or word == w.split()[-2]+"s" and word != w}
             except IndexError:

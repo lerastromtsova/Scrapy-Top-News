@@ -69,9 +69,9 @@ def unite_countries_in(data):
 
 def replace_special_symbols(text):
     new_text = copy(text)
-    for i in range(len(new_text)-1):
-        if new_text[i] == new_text[i+1] and new_text[i].islower():
-            SYM_MAP[new_text[i]*2] = new_text[i]
+    # for i in range(len(new_text)-1):
+    #     if new_text[i] == new_text[i+1] and new_text[i].islower():
+    #         SYM_MAP[new_text[i]*2] = new_text[i]
     for key, value in SYM_MAP.items():
             new_text = new_text.replace(key, value)
     return new_text
