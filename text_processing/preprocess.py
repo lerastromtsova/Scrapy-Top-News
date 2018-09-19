@@ -10,13 +10,72 @@ import string
 from text_processing.translate import translate
 import re
 import sqlite3
+from copy import copy
 
 # STOP_PATH = '../../text_processing/stop-words.txt'
 STOP_PATH = os.getcwd()+'/text_processing/stop-words.txt'
 PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––', " | "]
-SYM_MAP = {'â': 'a', 'Ç': 'C', 'ç': 'c', 'Ğ': 'g', 'ğ': 'g', 'İ':'I', 'ı':'i', 'î':'i', 'Ö':'O', 'ö': 'oe',
-           'Ş': 'S', 'ş': 's', 'Ü': 'U', 'ü': 'u', 'é': 'e', 'à': 'a', 'è': 'e' , 'û': 'u', 'ô': 'o', 'œ': 'o',
-           'ñ': 'n', 'á': 'a', 'í': 'i', 'ú': 'u', '¿': '', 'č': 'c', 'ć': 'c', 'ů': 'u', 'ei': 'ey', 'oe': 'o'}
+SYM_MAP = {'â': 'a', 'Ç': 'C', 'ç': 'c', 'Ğ': 'g', 'ğ': 'g', 'İ': 'I', 'î': 'i', 'Ö': 'O', 'ö': 'oe',
+           'Ş': 'S', 'ş': 's', 'Ü': 'U', 'ü': 'u', 'é': 'e', 'à': 'a', 'è': 'e', 'û': 'u', 'ô': 'o', 'œ': 'o',
+           'ñ': 'n', 'á': 'a', 'í': 'i', 'ú': 'u', 'č': 'c', 'ć': 'c', 'ů': 'u', 'ey': 'ei', 'yo': 'e',
+           'ye': 'e', 'yu': 'iu', 'ya': 'ia'}
+
+def unite_countries_in(data):
+    conn = sqlite3.connect("db/countries.db")
+    c = conn.cursor()
+    c.execute("SELECT * FROM countries")
+    all_rows = c.fetchall()
+    to_remove = set()
+    to_add = set()
+
+    if isinstance(data, set):
+        for ent in data:
+            for row in all_rows:
+                low = [w.lower() for w in row if w is not None]
+
+                if ent:
+                    if ent.lower() in low and ent != row[0]:
+
+                        to_remove.add(ent)
+                        to_add.add(row[0])
+                    if len(ent) <= 1:
+                        to_remove.add(ent)
+
+                if len(ent.lower().split()) > 1 and ent != row[0]:
+                    for e in ent.lower().split():
+                        if e in low:
+                            to_remove.add(ent)
+                            to_add.add(row[0])
+        data = (data - to_remove) | to_add
+
+    elif isinstance(data, list):
+        for i in range(len(data)-1):
+            ent = data[i]
+            for row in all_rows:
+                low = [w.lower() for w in row if w is not None]
+
+                if ent:
+                    if ent.lower() in low and ent != row[0] or (ent+' '+data[i+1]).lower() in low:
+                        data[i] = row[0]
+                        data[i+1] = ''
+                if len(ent.lower().split()) > 1 and ent != row[0]:
+                    for e in ent.lower().split():
+                        if e in low:
+                            data[i] = row[0]
+        data = [w for w in data if w]
+
+    return data
+
+
+def replace_special_symbols(text):
+    new_text = copy(text)
+    for i in range(len(new_text)-1):
+        if new_text[i] == new_text[i+1] and new_text[i].islower():
+            SYM_MAP[new_text[i]*2] = new_text[i]
+    for key, value in SYM_MAP.items():
+            new_text = new_text.replace(key, value)
+    return new_text
+
 
 with open(STOP_PATH, "r") as f:
     STOP_WORDS = f.read().split('\n')

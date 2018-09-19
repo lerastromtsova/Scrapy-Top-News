@@ -346,6 +346,9 @@ youtube
 eu
 europe
 european
+european union
+channel news
+middle
 north
 center
 union
@@ -416,6 +419,8 @@ city
 country
 news
 ministry
+minister
+ministers
 just
 self
 leader
@@ -425,3 +430,16 @@ century
 head
 talking
 prime
+international
+information
+president
+chancellor
+democrat
+governor
+king
+queen
+prime
+plan
+left
+people
+company

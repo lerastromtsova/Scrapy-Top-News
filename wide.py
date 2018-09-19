@@ -6,17 +6,14 @@ from descr import iscountry
 from math import ceil
 from text_processing.preprocess import PUNKTS
 from string import punctuation
-import sqlite3
 import re
 from document import COUNTRIES
 import itertools
-from text_processing.preprocess import STOP_WORDS, check_first_entities
-from copy import deepcopy
+from text_processing.preprocess import STOP_WORDS, check_first_entities, unite_countries_in
+
 
 with open("text_processing/between-words.txt", "r") as f:
     BETWEEN_WORDS = f.read().split('\n')
-
-TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime"}
 
 
 def similar(topics):
@@ -353,38 +350,6 @@ def extend_topic_names(topics):
     return topics
 
 
-def unite_countries_in(data):
-    conn = sqlite3.connect("db/countries.db")
-    c = conn.cursor()
-    c.execute("SELECT * FROM countries")
-    all_rows = c.fetchall()
-    to_remove = set()
-    to_add = set()
-
-    for ent in data:
-        for row in all_rows:
-            low = [w.lower() for w in row if w is not None]
-
-            if ent:
-                if ent.lower() in low and ent != row[0]:
-
-                    to_remove.add(ent)
-                    to_add.add(row[0])
-                if len(ent) <= 1:
-                    to_remove.add(ent)
-
-            if len(ent.lower().split()) > 1 and ent != row[0]:
-                for e in ent.lower().split():
-                    if e in low:
-                        to_remove.add(ent)
-                        to_add.add(row[0])
-
-    data = (data - to_remove) | to_add
-
-    # data -= to_remove
-    # data.update(to_add)
-
-    return data
 
 
 # def find_all_uppercase_sequences(words_list):
@@ -459,6 +424,9 @@ def unite_fio(topics):
         check_len_4_all_big = {}
         check_len_4_some_small = {}
         to_remove = {}
+        debug = False
+        if topic.news[0].id == 165 and topic.news[1].id == 104 or topic.news[0].id == 104 and topic.news[1].id == 165:
+            debug = True
 
         to_remove[0] = set()
         to_remove[1] = set()
@@ -468,10 +436,15 @@ def unite_fio(topics):
 
         strings_to_check[0] = topic.news[0].uppercase_sequences
         strings_to_check[1] = topic.news[1].uppercase_sequences
-        # print("ID1", topic.news[0].id)
-        # print(1, strings_to_check[0])
-        # print("ID2", topic.news[1].id)
-        # print(2, strings_to_check[1])
+        if debug:
+            print("ID1", topic.news[0].id)
+            print(1, strings_to_check[0])
+            print("ID2", topic.news[1].id)
+            print(2, strings_to_check[1])
+
+        if debug:
+            print(topic.name)
+            print(countries_in_name)
 
         # big_in_name = [w for w in topic.name if w in strings_to_check[0] or w in strings_to_check[1]]
 
@@ -487,6 +460,16 @@ def unite_fio(topics):
         check_len_4_some_small[0] = [s for s in strings_to_check[0] if len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
         check_len_4_some_small[1] = [s for s in strings_to_check[1] if len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
 
+        for word in topic.name:
+            words_containing1 = {w for w in strings_to_check[0] if word in w and w != word}
+            words_containing2 = {w for w in strings_to_check[1] if word in w and w != word}
+            if not words_containing1 or not words_containing2:
+                fios[0].add(word)
+                fios[1].add(word)
+            if words_containing1 == words_containing2 and words_containing1:
+                fios[0].add(words_containing1.pop())
+                fios[1].add(words_containing2.pop())
+
         """ Check if some word is repeated twice in one news or once in each news """
 
         for i in range(2):
@@ -495,12 +478,12 @@ def unite_fio(topics):
                 if len(word.split()) >= 2:
                     if strings_to_check[i].count(word) >= 2 or strings_to_check[j].count(word) >= 2:
                         fios[i].add(word)
-                        # print(topic.news[i].id)
-                        # print("Word is repeated twice | ", word)
+                        if debug:
+                            print("Word is repeated twice | ", word)
                     elif strings_to_check[i].count(word) >= 1 and strings_to_check[j].count(word) >= 1:
                         fios[i].add(word)
-                        # print(topic.news[i].id)
-                        # print("Word is repeated once in each | ", word)
+                        if debug:
+                            print("Word is repeated once in each | ", word)
 
         """ Checking two-words fio """
 
@@ -513,15 +496,31 @@ def unite_fio(topics):
                     words_containing2 = {w for w in strings_to_check[j] if last_word == w.split()[-1] and last_word != w}
                     c1 = len(words_containing1)
                     c2 = len(words_containing2)
+                    if last_word == "Putin" and debug:
+                        print(1, words_containing1)
+                        print(2, words_containing2)
+                        print(c1)
+                        print(c2)
                     if c1 > 1 or c2 > 1 or (c1 + c2 >= 2 and words_containing1 != words_containing2):
                         fios[i].add(last_word)
-                        # print(topic.news[i].id)
-                        # print("Word is in different FIOs | ", last_word)
+                        if debug:
+                            print("Word is in different FIOs | ", last_word)
                         continue
+                    # elif not words_containing1 and c2 == 1:
+                    #     fios[i].add(word)
+                    #     fios[j].add(word)
+                    #     if debug:
+                    #         print("Word is not in different FIOs | ", word)
+                    # elif not words_containing2 and c1 == 1:
+                    #     fios[j].add(word)
+                    #     fios[j].add(word)
+                    #     if debug:
+                    #         print("Word is not in different FIOs | ", word)
                     else:
                         fios[i].add(word)
-                        # print(topic.news[i].id)
-                        # print("Word is not in different FIOs | ", word)
+                        # fios[j].add(word)
+                        if debug:
+                            print("Word is not in different FIOs | ", word)
                         continue
         # print("Text1", topic.news[0].all_text_splitted)
         # print(fios[0])
@@ -531,6 +530,7 @@ def unite_fio(topics):
         # print("\n")
 
         """ Checking multi-words fio (all big letters)"""
+        continuei = ContinueI()
 
         for i in range(2):
             j = get_other(i)
@@ -542,77 +542,82 @@ def unite_fio(topics):
                 three_last = ' '.join(word.split()[-3:])
                 three_first = ' '.join(word.split()[:3])
 
-                for w in check_len_4_all_big[i]:
-                    if w == three_last:
-                        # print(topic.news[i].id)
-                        # print(f"Replaced word with length 4 {word} with {three_last}")
-                        fios[i].add(three_last)
-                        continue
-                    elif w == three_first:
-                        # print(topic.news[i].id)
-                        # print(f"Replaced word with length 4 {word} with {three_last}")
-                        fios[i].add(three_first)
-                        continue
+                try:
 
-                for w in check_len_4_all_big[j]:
-                    if w == three_last:
-                        # print(topic.news[j].id)
-                        # print(f"Replaced word with length 4 {word} with {three_last}")
-                        fios[j].add(three_last)
-                        continue
-                    elif w == three_first:
-                        # print(topic.news[j].id)
-                        # print(f"Replaced word with length 4 {word} with {three_last}")
-                        fios[j].add(three_first)
-                        continue
+                    for w in check_len_4_all_big[i]:
+                        if w == three_last:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {three_last}")
+                            fios[i].add(three_last)
+                            raise continuei
+                        elif w == three_first:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {three_last}")
+                            fios[i].add(three_first)
+                            raise continuei
 
-                for w in check_len_2[i]:
-                    if w == two_last:
-                        # print(topic.news[i].id)
-                        # print(f"Replaced word with length 4 {word} with {two_last}")
-                        fios[i].add(two_last)
-                        continue
-                    elif w == two_middle:
-                        # print(topic.news[i].id)
-                        # print(f"Replaced word with length 4 {word} with {two_last}")
-                        fios[i].add(two_middle)
-                        continue
-                    elif w == two_first:
-                        # print(topic.news[i].id)
-                        # print(f"Replaced word with length 4 {word} with {two_last}")
-                        fios[i].add(two_first)
-                        continue
+                    for w in check_len_4_all_big[j]:
+                        if w == three_last:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {three_last}")
+                            fios[j].add(three_last)
+                            raise continuei
+                        elif w == three_first:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {three_last}")
+                            fios[j].add(three_first)
+                            raise continuei
 
-                for w in check_len_2[j]:
-                    if w == two_last:
-                        # print(topic.news[j].id)
-                        # print(f"Replaced word with length 4 {word} with {two_last}")
-                        fios[j].add(two_last)
-                        continue
-                    elif w == two_middle:
-                        # print(topic.news[j].id)
-                        # print(f"Replaced word with length 4 {word} with {two_last}")
-                        fios[j].add(two_middle)
-                        continue
-                    elif w == two_first:
-                        # print(topic.news[j].id)
-                        # print(f"Replaced word with length 4 {word} with {two_last}")
-                        fios[j].add(two_first)
-                        continue
+                    for w in check_len_2[i]:
+                        if w == two_last:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {two_last}")
+                            fios[i].add(two_last)
+                            raise continuei
+                        elif w == two_middle:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {two_last}")
+                            fios[i].add(two_middle)
+                            raise continuei
+                        elif w == two_first:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {two_last}")
+                            fios[i].add(two_first)
+                            raise continuei
 
-                for w in check_len_1[i]:
-                    if w == one_last:
-                        # print(topic.news[i].id)
-                        # print(f"Replaced word with length 4 {word} with {one_last}")
-                        fios[i].add(one_last)
-                        continue
+                    for w in check_len_2[j]:
+                        if w == two_last:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {two_last}")
+                            fios[j].add(two_last)
+                            raise continuei
+                        elif w == two_middle:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {two_last}")
+                            fios[j].add(two_middle)
+                            raise continuei
+                        elif w == two_first:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {two_last}")
+                            fios[j].add(two_first)
+                            raise continuei
 
-                for w in check_len_1[j]:
-                    if w == one_last:
-                        # print(topic.news[j].id)
-                        # print(f"Replaced word with length 4 {word} with {one_last}")
-                        fios[j].add(one_last)
-                        continue
+                    for w in check_len_1[i]:
+                        if w == one_last:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {one_last}")
+                            fios[i].add(one_last)
+                            raise continuei
+
+                    for w in check_len_1[j]:
+                        if w == one_last:
+                            if debug:
+                                print(f"Replaced word with length 4 {word} with {one_last}")
+                            fios[j].add(one_last)
+                            raise continuei
+
+                except ContinueI:
+                    continue
 
         # for word in strings_to_check1:
         #     if len(word.split()) >= 2:
@@ -637,29 +642,29 @@ def unite_fio(topics):
                 all_big = ' '.join([w for w in word.split() if w[0].isupper()])
                 for w in check_len_4_all_big[i]:
                     if all_big == w:
-                        # print(topic.news[i].id)
-                        # print("Some words were the same", word, "to", all_big)
+                        if debug:
+                            print("Some words were the same", word, "to", all_big)
                         fios[i].add(all_big)
                 for w in check_len_4_all_big[j]:
                     if all_big == w:
-                        # print(topic.news[j].id)
-                        # print("Some words were the same", word, "to", all_big)
+                        if debug:
+                            print("Some words were the same", word, "to", all_big)
                         fios[j].add(all_big)
 
                 for w in check_len_2[i]:
                     if all_big == w:
-                        # print(topic.news[i].id)
-                        # print("Some words were the same", word, "to", all_big)
+                        if debug:
+                            print("Some words were the same", word, "to", all_big)
                         fios[i].add(all_big)
                 for w in check_len_2[j]:
                     if all_big == w:
-                        # print(topic.news[j].id)
-                        # print("Some words were the same", word, "to", all_big)
+                        if debug:
+                            print("Some words were the same", word, "to", all_big)
                         fios[j].add(all_big)
 
-        # print("FIO1", fios[0])
-        #
-        # print("FIO2", fios[1])
+        if debug:
+            print("FIO1", fios[0])
+            print("FIO2", fios[1])
         # print("ID2", topic.news[1].id)
 
         # print(topic.name)
@@ -672,20 +677,16 @@ def unite_fio(topics):
         topic.name.update(set(ids_in_name))
         # topic.name.update(set(big_in_name))
 
-        # topic.name.update(set(big_in_name))
-
         common_fios = intersect(fios[0], fios[1])
         topic.name.update(common_fios)
 
-        # topic.name = intersect(topic.news[0].all_text, topic.news[1].all_text)
         numbers = topic.news[0].numbers.intersection(topic.news[1].numbers)
         topic.all_numbers = numbers
-        # print(topic.name)
 
         name = topic.name.copy()
 
         for word in topic.name:
-            if any(True if word in w else False for w in topic.name - {word}):
+            if any(True if word in w or word.upper() in w else False for w in topic.name - {word}):
                 name -= {word}
 
         topic.name = name
@@ -947,181 +948,203 @@ def filter_topics(topics):
         #     continue
 
         # 1) 1 уФИО + 2 ФИО
+        frequent = topic.most_frequent()
+        num_frequent = len(frequent)
+
+        if len(frequent) >= 8:
+            frequent_50 = frequent[:ceil(len(frequent) / 2)]
+        elif 4 <= len(frequent) <= 8:
+            frequent_50 = frequent[:4]
+        else:
+            frequent_50 = frequent[:len(frequent)]
+
+        num_frequent_50 = len(frequent_50)
+
+        # 1) 1 уФИО + 2 ФИО
+
         if num_unique_fio >= 1 and num_fio >= 2 and num_countries >= 1 and (
-                    num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('1) уФИО + 2 ФИО')
-                continue
+                num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
+            positive.add(topic)
+            topic.method.add('1) уФИО + 2 ФИО')
+            continue
 
-            # 2) 1 уФИО + 1 оЗагл
+        # 2) 1 уФИО + 1 оЗагл
         if num_unique_fio >= 1 and num_big >= 1 and num_countries >= 1 and (
-                    num_fio >= 2 or num_big >= 2 or num_small >= 1 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('1 уФИО + 1 оЗагл')
-                continue
+                num_fio >= 2 or num_big >= 2 or num_small >= 1 or num_countries >= 2):
+            positive.add(topic)
+            topic.method.add('1 уФИО + 1 оЗагл')
+            continue
 
-            # 3) 1 уФИО + 1 оПроп
+        # 3) 1 уФИО + 1 оПроп
         if num_unique_fio >= 1 and num_small >= 1 and num_countries >= 1 and (
-                    num_fio >= 2 or num_big >= 1 or num_small >= 2 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('3) 1 уФИО + 1 оПроп')
-                continue
+                num_fio >= 2 or num_big >= 1 or num_small >= 2 or num_countries >= 3):
+            positive.add(topic)
+            topic.method.add('3) 1 уФИО + 1 оПроп')
+            continue
 
-            # 4) 1 уЗагл + 1 оФИО
+        # 4) 1 уЗагл + 1 оФИО
         if num_unique_big >= 1 and num_fio >= 1 and (
-                    num_fio >= 2 or num_big >= 2 or num_small >= 1 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('4) 1 уЗагл + 1 оФИО')
-                continue
+                num_fio >= 2 or num_big >= 2 or num_small >= 1 or num_countries >= 2):
+            positive.add(topic)
+            topic.method.add('4) 1 уЗагл + 1 оФИО')
+            continue
 
-            # 5) 1 уЗагл + 2 оЗагл
+        # 5) 1 уЗагл + 2 оЗагл
         if num_unique_big >= 1 and num_big >= 2 and (
-                    num_unique_fio >= 1 or num_unique_big >= 2 or num_unique_small >= 1 or num_unique_countries >= 2):
-                positive.add(topic)
-                topic.method.add('5) 1 уЗагл + 2 оЗагл')
-                continue
+                num_unique_fio >= 1 or num_big >= 3 or num_unique_small >= 1 or num_unique_countries >= 2):
+            positive.add(topic)
+            topic.method.add('5) 1 уЗагл + 2 оЗагл')
+            continue
 
-            # 6) 1 уЗагл + 1 оФИО
+        # 6) 1 уЗагл + 1 оФИО
         if num_unique_big >= 1 and num_small >= 1 and (
-                    num_unique_fio >= 1 or num_unique_big >= 2 or num_unique_small >= 2 or num_unique_countries >= 2):
-                positive.add(topic)
-                topic.method.add('6) 1 уЗагл + 1 оФИО')
-                continue
+                num_unique_fio >= 1 or num_unique_big >= 2 or num_unique_small >= 2 or num_unique_countries >= 2):
+            positive.add(topic)
+            topic.method.add('6) 1 уЗагл + 1 оФИО')
+            continue
 
-            # 7) 1 уЗагл + 2 оСтр
+        # 7) 1 уЗагл + 2 оСтр
         if num_unique_big >= 1 and num_countries >= 2 and (
-                    num_unique_fio >= 1 or num_unique_big >= 2 or num_unique_small >= 1 or num_unique_countries >= 1):
-                positive.add(topic)
-                topic.method.add('7) 1 уЗагл + 2 оСтр')
-                continue
+                num_unique_fio >= 1 or num_unique_big >= 2 or num_unique_small >= 1 or num_unique_countries >= 1):
+            positive.add(topic)
+            topic.method.add('7) 1 уЗагл + 2 оСтр')
+            continue
 
-            # 8) 1 уПроп + 2 оФИО
+        # 8) 1 уПроп + 2 оФИО
         if num_unique_small >= 1 and num_fio >= 2 and (
-                    num_fio >= 3 or num_big >= 1 or num_small >= 2 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('8) 1 уПроп + 2 оФИО')
-                continue
+                num_fio >= 3 or num_big >= 1 or num_small >= 2 or num_countries >= 2):
+            positive.add(topic)
+            topic.method.add('8) 1 уПроп + 2 оФИО')
+            continue
 
-            # 9) 1 уПроп + 2 оЗагл
+        # 9) 1 уПроп + 2 оЗагл
         if num_unique_small >= 1 and num_big >= 2 and (
-                    num_unique_fio >= 1 or num_unique_big >= 1 or num_unique_small >= 2 or num_unique_countries >= 2):
-                positive.add(topic)
-                topic.method.add('9) 1 уПроп + 2 оЗагл')
-                continue
+                num_unique_fio >= 1 or num_unique_big >= 1 or num_unique_small >= 2 or num_unique_countries >= 2):
+            positive.add(topic)
+            topic.method.add('9) 1 уПроп + 2 оЗагл')
+            continue
 
-            # 10) 4 уПроп
+        # 10) 4 уПроп
         if num_unique_small >= 4 and (num_fio >= 1 or num_big >= 1 or num_small >= 5 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('10) 4 уПроп ')
-                continue
+            positive.add(topic)
+            topic.method.add('10) 4 уПроп ')
+            continue
 
-            # 11) 3 оФИО
+        # 11) 3 оФИО
         if num_fio >= 3:
-                positive.add(topic)
-                topic.method.add('11) 3 оФИО')
-                continue
+            positive.add(topic)
+            topic.method.add('11) 3 оФИО')
+            continue
 
-            # 12) 1 оФИО + 2 оЗагл
+        # 12) 1 оФИО + 2 оЗагл
         if num_fio >= 1 and num_big >= 2 and (num_fio >= 2 or num_big >= 3 or num_small >= 1 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('12) 1 оФИО + 2 оЗагл')
-                continue
+            positive.add(topic)
+            topic.method.add('12) 1 оФИО + 2 оЗагл')
+            continue
 
-            # 13) 1 оФИО + 2 оПроп
+        # 13) 1 оФИО + 2 оПроп
         if num_fio >= 1 and num_small >= 2 and (
-                    num_fio >= 2 or num_big >= 1 or num_small >= 4 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('13) 1 оФИО + 2 оПроп')
-                continue
+                num_fio >= 2 or num_big >= 1 or num_small >= 4 or num_countries >= 2):
+            positive.add(topic)
+            topic.method.add('13) 1 оФИО + 2 оПроп')
+            continue
 
-            # 14) 2 уФИО
+        # 14) 2 уФИО
         if num_unique_fio >= 2 and (num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('14) 2 уФИО ')
-                continue
+            positive.add(topic)
+            topic.method.add('14) 2 уФИО ')
+            continue
 
-            # 15) 3 уПроп + 1 оФИО
-        if num_unique_small >= 3 and num_fio >= 1 and num_countries >= 1 and (num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('15) 3 уПроп + 1 оФИО')
-                continue
+        # 15) 3 уПроп + 1 оФИО
+        if num_unique_small >= 3 and num_fio >= 1 and num_countries >= 1 and (
+                num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
+            positive.add(topic)
+            topic.method.add('15) 3 уПроп + 1 оФИО')
+            continue
 
-            # 16) 4 оЗагл
+        # 16) 4 оЗагл
         if num_unique_big >= 4:
-                positive.add(topic)
-                topic.method.add('16) 4 оЗагл')
-                continue
+            positive.add(topic)
+            topic.method.add('16) 4 оЗагл')
+            continue
 
-            # 17) 1 оЗагл + 2 оПроп
+        # 17) 1 оЗагл + 2 оПроп
         if num_big >= 1 and num_small >= 2 and (
-                    num_fio >= 1 or num_big >= 2 or num_small >= 4 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('17) 1 оЗагл + 2 оПроп')
-                continue
+                num_fio >= 1 or num_big >= 2 or num_small >= 4 or num_countries >= 2):
+            positive.add(topic)
+            topic.method.add('17) 1 оЗагл + 2 оПроп')
+            continue
 
-            # 18) 3 уЗагл
+        # 18) 3 уЗагл
         if num_unique_big >= 3:
-                positive.add(topic)
-                topic.method.add('18) 3 уЗагл')
-                continue
+            positive.add(topic)
+            topic.method.add('18) 3 уЗагл')
+            continue
 
-            # 19) 3 оЗагл + 1 оПроп
+        # 19) 3 оЗагл + 1 оПроп
         if num_big >= 3 and num_small >= 1 and (
-                    num_fio >= 1 or num_big >= 4 or num_small >= 2 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('19) 3 оЗагл + 1 оПроп')
-                continue
+                num_fio >= 1 or num_big >= 4 or num_small >= 2 or num_countries >= 2):
+            positive.add(topic)
+            topic.method.add('19) 3 оЗагл + 1 оПроп')
+            continue
 
-            # 20) 5 оСтран
+        # 20) 5 оСтран
         if num_countries >= 5:
-                positive.add(topic)
-                topic.method.add('20) 5 оСтран')
-                continue
+            positive.add(topic)
+            topic.method.add('20) 5 оСтран')
+            continue
 
-            # 21) 2 уПроп + 1 оЗагл
+        # 21) 2 уПроп + 1 оЗагл
         if num_unique_small >= 2 and num_big >= 1 and (
-                    num_fio >= 1 or num_big >= 42 or num_small >= 3 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('21) 2 уПроп + 1 оЗагл')
-                continue
+                num_fio >= 1 or num_big >= 42 or num_small >= 3 or num_countries >= 2):
+            positive.add(topic)
+            topic.method.add('21) 2 уПроп + 1 оЗагл')
+            continue
 
-            # 22) 1 уЗагл + 1 уПроп
+        # 22) 1 уЗагл + 1 уПроп
         if num_unique_fio >= 1 and num_unique_small >= 1 and (
-                    num_fio >= 2 or num_big >= 1 or num_small >= 2 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('22) 1 уЗагл + 1 уПроп')
-                continue
+                num_fio >= 2 or num_big >= 1 or num_small >= 2 or num_countries >= 2):
+            positive.add(topic)
+            topic.method.add('22) 1 уЗагл + 1 уПроп')
+            continue
 
-            # 23) 4 уПроп
+        # 23) 4 уПроп
         if num_unique_small >= 4 and (num_fio >= 1 or num_big >= 1 or num_small >= 5 or num_countries >= 2):
-                positive.add(topic)
-                topic.method.add('23) 4 уПроп')
-                continue
+            positive.add(topic)
+            topic.method.add('23) 4 уПроп')
+            continue
 
-            # 24) 4 оСтран
+        # 24) 4 оСтран
         if num_countries >= 4 and (num_fio >= 1 or num_big >= 1 or num_small >= 1 or num_countries >= 5):
-                positive.add(topic)
-                topic.method.add('24) 4 оСтран')
-                continue
+            positive.add(topic)
+            topic.method.add('24) 4 оСтран')
+            continue
 
-            # 25) 1 уФИО + 2 уСтран
+        # 25) 1 уФИО + 2 уСтран
         if num_unique_fio >= 1 and num_unique_countries >= 2:
-                positive.add(topic)
-                topic.method.add('25) 1 уФИО + 2 уСтран')
-                continue
+            positive.add(topic)
+            topic.method.add('25) 1 уФИО + 2 уСтран')
+            continue
 
-            # 26) 1 упроп + 1 уПроп
+        # 26) 1 упроп + 1 уПроп
         if num_unique_small >= 1 and num_unique_countries >= 2 and (
-                    num_fio >= 1 or num_big >= 1 or num_small >= 2 or num_countries >= 3):
-                positive.add(topic)
-                topic.method.add('26) 1 упроп + 1 уПроп')
-                continue
+                num_fio >= 1 or num_big >= 1 or num_small >= 2 or num_countries >= 3):
+            positive.add(topic)
+            topic.method.add('26) 1 упроп + 1 уПроп')
+            continue
 
-            # 27) 3 уСтр
+        # 27) 3 уСтр
         if num_unique_countries >= 3 and (num_fio >= 1 or num_big >= 1 or num_small >= 1 or num_countries >= 4):
-                positive.add(topic)
-                topic.method.add('27) 3 уСтр')
-                continue
+            positive.add(topic)
+            topic.method.add('27) 3 уСтр')
+            continue
+
+        # 28) 1 уМал + 2 оМал + 1 оФИО
+        if num_unique_small >= 1 and num_small >= 2 and num_fio >= 1 and (
+                num_fio >= 2 or num_big >= 1 or num_small >= 3 or num_countries >= 3):
+            positive.add(topic)
+            topic.method.add('27) 1 уМал + 2 оМал + 1 оФИО')
+            continue
 
     negative = {topic for topic in topics if topic not in positive}
     return positive, negative
@@ -1427,218 +1450,218 @@ def unite_fio_copy(topics):
     return topics
 
 
-def unite_entities_copy(topics):
-    for topic in topics:
-
-        topic.name = unite_countries_in(topic.name)
-
-        for i in range(2):
-
-            topic.news[i].all_text = unite_countries_in(topic.news[i].all_text)
-
-            debug = False
-
-            if topic.news[i].id == "165" or topic.news[i].id == "107":
-                debug = True
-
-            if i == 0:
-                j = 1
-            else:
-                j = 0
-
-            text1 = (topic.news[i].translated['title'] + topic.news[i].translated['lead']
-                     + topic.news[i].translated['content'])
-            text1_splitted = re.findall(r"[\w']+|[^\s\w]", text1)
-
-
-            text2 = (topic.news[j].translated['title'] + topic.news[j].translated['lead']
-                     + topic.news[j].translated['content'])
-            text2_splitted = re.findall(r"[\w']+|[^\s\w]", text2)
-
-            to_add = set()
-            to_remove = set()
-
-            for ent1 in topic.news[i].all_text:
-
-                for ent2 in topic.news[i].all_text:
-
-                    if ent1 != ent2 and ent1[0].isupper() and (
-                            ent1 in topic.news[i].first_words.keys() and topic.news[i].first_words[ent1] or ent1 not in
-                            topic.news[i].first_words.keys()):
-                        if ent2[0].isupper() and (
-                                ent2 in topic.news[i].first_words.keys() and topic.news[i].first_words[ent2] or ent2 not in
-                                topic.news[i].first_words.keys()):
-                            if ent1 not in TITLES and ent2 not in TITLES and ent1 not in COUNTRIES and ent2 not in COUNTRIES:
-
-                                if debug:
-                                    print(ent1)
-                                if debug:
-                                    print(ent2)
-
-                                previous_word1 = ''
-                                previous_word2 = ''
-                                next_word1 = ''
-                                next_word2 = ''
-
-                                try:
-                                    idx1 = text1_splitted.index(ent1)
-                                except ValueError:
-                                    continue
-
-                                try:
-                                    idx2 = text1_splitted.index(ent2)
-                                except ValueError:
-                                    continue
-
-                                if idx1 > idx2:
-                                    words_between = text1_splitted[idx2 + 1:idx1]
-                                    if len(words_between) <= 1:
-
-                                        between_str = ' '
-
-                                        for word in words_between:
-                                            if word == "-" or word == "'":
-                                                between_str += word
-                                            elif word.isalpha():
-                                                between_str += word
-                                                between_str += ' '
-                                            else:
-                                                break
-                                        st = ent2 + between_str + ent1
-                                        # print(st)
-                                    else:
-                                        continue
-
-                                else:
-                                    words_between = text1_splitted[idx1 + 1:idx2]
-                                    if len(words_between) <= 3:
-
-                                        between_str = ' '
-
-                                        for word in words_between:
-                                            if word == "-" or word == "'":
-                                                between_str += word
-                                            elif word.isalpha():
-                                                between_str += word
-                                                between_str += ' '
-                                            else:
-                                                break
-                                        st = ent1 + between_str + ent2
-                                        # print(st)
-                                    else:
-                                        continue
-
-                                if ent1 in text2_splitted:
-
-                                    i1 = text2_splitted.index(ent1)
-
-                                    try:
-                                        previous_word1 = text2_splitted[i1 - 1]
-                                    except IndexError:
-                                        previous_word1 = 'a'
-
-                                    try:
-                                        next_word1 = text2_splitted[i1 + 1]
-                                    except IndexError:
-                                        next_word1 = 'a'
-
-                                if ent2 in text2_splitted:
-
-                                    i2 = text2_splitted.index(ent2)
-
-                                    try:
-                                        previous_word2 = text2_splitted[i2 - 1]
-                                    except IndexError:
-                                        previous_word2 = 'a'
-
-                                    try:
-                                        next_word2 = text2_splitted[i2 + 1]
-                                    except IndexError:
-                                        next_word2 = 'a'
-
-                                if text1.count(st) >= 2 or text2.count(st) >= 2:
-
-                                    to_remove.add(ent1)
-                                    to_remove.add(ent2)
-                                    to_add.add(st)
-                                    # print(f"1: {topic.news[i].id} {ent1} {ent2} -> {st} because {text1.count(st)} or {text2.count(st)}")
-
-                                    continue
-
-                                elif st in text1 and st in text2:
-                                    to_remove.add(ent1)
-                                    to_remove.add(ent2)
-                                    to_add.add(st)
-                                    # print(f"2: {topic.news[i].id} {ent1} {ent2} -> {st} because {st in text1} and {st in text2}")
-                                    continue
-
-                                # elif st in topic.news[0].translated['content'] and ent1 in text:
-                                elif len(st.split()) == 2 and st in text1 and ent1 in text2_splitted and \
-                                        (previous_word1.islower() or previous_word1 in punctuation or previous_word1 in PUNKTS or previous_word1 in TITLES) \
-                                        and (next_word1.islower() or next_word1 in punctuation or next_word1 in PUNKTS or next_word1 in TITLES):
-                                    try:
-                                        # if text[text.index(ent1)-1][0].islower() and text[text.index(ent1)+1][0].islower():
-
-                                        to_remove.add(ent1)
-                                        to_remove.add(ent2)
-                                        to_add.add(st)
-                                        # print(f"3: {topic.news[i].id} {ent1} {ent2} -> {st} because prev_word {previous_word1} next_word {next_word1}")
-
-                                    except IndexError:
-                                        pass
-                                # elif st in topic.news[0].translated['content'] and ent2 in text:
-                                elif len(st.split()) == 2 and st in text1 and ent2 in text2_splitted and \
-                                        (previous_word2.islower() or previous_word2 in punctuation or previous_word2 in PUNKTS or previous_word2 in TITLES) \
-                                        and (next_word2.islower() or next_word2 in punctuation or next_word2 in PUNKTS or next_word2 in TITLES):
-                                    try:
-
-                                        # if text[text.index(ent2)-1][0].islower() and text[text.index(ent2)+1][0].islower():
-
-                                        to_remove.add(ent1)
-                                        to_remove.add(ent2)
-                                        to_add.add(st)
-                                        # print(f"4: {topic.news[i].id} {ent1} {ent2} -> {st} because prev_word {previous_word2} next_word {next_word2}")
-                                    except IndexError:
-                                        pass
-                                # elif st in text1 and ent2 in text and (previous_word2[0].isupper() or next_word2.isupper()):
-                                #     print(5)
-                                #     print(st)
-                                #     print(previous_word2+ent2+next_word2)
-                                #
-                                #     ent_dict[ent2] = ' '
-                                # elif st in text1 and ent1 in text and (previous_word1[0].isupper() or next_word1.isupper()):
-                                #     print(6)
-                                #     print(st)
-                                #     print(previous_word1 + ent1 + next_word1)
-                                #
-                                #     ent_dict[ent1] = ' '
-
-            all_text = topic.news[i].all_text
-
-            all_text = (all_text | to_add)-to_remove
-            topic.news[i].all_text = all_text
-
-        topic.name = topic.news[0].all_text.intersection(topic.news[1].all_text)
-        name = topic.name.copy()
-
-
-
-        name = unite_countries_in(name)
-
-
-        for word in topic.name:
-            if any(True if word in w else False for w in topic.name - {word}):
-                name -= {word}
-
-        topic.name = name
-        topic.new_name = topic.name.copy()
-
-        # if any(w for w in topic.name if w[0].islower()):
-        #     topic.name = intersect(topic.news[0].description, topic.news[1].description)
-        # else:
-        #     topic.name = intersect(topic.news[0].named_entities['content'], topic.news[1].named_entities['content'])
-
-    return topics
+# def unite_entities_copy(topics):
+#     for topic in topics:
+#
+#         topic.name = unite_countries_in(topic.name)
+#
+#         for i in range(2):
+#
+#             topic.news[i].all_text = unite_countries_in(topic.news[i].all_text)
+#
+#             debug = False
+#
+#             if topic.news[i].id == "165" or topic.news[i].id == "107":
+#                 debug = True
+#
+#             if i == 0:
+#                 j = 1
+#             else:
+#                 j = 0
+#
+#             text1 = (topic.news[i].translated['title'] + topic.news[i].translated['lead']
+#                      + topic.news[i].translated['content'])
+#             text1_splitted = re.findall(r"[\w']+|[^\s\w]", text1)
+#
+#
+#             text2 = (topic.news[j].translated['title'] + topic.news[j].translated['lead']
+#                      + topic.news[j].translated['content'])
+#             text2_splitted = re.findall(r"[\w']+|[^\s\w]", text2)
+#
+#             to_add = set()
+#             to_remove = set()
+#
+#             for ent1 in topic.news[i].all_text:
+#
+#                 for ent2 in topic.news[i].all_text:
+#
+#                     if ent1 != ent2 and ent1[0].isupper() and (
+#                             ent1 in topic.news[i].first_words.keys() and topic.news[i].first_words[ent1] or ent1 not in
+#                             topic.news[i].first_words.keys()):
+#                         if ent2[0].isupper() and (
+#                                 ent2 in topic.news[i].first_words.keys() and topic.news[i].first_words[ent2] or ent2 not in
+#                                 topic.news[i].first_words.keys()):
+#                             if ent1 not in TITLES and ent2 not in TITLES and ent1 not in COUNTRIES and ent2 not in COUNTRIES:
+#
+#                                 if debug:
+#                                     print(ent1)
+#                                 if debug:
+#                                     print(ent2)
+#
+#                                 previous_word1 = ''
+#                                 previous_word2 = ''
+#                                 next_word1 = ''
+#                                 next_word2 = ''
+#
+#                                 try:
+#                                     idx1 = text1_splitted.index(ent1)
+#                                 except ValueError:
+#                                     continue
+#
+#                                 try:
+#                                     idx2 = text1_splitted.index(ent2)
+#                                 except ValueError:
+#                                     continue
+#
+#                                 if idx1 > idx2:
+#                                     words_between = text1_splitted[idx2 + 1:idx1]
+#                                     if len(words_between) <= 1:
+#
+#                                         between_str = ' '
+#
+#                                         for word in words_between:
+#                                             if word == "-" or word == "'":
+#                                                 between_str += word
+#                                             elif word.isalpha():
+#                                                 between_str += word
+#                                                 between_str += ' '
+#                                             else:
+#                                                 break
+#                                         st = ent2 + between_str + ent1
+#                                         # print(st)
+#                                     else:
+#                                         continue
+#
+#                                 else:
+#                                     words_between = text1_splitted[idx1 + 1:idx2]
+#                                     if len(words_between) <= 3:
+#
+#                                         between_str = ' '
+#
+#                                         for word in words_between:
+#                                             if word == "-" or word == "'":
+#                                                 between_str += word
+#                                             elif word.isalpha():
+#                                                 between_str += word
+#                                                 between_str += ' '
+#                                             else:
+#                                                 break
+#                                         st = ent1 + between_str + ent2
+#                                         # print(st)
+#                                     else:
+#                                         continue
+#
+#                                 if ent1 in text2_splitted:
+#
+#                                     i1 = text2_splitted.index(ent1)
+#
+#                                     try:
+#                                         previous_word1 = text2_splitted[i1 - 1]
+#                                     except IndexError:
+#                                         previous_word1 = 'a'
+#
+#                                     try:
+#                                         next_word1 = text2_splitted[i1 + 1]
+#                                     except IndexError:
+#                                         next_word1 = 'a'
+#
+#                                 if ent2 in text2_splitted:
+#
+#                                     i2 = text2_splitted.index(ent2)
+#
+#                                     try:
+#                                         previous_word2 = text2_splitted[i2 - 1]
+#                                     except IndexError:
+#                                         previous_word2 = 'a'
+#
+#                                     try:
+#                                         next_word2 = text2_splitted[i2 + 1]
+#                                     except IndexError:
+#                                         next_word2 = 'a'
+#
+#                                 if text1.count(st) >= 2 or text2.count(st) >= 2:
+#
+#                                     to_remove.add(ent1)
+#                                     to_remove.add(ent2)
+#                                     to_add.add(st)
+#                                     # print(f"1: {topic.news[i].id} {ent1} {ent2} -> {st} because {text1.count(st)} or {text2.count(st)}")
+#
+#                                     continue
+#
+#                                 elif st in text1 and st in text2:
+#                                     to_remove.add(ent1)
+#                                     to_remove.add(ent2)
+#                                     to_add.add(st)
+#                                     # print(f"2: {topic.news[i].id} {ent1} {ent2} -> {st} because {st in text1} and {st in text2}")
+#                                     continue
+#
+#                                 # elif st in topic.news[0].translated['content'] and ent1 in text:
+#                                 elif len(st.split()) == 2 and st in text1 and ent1 in text2_splitted and \
+#                                         (previous_word1.islower() or previous_word1 in punctuation or previous_word1 in PUNKTS or previous_word1 in TITLES) \
+#                                         and (next_word1.islower() or next_word1 in punctuation or next_word1 in PUNKTS or next_word1 in TITLES):
+#                                     try:
+#                                         # if text[text.index(ent1)-1][0].islower() and text[text.index(ent1)+1][0].islower():
+#
+#                                         to_remove.add(ent1)
+#                                         to_remove.add(ent2)
+#                                         to_add.add(st)
+#                                         # print(f"3: {topic.news[i].id} {ent1} {ent2} -> {st} because prev_word {previous_word1} next_word {next_word1}")
+#
+#                                     except IndexError:
+#                                         pass
+#                                 # elif st in topic.news[0].translated['content'] and ent2 in text:
+#                                 elif len(st.split()) == 2 and st in text1 and ent2 in text2_splitted and \
+#                                         (previous_word2.islower() or previous_word2 in punctuation or previous_word2 in PUNKTS or previous_word2 in TITLES) \
+#                                         and (next_word2.islower() or next_word2 in punctuation or next_word2 in PUNKTS or next_word2 in TITLES):
+#                                     try:
+#
+#                                         # if text[text.index(ent2)-1][0].islower() and text[text.index(ent2)+1][0].islower():
+#
+#                                         to_remove.add(ent1)
+#                                         to_remove.add(ent2)
+#                                         to_add.add(st)
+#                                         # print(f"4: {topic.news[i].id} {ent1} {ent2} -> {st} because prev_word {previous_word2} next_word {next_word2}")
+#                                     except IndexError:
+#                                         pass
+#                                 # elif st in text1 and ent2 in text and (previous_word2[0].isupper() or next_word2.isupper()):
+#                                 #     print(5)
+#                                 #     print(st)
+#                                 #     print(previous_word2+ent2+next_word2)
+#                                 #
+#                                 #     ent_dict[ent2] = ' '
+#                                 # elif st in text1 and ent1 in text and (previous_word1[0].isupper() or next_word1.isupper()):
+#                                 #     print(6)
+#                                 #     print(st)
+#                                 #     print(previous_word1 + ent1 + next_word1)
+#                                 #
+#                                 #     ent_dict[ent1] = ' '
+#
+#             all_text = topic.news[i].all_text
+#
+#             all_text = (all_text | to_add)-to_remove
+#             topic.news[i].all_text = all_text
+#
+#         topic.name = topic.news[0].all_text.intersection(topic.news[1].all_text)
+#         name = topic.name.copy()
+#
+#
+#
+#         name = unite_countries_in(name)
+#
+#
+#         for word in topic.name:
+#             if any(True if word in w else False for w in topic.name - {word}):
+#                 name -= {word}
+#
+#         topic.name = name
+#         topic.new_name = topic.name.copy()
+#
+#         # if any(w for w in topic.name if w[0].islower()):
+#         #     topic.name = intersect(topic.news[0].description, topic.news[1].description)
+#         # else:
+#         #     topic.name = intersect(topic.news[0].named_entities['content'], topic.news[1].named_entities['content'])
+#
+#     return topics
 
 
 def unite_entities(topics):
@@ -1854,6 +1877,10 @@ def check_topics(topics):
             new_topics.append(topic)
     return new_topics
 
+class ContinueI(Exception):
+    pass
+
+
 
 if __name__ == '__main__':
     db = input("DB name (default - day): ")
@@ -2000,6 +2027,8 @@ if __name__ == '__main__':
             new_topic = Topic(new_name, news_list)
             t, _ = filter_topics([new_topic])
             if t:
+                new_topic.subtopics.add(topic)
+                new_topic.subtopics.add(ot)
                 new_topics.add(new_topic)
                 similar.add(ot)
         if not similar:

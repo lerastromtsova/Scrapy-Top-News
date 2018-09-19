@@ -1,14 +1,12 @@
-from text_processing.preprocess import preprocess, check_first_entities
+from text_processing.preprocess import preprocess, check_first_entities, replace_special_symbols, unite_countries_in
 from text_processing.translate import translate
 import re
-import nltk
 import sqlite3
-import itertools
 from string import punctuation
 
 
 PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––']
-TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime"}
+TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime", "The"}
 PREPS = ['at', 'on', 'in', 'by', 'of', 'to']
 
 
@@ -45,19 +43,10 @@ class Document:
         self.c = self.conn.cursor()
 
         self.table = table
-
-        # self.dates = process_dates(list(self.tokens)).append(self.date)
         self.process(['title', 'lead', 'content'])
 
         self.description = self.tokens['title'].union(self.tokens['lead'])
-
-        # self.description.update(self.named_entities['title'])
-        # self.description.update(self.named_entities['lead'])
-
         self.descr_with_countries = set()
-        # self.title_without_countries = {d for d in self.tokens['title'] if d not in COUNTRIES}
-
-        # self.description = self.description.union(set(self.sentences[0].split()))
 
         self.countries = {w for w in self.named_entities['content'] if w in COUNTRIES}
         self.descr_with_countries = self.description.union(self.countries)
@@ -73,9 +62,6 @@ class Document:
 
         self.uppercase_sequences = find_all_uppercase_sequences(text)
         self.numbers = {w for w in self.all_text_splitted if w.isdigit()}
-        # print("Text: ", " ".join(text))
-        # print("Uppercase: ", ", ".join(self.uppercase_sequences))
-        # # self.uppercase_sequences = trim_words(self.uppercase_sequences)
 
     def process(self, arr_of_types):
         c = self.conn.cursor()
@@ -99,21 +85,23 @@ class Document:
             else:
                 self.double_translate(typ)
 
+
+            self.translated[typ] = replace_special_symbols(self.translated[typ])
+            self.double_translated[typ] = replace_special_symbols(self.double_translated[typ])
+
             c.execute(f"SELECT tokens_{typ} FROM buffer WHERE reference=(?)", (self.url,))
             res = c.fetchone()[f"tokens_{typ}"]
 
             if res:
                 self.tokens[typ] = set(res.split(','))
+                self.tokens[typ] = {w for w in self.tokens[typ] if w not in STOP_WORDS}
             else:
                 self.tokens[typ] = {word for word in preprocess(self.translated[typ]) if
                                     word in preprocess(self.double_translated[typ])}
 
-            tokens_copy = self.tokens[typ].copy()
+            self.tokens[typ] = set(replace_special_symbols(' '.join(self.tokens[typ])).split())
 
-            for w in self.tokens[typ]:
-                word = w.replace("í", "i")
-                tokens_copy.remove(w)
-                tokens_copy.add(word)
+            tokens_copy = self.tokens[typ].copy()
 
             self.tokens[typ] = tokens_copy
 
@@ -152,8 +140,8 @@ class Document:
             if res:
 
                 for ent in res.split(','):
-                    word = ent.replace("í", "i")
-                    self.named_entities[ty].add(word)
+
+                        self.named_entities[ty].add(ent)
 
                 # self.named_entities[ty] = set(res.split(','))
 
@@ -333,13 +321,13 @@ def delete_duplicates(text):
 
 
 def can_be_between(word, prev_word):
-    if len(word) == 2 and word.islower() or prev_word[0].isupper() and len(prev_word) == 1 and word == "." or word=="-":
+    if len(word) == 2 and word.islower() and word not in PREPS or prev_word[0].isupper() and len(prev_word) == 1 and word == "." or word=="-":
         return True
     return False
 
 
 def can_be_big(word):
-    if word[0].isupper() and word.lower() not in STOP_WORDS and word not in TITLES and word not in PREPS:
+    if word[0].isupper() and word not in TITLES and word not in COUNTRIES:
         return True
     return False
 
@@ -347,6 +335,7 @@ def can_be_big(word):
 def find_all_uppercase_sequences(w_list):
     seq = []
     words_list = w_list.copy()
+    words_list = unite_countries_in(words_list)
     for i in range(len(words_list)):
         word = words_list[i]
         if can_be_big(word):
@@ -460,6 +449,7 @@ def find_all_uppercase_sequences(w_list):
             to_remove.add(s)
 
     seq = [s for s in seq if s not in to_remove]
+    seq = [s for s in seq if s.lower() not in STOP_WORDS]
     seq.extend(to_add)
 
     # seq = {' '.join(b) for a, b in itertools.groupby(words_list, key=lambda x: x[0].isupper() and x.lower() not in STOP_WORDS or len(x) <= 2 and x.islower() and words_list[words_list.index(x)+1][0].isupper() or x.isdigit()) if a}

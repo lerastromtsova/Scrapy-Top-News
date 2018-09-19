@@ -175,7 +175,7 @@ def write_topics(fname, topics):
     sheet = wb.active
 
     sheet.cell(row=1, column=1).value = "Method"
-    sheet.cell(row=1, column=2).value = "Comment"  # should be empty
+    sheet.cell(row=1, column=2).value = "Old name"  # should be empty
     sheet.cell(row=1, column=3).value = "Name"  # should be empty
     sheet.cell(row=1, column=4).value = "Topic"
     sheet.cell(row=1, column=5).value = "All unique words"
@@ -263,14 +263,14 @@ def write_topics(fname, topics):
             # name = f"{', '.join(topic.name)} | {topic.text_name}"
 
         sheet.cell(row=i + 3, column=1).value = " ".join(topic.method)
-        sheet.cell(row=i + 3, column=2).value = ""
+        sheet.cell(row=i + 3, column=2).value = ", ".join(topic.old_name)
         sheet.cell(row=i + 3, column=3).value = ""
         sheet.cell(row=i + 3, column=4).value = ', '.join(all_words)
         sheet.cell(row=i + 3, column=5).value = ', '.join(unique_words)
         doc = topic.news[0]
         sheet.cell(row=i + 3, column=6).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
-                                               f"{doc.translated['lead']} | " \
-                                               f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
+                                                f"{doc.translated['lead']} | " \
+                                                f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
         doc = topic.news[1]
         sheet.cell(row=i + 3, column=7).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                 f"{doc.translated['lead']} | " \
