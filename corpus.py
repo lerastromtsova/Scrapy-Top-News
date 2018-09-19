@@ -309,15 +309,13 @@ class Corpus:
                 # percent1 = len(cw) / len(topic.name)
                 if ot.name:
                     cw = intersect_with_2_and_1(topic.name, ot.name)
-                    print("000", topic.name)
-                    print("111",ot.name)
-                    print(cw)
                     percent2 = len(cw) / len(ot.name)
 
                     if percent2 > 0.5:
                         continue
                     elif count_countries(cw):
-                        topic.new_name -= cw
+                        topic.new_name = {w for w in topic.new_name if not any(c for r in cw for c in r.split() if r in w)}
+                        # topic.new_name -= cw
 
         to_remove = set()
         for topic in self.topics:

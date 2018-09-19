@@ -410,6 +410,7 @@ def get_other(number):
 
 
 def unite_fio(topics):
+    STOP_WORDS.append("house")
     for topic in topics:
 
         countries_in_name, _ = topic.countries(topic.name)
@@ -710,9 +711,7 @@ def unite_fio(topics):
 
         topic.name = name
         topic.name = unite_countries_in(topic.name)
-        print(0, topic.name)
         topic.name = unite_countries_in_topic_names(topic.name)
-        print(1, topic.name)
         topic.name = {w for w in topic.name if w.lower() not in STOP_WORDS}
         topic.new_name = topic.name.copy()
         topic.frequent = topic.most_frequent()
@@ -1895,9 +1894,24 @@ def check_topics(topics):
             new_topics.append(topic)
     return new_topics
 
+
+def delete_subtopics(topics):
+    to_remove = set()
+    for topic in topics:
+        others = [t for t in topics if t != topic]
+        topic_ids = {n.id for n in topic.news}
+
+        for ot in others:
+            ot_ids = {n.id for n in ot.news}
+            if ot_ids.issubset(topic_ids) and ot_ids != topic_ids:
+                to_remove.add(ot)
+
+    topics = [t for t in topics if t not in to_remove]
+    return topics
+
+
 class ContinueI(Exception):
     pass
-
 
 
 if __name__ == '__main__':
@@ -2063,8 +2077,10 @@ if __name__ == '__main__':
     corpus.topics = delete_duplicates(corpus.topics)
     write_topics("9-прошли.xlsx", corpus.topics)
     write_topics("9-не прошли.xlsx", neg3)
-    # print(9, len(corpus.topics))
+    print(9, len(corpus.topics))
 
+    corpus.topics = delete_subtopics(corpus.topics)
+    write_topics("10.xlsx", corpus.topics)
     print(datetime.now() - time)
 
 """

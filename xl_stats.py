@@ -194,7 +194,7 @@ def write_topics(fname, topics):
     sheet.cell(row=1, column=15).value = "# of Countries"
     sheet.cell(row=1, column=16).value = "# of Numbers"
     sheet.cell(row=1, column=17).value = "# of IDs"
-    sheet.cell(row=1, column=18).value = "All unique words"
+    sheet.cell(row=1, column=18).value = "Frequent Unique"
     sheet.cell(row=1, column=19).value = "u# of All-countries (unique)"
     sheet.cell(row=1, column=20).value = "u# of unique"
     sheet.cell(row=1, column=21).value = "u# of All-countries-small (unique)"
@@ -252,6 +252,7 @@ def write_topics(fname, topics):
         unique_countries, unique_num_countries = topic.countries(unique_words)
         unique_numbers, unique_num_numbers = topic.numbers(unique_words)
         unique_ids, unique_num_ids = topic.ids(unique_words)
+        frequent_unique = unique_words.intersection(topic.most_frequent())
 
         if topic.subtopics:
             name = ''
@@ -265,7 +266,15 @@ def write_topics(fname, topics):
         sheet.cell(row=i + 3, column=1).value = " ".join(topic.method)
         sheet.cell(row=i + 3, column=2).value = ", ".join(topic.old_name)
         sheet.cell(row=i + 3, column=3).value = ""
-        sheet.cell(row=i + 3, column=4).value = ', '.join(all_words)
+        if topic.subtopics:
+            name = ''
+            for s in topic.subtopics:
+                name += ', '.join(s.name)
+                name += "|"
+        else:
+            name = ", ".join(topic.name)
+
+        sheet.cell(row=i + 3, column=4).value = name
         sheet.cell(row=i + 3, column=5).value = ', '.join(unique_words)
         doc = topic.news[0]
         sheet.cell(row=i + 3, column=6).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
@@ -288,7 +297,7 @@ def write_topics(fname, topics):
         sheet.cell(row=i + 3, column=16).value = num_numbers
         sheet.cell(row=i + 3, column=17).value = num_ids
 
-        sheet.cell(row=i + 3, column=18).value = ", ".join(unique_words)
+        sheet.cell(row=i + 3, column=18).value = ", ".join(frequent_unique)
         sheet.cell(row=i + 3, column=19).value = num_unique_wo_countries
         sheet.cell(row=i + 3, column=20).value = num_unique_words
         sheet.cell(row=i + 3, column=21).value = num_unique_wo_countries_small
@@ -333,7 +342,7 @@ def write_topics(fname, topics):
 
         sheet.cell(row=i + 3, column=47).value = ''
         sheet.cell(row=i + 3, column=48).value = ''
-        sheet.cell(row=i + 3, column=49).value = ', '.join(all_words)
+        sheet.cell(row=i + 3, column=49).value = name
         # sheet.cell(row=i + 3, column=51).value = ', '.join(topic.method)
         # sheet.cell(row=i + 3, column=50).value = ', '.join(topic.all_numbers)
 
