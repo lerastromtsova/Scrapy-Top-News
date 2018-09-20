@@ -245,7 +245,7 @@ class Document:
 
     def double_translate(self, ty):
 
-        n = 1500  # length limit
+        n = 1000  # length limit
         text = self.orig_data[ty]
         self.translated[ty] = ''
         self.double_translated[ty] = ''
@@ -258,9 +258,9 @@ class Document:
 
         for part in text:
 
-            eng_text = translate(part)
+            eng_text = translate(part, 'en')
             deu_text = translate(eng_text, 'de')
-            eng1_text = translate(deu_text)
+            eng1_text = translate(deu_text, 'en')
 
             self.translated[ty] += ' '
             self.translated[ty] += eng_text
@@ -328,7 +328,7 @@ def can_be_between(word):
 
 
 def can_be_big(word):
-    if word[0].isupper() and word not in TITLES and word.upper() not in COUNTRIES:
+    if word[0].isupper() and word not in TITLES and word.upper() not in COUNTRIES and word.lower() not in PREPS:
         return True
     return False
 

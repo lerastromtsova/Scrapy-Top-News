@@ -983,185 +983,185 @@ def filter_topics(topics):
                 num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('1) уФИО + 2 ФИО')
-            continue
+            # continue
 
         # 2) 1 уФИО + 1 оЗагл
         if num_unique_fio >= 1 and num_big >= 1 and num_countries >= 1 and (
                 num_fio >= 2 or num_big >= 2 or num_small >= 1 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('1 уФИО + 1 оЗагл')
-            continue
+            # continue
 
         # 3) 1 уФИО + 1 оПроп
         if num_unique_fio >= 1 and num_small >= 1 and num_countries >= 1 and (
                 num_fio >= 2 or num_big >= 1 or num_small >= 2 or num_countries >= 3):
             positive.add(topic)
             topic.method.add('3) 1 уФИО + 1 оПроп')
-            continue
+            # continue
 
         # 4) 1 уЗагл + 1 оФИО
         if num_unique_big >= 1 and num_fio >= 1 and (
                 num_fio >= 2 or num_big >= 2 or num_small >= 1 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('4) 1 уЗагл + 1 оФИО')
-            continue
+            # continue
 
         # 5) 1 уЗагл + 2 оЗагл
         if num_unique_big >= 1 and num_big >= 2 and (
                 num_unique_fio >= 1 or num_big >= 3 or num_unique_small >= 1 or num_unique_countries >= 2):
             positive.add(topic)
             topic.method.add('5) 1 уЗагл + 2 оЗагл')
-            continue
+            # continue
 
         # 6) 1 уЗагл + 1 оФИО
         if num_unique_big >= 1 and num_small >= 1 and (
                 num_unique_fio >= 1 or num_unique_big >= 2 or num_unique_small >= 2 or num_unique_countries >= 2):
             positive.add(topic)
             topic.method.add('6) 1 уЗагл + 1 оФИО')
-            continue
+            # continue
 
         # 7) 1 уЗагл + 2 оСтр
         if num_unique_big >= 1 and num_countries >= 2 and (
                 num_unique_fio >= 1 or num_unique_big >= 2 or num_unique_small >= 1 or num_unique_countries >= 1):
             positive.add(topic)
             topic.method.add('7) 1 уЗагл + 2 оСтр')
-            continue
+            # continue
 
         # 8) 1 уПроп + 2 оФИО
         if num_unique_small >= 1 and num_fio >= 2 and (
                 num_fio >= 3 or num_big >= 1 or num_small >= 2 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('8) 1 уПроп + 2 оФИО')
-            continue
+            # continue
 
         # 9) 1 уПроп + 2 оЗагл
         if num_unique_small >= 1 and num_big >= 2 and (
                 num_unique_fio >= 1 or num_unique_big >= 1 or num_unique_small >= 2 or num_unique_countries >= 2):
             positive.add(topic)
             topic.method.add('9) 1 уПроп + 2 оЗагл')
-            continue
+            # continue
 
         # 10) 4 уПроп
         if num_unique_small >= 4 and (num_fio >= 1 or num_big >= 1 or num_small >= 5 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('10) 4 уПроп ')
-            continue
+            # continue
 
         # 11) 3 оФИО
         if num_fio >= 3:
             positive.add(topic)
             topic.method.add('11) 3 оФИО')
-            continue
+            # continue
 
         # 12) 1 оФИО + 2 оЗагл
         if num_fio >= 1 and num_big >= 2 and (num_fio >= 2 or num_big >= 3 or num_small >= 1 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('12) 1 оФИО + 2 оЗагл')
-            continue
+            # continue
 
         # 13) 1 оФИО + 2 оПроп
         if num_fio >= 1 and num_small >= 2 and (
                 num_fio >= 2 or num_big >= 1 or num_small >= 4 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('13) 1 оФИО + 2 оПроп')
-            continue
+            # continue
 
         # 14) 2 уФИО
         if num_unique_fio >= 2 and (num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('14) 2 уФИО ')
-            continue
+            # continue
 
         # 15) 3 уПроп + 1 оФИО
         if num_unique_small >= 3 and num_fio >= 1 and num_countries >= 1 and (
                 num_fio >= 3 or num_big >= 1 or num_small >= 1 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('15) 3 уПроп + 1 оФИО')
-            continue
+            # continue
 
         # 16) 4 оЗагл
         if num_unique_big >= 4:
             positive.add(topic)
             topic.method.add('16) 4 оЗагл')
-            continue
+            # continue
 
         # 17) 1 оЗагл + 2 оПроп
         if num_big >= 1 and num_small >= 2 and (
                 num_fio >= 1 or num_big >= 2 or num_small >= 4 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('17) 1 оЗагл + 2 оПроп')
-            continue
+            # continue
 
         # 18) 3 уЗагл
         if num_unique_big >= 3:
             positive.add(topic)
             topic.method.add('18) 3 уЗагл')
-            continue
+            # continue
 
         # 19) 3 оЗагл + 1 оПроп
         if num_big >= 3 and num_small >= 1 and (
                 num_fio >= 1 or num_big >= 4 or num_small >= 2 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('19) 3 оЗагл + 1 оПроп')
-            continue
+            # continue
 
         # 20) 5 оСтран
         if num_countries >= 5:
             positive.add(topic)
             topic.method.add('20) 5 оСтран')
-            continue
+            # continue
 
         # 21) 2 уПроп + 1 оЗагл
         if num_unique_small >= 2 and num_big >= 1 and (
                 num_fio >= 1 or num_big >= 42 or num_small >= 3 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('21) 2 уПроп + 1 оЗагл')
-            continue
+            # continue
 
         # 22) 1 уЗагл + 1 уПроп
         if num_unique_fio >= 1 and num_unique_small >= 1 and (
                 num_fio >= 2 or num_big >= 1 or num_small >= 2 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('22) 1 уЗагл + 1 уПроп')
-            continue
+            # continue
 
         # 23) 4 уПроп
         if num_unique_small >= 4 and (num_fio >= 1 or num_big >= 1 or num_small >= 5 or num_countries >= 2):
             positive.add(topic)
             topic.method.add('23) 4 уПроп')
-            continue
+            # continue
 
         # 24) 4 оСтран
         if num_countries >= 4 and (num_fio >= 1 or num_big >= 1 or num_small >= 1 or num_countries >= 5):
             positive.add(topic)
             topic.method.add('24) 4 оСтран')
-            continue
+            # continue
 
         # 25) 1 уФИО + 2 уСтран
         if num_unique_fio >= 1 and num_unique_countries >= 2:
             positive.add(topic)
             topic.method.add('25) 1 уФИО + 2 уСтран')
-            continue
+            # continue
 
         # 26) 1 упроп + 1 уПроп
         if num_unique_small >= 1 and num_unique_countries >= 2 and (
                 num_fio >= 1 or num_big >= 1 or num_small >= 2 or num_countries >= 3):
             positive.add(topic)
             topic.method.add('26) 1 упроп + 1 уПроп')
-            continue
+            # continue
 
         # 27) 3 уСтр
         if num_unique_countries >= 3 and (num_fio >= 1 or num_big >= 1 or num_small >= 1 or num_countries >= 4):
             positive.add(topic)
             topic.method.add('27) 3 уСтр')
-            continue
+            # continue
 
         # 28) 1 уМал + 2 оМал + 1 оФИО
         if num_unique_small >= 1 and num_small >= 2 and num_fio >= 1 and (
                 num_fio >= 2 or num_big >= 1 or num_small >= 3 or num_countries >= 3):
             positive.add(topic)
             topic.method.add('27) 1 уМал + 2 оМал + 1 оФИО')
-            continue
+            # continue
 
     negative = {topic for topic in topics if topic not in positive}
     return positive, negative
@@ -1187,7 +1187,6 @@ def last_check_topics(topics):
             positive.add(topic)
     negative = {t for t in topics if t not in positive}
     return positive, negative
-
 
 
 def check_neutral_topics_copy(topics):
@@ -1965,9 +1964,9 @@ if __name__ == '__main__':
     write_topics("3.xlsx", corpus.topics)
     print(3, len(corpus.topics))
 
-    corpus.topics = add_words_to_topics(corpus.topics)
-    write_topics("4.xlsx", corpus.topics)
-    print(4, len(corpus.topics))
+    # corpus.topics = add_words_to_topics(corpus.topics)
+    # write_topics("4.xlsx", corpus.topics)
+    # print(4, len(corpus.topics))
 
     # pos, neu, neg = filter_topics(corpus.topics)
     # write_topics("5-Positive.xlsx", pos)
@@ -2017,7 +2016,7 @@ if __name__ == '__main__':
                         new.all_text = new.description
                         new.all_text.update(new.tokens['content'])
                         new_topic = Topic(new_name, news_list)
-                        new_topic.new_name = intersect(topic.new_name, new.all_text)
+                        new_topic.new_name = topic.name
                         t, _ = filter_topics([new_topic])
                         if t:
                             topic.methods_for_news[new.id] = new_topic.method
@@ -2036,11 +2035,12 @@ if __name__ == '__main__':
         topic.news = delete_dupl_from_news(topic.news)
     # topics = delete_duplicates(topics)
     corpus.topics = delete_duplicates(corpus.topics)
+    # corpus.check_unique()
     write_topics("6.xlsx", corpus. topics)
 
     print(6, len(corpus.topics))
 
-    corpus.check_unique()
+    # corpus.check_unique()
 
     # corpus.topics, neg2 = last_check_topics(corpus.topics)
     # corpus.topics = delete_duplicates(corpus.topics)
@@ -2059,10 +2059,12 @@ if __name__ == '__main__':
             new_topic = Topic(new_name, news_list)
             t, _ = filter_topics([new_topic])
             if t:
-                new_topic.subtopics.add(topic)
-                new_topic.subtopics.add(ot)
-                new_topics.add(new_topic)
-                similar.add(ot)
+                pos, _ = last_check_topics([new_topic])
+                if pos:
+                    new_topic.subtopics.add(topic)
+                    new_topic.subtopics.add(ot)
+                    new_topics.add(new_topic)
+                    similar.add(ot)
         if not similar:
             new_topics.add(topic)
 
@@ -2073,14 +2075,15 @@ if __name__ == '__main__':
 
     write_topics("8.xlsx", corpus.topics)
     print(8, len(corpus.topics))
-    corpus.topics, neg3 = last_check_topics(corpus.topics)
+    # corpus.topics, neg3 = last_check_topics(corpus.topics)
     corpus.topics = delete_duplicates(corpus.topics)
     write_topics("9-прошли.xlsx", corpus.topics)
-    write_topics("9-не прошли.xlsx", neg3)
+    # write_topics("9-не прошли.xlsx", neg3)
     print(9, len(corpus.topics))
 
     corpus.topics = delete_subtopics(corpus.topics)
     write_topics("10.xlsx", corpus.topics)
+    print(10, len(corpus.topics))
     print(datetime.now() - time)
 
 """

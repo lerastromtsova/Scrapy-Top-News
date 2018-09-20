@@ -285,9 +285,10 @@ class Corpus:
         self.topics = list(set(self.topics))
 
     def check_unique(self):
+        ch = {"Salisbury", "RUSSIA", "UNITED KINGDOM", "Alexander Litvinenko"}
         for topic in self.topics:
             other_topics = [t for t in self.topics if t != topic]
-            not_similar_topic_names = [word for t in other_topics for word in t.name if len(intersect_with_two(topic.name, t.name))/len(t.name) <= 0.5]
+            # not_similar_topic_names = [word for t in other_topics for word in t.name if len(intersect_with_two(topic.name, t.name))/len(t.name) <= 0.5]
 
             # print("Do imya temy", topic.name)
             # for word in topic.name:
@@ -308,14 +309,26 @@ class Corpus:
                 # cw = topic.name.intersection(ot.name)
                 # percent1 = len(cw) / len(topic.name)
                 if ot.name:
+
+                    debug = False
+
+                    if ch.issubset(topic.name) or ch.issubset(ot.name):
+                        debug = True
+
                     cw = intersect_with_2_and_1(topic.name, ot.name)
                     percent2 = len(cw) / len(ot.name)
 
                     if percent2 > 0.5:
                         continue
+
                     elif count_countries(cw):
+
                         topic.new_name = {w for w in topic.new_name if not any(c for r in cw for c in r.split() if r in w)}
-                        # topic.new_name -= cw
+                        if debug:
+                            print("1st topic", topic.name)
+                            print("2nd topic", ot.name)
+                            print("Common", cw)
+                            print(topic.new_name)
 
         to_remove = set()
         for topic in self.topics:

@@ -61,7 +61,7 @@ def translate(text, arg=None):
 
         return t.translate(text).text
     except json.decoder.JSONDecodeError:
-        # print("Error")
-        return text
+        print("Error")
+        return ""
 
 
