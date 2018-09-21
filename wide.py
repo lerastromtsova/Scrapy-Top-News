@@ -427,7 +427,7 @@ def unite_fio(topics):
         check_len_4_some_small = {}
         to_remove = {}
         debug = False
-        if topic.news[0].id == 80 and topic.news[1].id == 32 or topic.news[0].id == 32 and topic.news[1].id == 80:
+        if topic.news[0].id == 168 and topic.news[1].id == 121 or topic.news[0].id == 121 and topic.news[1].id == 168:
             debug = True
 
         to_remove[0] = set()
@@ -456,6 +456,28 @@ def unite_fio(topics):
 
         # big_in_name = [w for w in topic.name if w in strings_to_check[0] or w in strings_to_check[1]]
 
+
+
+
+        for word in topic.name:
+            words_containing1 = {w for w in strings_to_check[0] if word in w and w != word}
+            words_containing2 = {w for w in strings_to_check[1] if word in w and w != word}
+            if not words_containing1 or not words_containing2:
+                fios[0].add(word)
+                fios[1].add(word)
+                to_remove[0].add(word)
+                to_remove[1].add(word)
+            if words_containing1 == words_containing2 and words_containing1:
+                elem1 = words_containing1.pop()
+                elem2 = words_containing2.pop()
+                fios[0].add(elem1)
+                fios[1].add(elem2)
+                to_remove[0].add(elem1)
+                to_remove[1].add(elem2)
+
+        strings_to_check[0] = [w for w in strings_to_check[0] if w not in to_remove[0]]
+        strings_to_check[1] = [w for w in strings_to_check[1] if w not in to_remove[1]]
+
         check_len_1[0] = [s for s in strings_to_check[0] if len(s.split()) == 1]
         check_len_1[1] = [s for s in strings_to_check[1] if len(s.split()) == 1]
 
@@ -465,18 +487,10 @@ def unite_fio(topics):
         check_len_4_all_big[0] = [s for s in strings_to_check[0] if len(s.split()) > 2 and s[0].isupper()]
         check_len_4_all_big[1] = [s for s in strings_to_check[1] if len(s.split()) > 2 and s[0].isupper()]
 
-        check_len_4_some_small[0] = [s for s in strings_to_check[0] if len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
-        check_len_4_some_small[1] = [s for s in strings_to_check[1] if len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
-
-        for word in topic.name:
-            words_containing1 = {w for w in strings_to_check[0] if word in w and w != word}
-            words_containing2 = {w for w in strings_to_check[1] if word in w and w != word}
-            if not words_containing1 or not words_containing2:
-                fios[0].add(word)
-                fios[1].add(word)
-            if words_containing1 == words_containing2 and words_containing1:
-                fios[0].add(words_containing1.pop())
-                fios[1].add(words_containing2.pop())
+        check_len_4_some_small[0] = [s for s in strings_to_check[0] if
+                                     len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
+        check_len_4_some_small[1] = [s for s in strings_to_check[1] if
+                                     len(s.split()) > 2 and any(w for w in s.split() if w.islower())]
 
         """ Check if some word is repeated twice in one news or once in each news """
 
@@ -655,7 +669,7 @@ def unite_fio(topics):
                     c1 = len(words_containing1)
                     c2 = len(words_containing2)
                     if c1 > 1 or c2 > 1 or (c1 + c2 >= 2 and words_containing1 != words_containing2):
-                        fios[i].add(last_word)
+                        # fios[i].add(last_word)
                         if debug:
                             print("Word is in different FIOs | ", last_word)
                         continue
@@ -1909,6 +1923,13 @@ def delete_subtopics(topics):
     return topics
 
 
+def clean_topic_name(name):
+    print(name)
+    name = {w for w in name if not any(word for word in name-{w} if w.lower() in word.lower())}
+    print(name)
+    return name
+
+
 class ContinueI(Exception):
     pass
 
@@ -1985,6 +2006,9 @@ if __name__ == '__main__':
     #          'usmall': 0.2,
     #          'uids': 1,
     #          'ucountries': 0.08}
+
+    for topic in corpus.topics:
+        topic.name = clean_topic_name(topic.name)
 
     corpus.topics, neg = filter_topics(corpus.topics)
 
@@ -2077,7 +2101,7 @@ if __name__ == '__main__':
     print(8, len(corpus.topics))
     # corpus.topics, neg3 = last_check_topics(corpus.topics)
     corpus.topics = delete_duplicates(corpus.topics)
-    write_topics("9-прошли.xlsx", corpus.topics)
+    write_topics("9.xlsx", corpus.topics)
     # write_topics("9-не прошли.xlsx", neg3)
     print(9, len(corpus.topics))
 

@@ -7,7 +7,7 @@ from string import punctuation
 
 PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––']
 TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime", "The", "Federation"}
-PREPS = ['at', 'on', 'in', 'by', 'of', 'to']
+PREPS = ['at', 'on', 'in', 'by', 'of', 'to', 'is']
 
 
 class Document:

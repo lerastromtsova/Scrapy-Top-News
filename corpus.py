@@ -324,11 +324,11 @@ class Corpus:
                     elif count_countries(cw):
 
                         topic.new_name = {w for w in topic.new_name if not any(c for r in cw for c in r.split() if r in w)}
-                        if debug:
-                            print("1st topic", topic.name)
-                            print("2nd topic", ot.name)
-                            print("Common", cw)
-                            print(topic.new_name)
+                        # if debug:
+                        #     print("1st topic", topic.name)
+                        #     print("2nd topic", ot.name)
+                        #     print("Common", cw)
+                        #     print(topic.new_name)
 
         to_remove = set()
         for topic in self.topics:
@@ -439,23 +439,35 @@ def intersect_with_2_and_1(set1, set2):
                     if len(cw) >= 2:
                         if len(words_1) > len(words_2):
                             if s1 in new1:
-                                new1.remove(s1)
-                                new1.add(s2)
+                                try:
+                                    new1.remove(s1)
+                                    new1.add(s2)
+                                except KeyError:
+                                    pass
                         else:
                             if s2 in new2:
-                                new2.remove(s2)
-                                new2.add(s1)
+                                try:
+                                    new2.remove(s2)
+                                    new2.add(s1)
+                                except KeyError:
+                                    pass
                 if len(words_2) == 1:
                     cw = words_1.intersection(words_2)
                     if cw:
-                        new1.remove(s1)
-                        new1.add(s2)
+                        try:
+                            new1.remove(s1)
+                            new1.add(s2)
+                        except KeyError:
+                            pass
             if len(words_1) == 1:
                 if len(words_2) >= 2:
                     cw = words_1.intersection(words_2)
                     if cw:
-                        new2.remove(s2)
-                        new2.add(s1)
+                        try:
+                            new2.remove(s2)
+                            new2.add(s1)
+                        except KeyError:
+                            pass
     return new1.intersection(new2)
 
 def intersect(set1, set2):
