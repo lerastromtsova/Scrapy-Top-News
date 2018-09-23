@@ -408,7 +408,6 @@ def get_other(number):
     return 1
 
 
-
 def unite_fio(topics):
     STOP_WORDS.append("house")
     for topic in topics:
@@ -427,7 +426,8 @@ def unite_fio(topics):
         check_len_4_some_small = {}
         to_remove = {}
         debug = False
-        if topic.news[0].id == 168 and topic.news[1].id == 121 or topic.news[0].id == 121 and topic.news[1].id == 168:
+
+        if topic.news[0].id == 165 and topic.news[1].id == 125 or topic.news[0].id == 125 and topic.news[1].id == 16:
             debug = True
 
         to_remove[0] = set()
@@ -455,9 +455,6 @@ def unite_fio(topics):
             print(countries_in_name)
 
         # big_in_name = [w for w in topic.name if w in strings_to_check[0] or w in strings_to_check[1]]
-
-
-
 
         for word in topic.name:
             words_containing1 = {w for w in strings_to_check[0] if word in w and w != word}
@@ -2007,6 +2004,7 @@ if __name__ == '__main__':
 
     for topic in corpus.topics:
         topic.name = clean_topic_name(topic.name)
+        topic.new_name = clean_topic_name(topic.new_name)
 
     corpus.topics, neg = filter_topics(corpus.topics)
 

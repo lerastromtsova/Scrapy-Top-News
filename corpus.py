@@ -285,7 +285,8 @@ class Corpus:
         self.topics = list(set(self.topics))
 
     def check_unique(self):
-        ch = {"Salisbury", "RUSSIA", "UNITED KINGDOM", "Alexander Litvinenko"}
+        ch = {"Trump"}
+        ch1 = {"Donald Trump"}
         for topic in self.topics:
             other_topics = [t for t in self.topics if t != topic]
             # not_similar_topic_names = [word for t in other_topics for word in t.name if len(intersect_with_two(topic.name, t.name))/len(t.name) <= 0.5]
@@ -312,25 +313,36 @@ class Corpus:
 
                     debug = False
 
-                    if ch.issubset(topic.name) or ch.issubset(ot.name):
-                        debug = True
-
                     cw = intersect_with_2_and_1(topic.name, ot.name)
                     percent2 = len(cw) / len(ot.name)
 
+                    if (ch.issubset(topic.name) or ch1.issubset(topic.name)) and (ch.issubset(cw) or ch1.issubset(cw)):
+                        debug = True
+
                     if count_countries(cw) >= 1 and count_not_countries(cw) >= 3 and len(ot.name) <= len(topic.name):
+                        if debug:
+                            print(f"Not deleting from {topic.name} because other topic is {ot.name}, "
+                                  f"countries: {count_countries(cw)}, "
+                                  f"not_countries: {count_not_countries(cw)},"
+                                  f"common_words: {cw}")
                         continue
 
                     elif count_countries(cw) >= 1 and count_not_countries(ot.name) < 3 and percent2 > 0.5:
+                        if debug:
+                            print(f"Not deleting from {topic.name} because other topic is {ot.name}, "
+                                  f"countries: {count_countries(cw)}, "
+                                  f"not_countries: {count_not_countries(ot.name)},"
+                                  f"percent: {percent2},"
+                                  f"common_words: {cw}")
                         continue
 
                     elif count_countries(cw):
                         topic.new_name = {w for w in topic.new_name if not any(c for r in cw for c in r.split() if r in w)}
-                        # if debug:
-                        #     print("1st topic", topic.name)
-                        #     print("2nd topic", ot.name)
-                        #     print("Common", cw)
-                        #     print(topic.new_name)
+                        if debug:
+                            print(f"Deleting from {topic.name} because other topic is {ot.name},"
+                                  f"common_words: {cw}"
+                                  f"New name is: {topic.new_name}")
+
 
         to_remove = set()
         for topic in self.topics:
