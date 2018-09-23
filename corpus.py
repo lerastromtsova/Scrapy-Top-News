@@ -276,8 +276,8 @@ class Corpus:
                 cw = intersect(row.all_text, ot.all_text)
                 # cw = {w for w in cw if w[0].islower() or w in COUNTRIES}
 
-                # if count_not_countries(cw) >= 2 and (count_countries(cw) >= 1 or row.countries.intersection(ot.countries)):
-                if len(cw) >= 4 and count_countries(cw) >= 1:
+                if count_not_countries(cw) >= 2 and count_countries(cw) >= 1:
+                    # if len(cw) >= 4 and count_countries(cw) >= 1:
                     news = [row, ot]
                     new_topic = Topic(cw, news)
                     self.topics.append(new_topic)
@@ -318,11 +318,13 @@ class Corpus:
                     cw = intersect_with_2_and_1(topic.name, ot.name)
                     percent2 = len(cw) / len(ot.name)
 
-                    if percent2 > 0.5:
+                    if count_countries(cw) >= 1 and count_not_countries(cw) >= 3 and len(ot.name) <= len(topic.name):
+                        continue
+
+                    elif count_countries(cw) >= 1 and count_not_countries(ot.name) < 3 and percent2 > 0.5:
                         continue
 
                     elif count_countries(cw):
-
                         topic.new_name = {w for w in topic.new_name if not any(c for r in cw for c in r.split() if r in w)}
                         # if debug:
                         #     print("1st topic", topic.name)

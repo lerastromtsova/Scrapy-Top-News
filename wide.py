@@ -1924,9 +1924,7 @@ def delete_subtopics(topics):
 
 
 def clean_topic_name(name):
-    print(name)
     name = {w for w in name if not any(word for word in name-{w} if w.lower() in word.lower())}
-    print(name)
     return name
 
 
