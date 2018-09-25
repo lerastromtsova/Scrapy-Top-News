@@ -100,11 +100,15 @@ class Document:
 
             self.tokens[typ] = set(replace_special_symbols(' '.join(self.tokens[typ])).split())
 
+            if "US" in self.translated[typ]:
+                self.tokens[typ].add("UNITED_STATES")
+
             tokens_copy = self.tokens[typ].copy()
 
             self.tokens[typ] = tokens_copy
 
             self.named_entities[typ] = find_countries(self.tokens[typ])
+            self.named_entities[typ] = set(replace_special_symbols(' '.join(self.named_entities[typ])).split())
 
             self.find_entities(typ, 'nes')
 

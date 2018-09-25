@@ -107,7 +107,6 @@ def similar(topics):
 
     return new_topics
 
-
 # def give_news(topics, rows):
 #     for row in rows:
 #
