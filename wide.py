@@ -1,6 +1,6 @@
 from corpus import count_countries, count_not_countries
 from corpus import Corpus, Topic, intersect, intersect_with_two
-from xl_stats import write_topics
+from xl_stats import write_topics, write_topics_with_subtopics
 from datetime import datetime
 from descr import iscountry
 from math import ceil
@@ -211,6 +211,7 @@ def delete_duplicates(topics):
                 if o:
                     other_ids = {n.id for n in o.news}
                     if ids == other_ids:
+                        o.name |= t.name
                         topics[i] = None
     topics = {t for t in topics if t is not None}
     return topics
@@ -349,8 +350,6 @@ def extend_topic_names(topics):
     return topics
 
 
-
-
 # def find_all_uppercase_sequences(words_list):
 #     seq = {' '.join(b) for a, b in itertools.groupby(words_list, key=lambda x: x[0].isupper() and x.lower() not in STOP_WORDS or len(x) <= 2 and x.islower() or x.isdigit()) if a}
 #     return seq
@@ -426,8 +425,8 @@ def unite_fio(topics):
         to_remove = {}
         debug = False
 
-        if topic.news[0].id == 165 and topic.news[1].id == 125 or topic.news[0].id == 125 and topic.news[1].id == 16:
-            debug = True
+        # if topic.news[0].id == 165 and topic.news[1].id == 125 or topic.news[0].id == 125 and topic.news[1].id == 16:
+        #     debug = True
 
         to_remove[0] = set()
         to_remove[1] = set()
@@ -669,6 +668,16 @@ def unite_fio(topics):
                         if debug:
                             print("Word is in different FIOs | ", last_word)
                         continue
+                    # elif not words_containing1 and c2 == 1:
+                    #     fios[i].add(word)
+                    #     fios[j].add(word)
+                    #     if debug:
+                    #         print("Word is not in different FIOs | ", word)
+                    # elif not words_containing2 and c1 == 1:
+                    #     fios[j].add(word)
+                    #     fios[j].add(word)
+                    #     if debug:
+                    #         print("Word is not in different FIOs | ", word)
                     # elif not words_containing1 and c2 == 1:
                     #     fios[i].add(word)
                     #     fios[j].add(word)
@@ -1058,7 +1067,7 @@ def filter_topics(topics):
             # continue
 
         # 11) 3 оФИО
-        if num_fio >= 3:
+        if num_fio >= 3 and num_countries >= 1:
             positive.add(topic)
             topic.method.add('11) 3 оФИО')
             # continue
@@ -1103,7 +1112,7 @@ def filter_topics(topics):
             # continue
 
         # 18) 3 уЗагл
-        if num_unique_big >= 3:
+        if num_unique_big >= 3 and num_countries >= 1:
             positive.add(topic)
             topic.method.add('18) 3 уЗагл')
             # continue
@@ -1116,7 +1125,7 @@ def filter_topics(topics):
             # continue
 
         # 20) 5 оСтран
-        if num_countries >= 5:
+        if num_countries >= 5 and num_countries >= 1:
             positive.add(topic)
             topic.method.add('20) 5 оСтран')
             # continue
@@ -1928,6 +1937,21 @@ class ContinueI(Exception):
     pass
 
 
+def unite_news_text_and_topic_name(news_text, topic_name):
+    inters = set()
+    for word in topic_name:
+        for word2 in news_text:
+            if word == word2:
+                inters.add(word)
+            elif word2 in word.split():
+                if len(word.split()) >= 2:
+                    idx = word.split().index(word2)
+                    if idx != 0:
+                        inters.add(word)
+
+    return inters
+
+
 if __name__ == '__main__':
     db = input("DB name (default - day): ")
     table = input("Table name (default - buffer): ")
@@ -2028,33 +2052,35 @@ if __name__ == '__main__':
     for topic in corpus.topics:
         for new in corpus.data:
             if new not in topic.news:
-                new_name = topic.name.intersection(new.all_text)
-                if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
-                        news_list = topic.news.copy()
-                        news_list.append(new)
-                        new.all_text = new.description
-                        new.all_text.update(new.tokens['content'])
-                        new_topic = Topic(new_name, news_list)
-                        new_topic.new_name = topic.name
-                        t, _ = filter_topics([new_topic])
-                        if t:
-                            topic.methods_for_news[new.id] = new_topic.method
-                            topic.news.append(new)
-                        # pos, neu, _ = filter_topics([new_topic])
-                        # if pos:
-                        #     p = pos.pop()
-                        #     topic.methods_for_news[new.id] = p.method
-                        #     topic.news.append(new)
-                        # if neu:
-                        #     checked = check_neutral_topics(neu, coefs)
-                        #     if checked:
-                        #         c = checked.pop()
-                        #         topic.methods_for_news[new.id] = c.method
-                        #         topic.news.append(new)
+                new_name = unite_news_text_and_topic_name(new.all_text, topic.name)
+                new_unique = unite_news_text_and_topic_name(new.all_text, topic.new_name)
+                if new_unique:
+                    if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
+                            news_list = topic.news.copy()
+                            news_list.append(new)
+                            new.all_text = new.description
+                            new.all_text.update(new.tokens['content'])
+                            new_topic = Topic(new_name, news_list)
+                            new_topic.new_name = topic.name
+                            t, _ = filter_topics([new_topic])
+                            if t:
+                                topic.methods_for_news[new.id] = new_topic.method
+                                topic.news.append(new)
+                            # pos, neu, _ = filter_topics([new_topic])
+                            # if pos:
+                            #     p = pos.pop()
+                            #     topic.methods_for_news[new.id] = p.method
+                            #     topic.news.append(new)
+                            # if neu:
+                            #     checked = check_neutral_topics(neu, coefs)
+                            #     if checked:
+                            #         c = checked.pop()
+                            #         topic.methods_for_news[new.id] = c.method
+                            #         topic.news.append(new)
         topic.news = delete_dupl_from_news(topic.news)
-    # topics = delete_duplicates(topics)
+
     corpus.topics = delete_duplicates(corpus.topics)
-    # corpus.check_unique()
+
     write_topics("6.xlsx", corpus. topics)
 
     print(6, len(corpus.topics))
@@ -2067,32 +2093,39 @@ if __name__ == '__main__':
     # write_topics("7-не прошли.xlsx", neg2)
     # print(7, len(corpus.topics))
 
-    new_topics = set()
+    corpus.topics = sorted(corpus.topics, key=lambda x: -len(x.name))
 
-    for topic in corpus.topics:
-        others = [t for t in corpus.topics if set(t.news) != set(topic.news)]
-        similar = set()
-        for ot in others:
-            new_name = topic.name.intersection(ot.name)
-            news_list = list(set(topic.news).union(set(ot.news)))
-            new_topic = Topic(new_name, news_list)
-            t, _ = filter_topics([new_topic])
-            if t:
-                pos, _ = last_check_topics([new_topic])
-                if pos:
-                    new_topic.subtopics.add(topic)
-                    new_topic.subtopics.add(ot)
-                    new_topics.add(new_topic)
-                    similar.add(ot)
-        if not similar:
-            new_topics.add(topic)
+    for i,topic in enumerate(corpus.topics):
+        if topic:
+            topic.subtopics = set()
+            others = [t for t in corpus.topics if t and set(t.news) != set(topic.news)]
+            similar = {}
+            for ot in others:
+                if ot:
+                    new_name = topic.name.intersection(ot.name)
+                    news_list = list(set(topic.news).union(set(ot.news)))
+                    new_topic = Topic(new_name, news_list)
+                    t, _ = filter_topics([new_topic])
+                    if t:
+                        # pos, _ = last_check_topics([new_topic])
+                        # if pos:
+                        similar[ot] = t.method
 
-    corpus.topics = new_topics
+
+            for s, m in similar.items():
+                topic.subtopics.add(s)
+                s.method = m
+                topic.news.extend(s.news)
+                corpus.topics[corpus.topics.index(s)] = None
+                print(topic.name, s.name)
+
+    corpus.topics = [t for t in corpus.topics if t]
+
     corpus.topics = delete_duplicates(corpus.topics)
 
     corpus.check_unique()
 
-    write_topics("8.xlsx", corpus.topics)
+    write_topics_with_subtopics("8.xlsx", corpus.topics)
     print(8, len(corpus.topics))
     # corpus.topics, neg3 = last_check_topics(corpus.topics)
     corpus.topics = delete_duplicates(corpus.topics)

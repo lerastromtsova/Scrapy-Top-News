@@ -108,17 +108,16 @@ class Document:
             self.tokens[typ] = tokens_copy
 
             self.named_entities[typ] = find_countries(self.tokens[typ])
-            self.named_entities[typ] = set(replace_special_symbols(' '.join(self.named_entities[typ])).split())
-
             self.find_entities(typ, 'nes')
+            self.named_entities[typ] = set(replace_special_symbols(' '.join(self.named_entities[typ])).split())
 
             self.unite_countries_in(typ, 'tokens')
             self.unite_countries_in(typ, 'nes')
             # self.translated[typ] = unite_countries_in(self.translated[typ])
             # self.double_translated[typ] = unite_countries_in(self.double_translated[typ])
 
-            self.named_entities[typ].add(self.country.upper())
-            self.tokens[typ].add(self.country.upper())
+            self.named_entities[typ].add(self.country.upper().replace(" ", "_"))
+            self.tokens[typ].add(self.country.upper().replace(" ", "_"))
 
             to_remove = set()
 
@@ -235,7 +234,7 @@ class Document:
                         if ent.lower() == 'state':
                             to_remove.add(ent)
                             if self.country == 'United Kingdom':
-                                to_add.add("UNITED STATES")
+                                to_add.add("UNITED_STATES")
                     if len(ent.lower().split()) > 1:
                         for e in ent.lower().split():
                             if e in low:

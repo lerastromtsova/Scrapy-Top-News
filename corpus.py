@@ -316,8 +316,8 @@ class Corpus:
                     cw = intersect_with_2_and_1(topic.name, ot.name)
                     percent2 = len(cw) / len(ot.name)
 
-                    if (ch.issubset(topic.name) or ch1.issubset(topic.name)) and (ch.issubset(cw) or ch1.issubset(cw)):
-                        debug = True
+                    # if (ch.issubset(topic.name) or ch1.issubset(topic.name)) and (ch.issubset(cw) or ch1.issubset(cw)):
+                    #     debug = True
 
                     if count_countries(cw) >= 1 and count_not_countries(cw) >= 3 and len(ot.name) <= len(topic.name):
                         if debug:
