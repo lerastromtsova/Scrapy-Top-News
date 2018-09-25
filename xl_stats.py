@@ -461,12 +461,12 @@ def write_topics_with_subtopics(fname, topics):
         sheet.cell(row=row_num, column=5).value = ', '.join(unique_words)
         doc = topic.news[0]
         sheet.cell(row=row_num, column=6).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
-                                                f"{doc.translated['lead']} | " \
-                                                f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
+                                                  f"{doc.translated['lead']} | " \
+                                                  f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
         doc = topic.news[1]
         sheet.cell(row=row_num, column=7).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
-                                                f"{doc.translated['lead']} | " \
-                                                f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
+                                                  f"{doc.translated['lead']} | " \
+                                                  f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
 
         sheet.cell(row=row_num, column=8).value = len(all_words)
         sheet.cell(row=row_num, column=9).value = len(unique_words)

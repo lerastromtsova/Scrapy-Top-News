@@ -2109,7 +2109,8 @@ if __name__ == '__main__':
                     if t:
                         # pos, _ = last_check_topics([new_topic])
                         # if pos:
-                        similar[ot] = t.method
+
+                        similar[ot] = t.pop().method
 
 
             for s, m in similar.items():
@@ -2129,12 +2130,12 @@ if __name__ == '__main__':
     print(8, len(corpus.topics))
     # corpus.topics, neg3 = last_check_topics(corpus.topics)
     corpus.topics = delete_duplicates(corpus.topics)
-    write_topics("9.xlsx", corpus.topics)
+    write_topics_with_subtopics("9.xlsx", corpus.topics)
     # write_topics("9-не прошли.xlsx", neg3)
     print(9, len(corpus.topics))
 
     corpus.topics = delete_subtopics(corpus.topics)
-    write_topics("10.xlsx", corpus.topics)
+    write_topics_with_subtopics("10.xlsx", corpus.topics)
     print(10, len(corpus.topics))
     print(datetime.now() - time)
 
