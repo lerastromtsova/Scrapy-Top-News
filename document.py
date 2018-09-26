@@ -6,7 +6,7 @@ from string import punctuation
 
 
 PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––']
-TITLES = {"President", "Chancellor", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime", "The", "Federation"}
+TITLES = {"President", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime", "The", "Federation", "Middle", "Islamic"}
 PREPS = ['at', 'on', 'in', 'by', 'of', 'to', 'is']
 
 
@@ -93,12 +93,13 @@ class Document:
 
             if res:
                 self.tokens[typ] = set(res.split(','))
-                self.tokens[typ] = {w for w in self.tokens[typ] if w not in STOP_WORDS}
+                self.tokens[typ] = {w for w in self.tokens[typ] if w.lower() not in STOP_WORDS}
             else:
                 self.tokens[typ] = {word for word in preprocess(self.translated[typ]) if
                                     word in preprocess(self.double_translated[typ])}
 
             self.tokens[typ] = set(replace_special_symbols(' '.join(self.tokens[typ])).split())
+            self.tokens[typ] = {w for w in self.tokens[typ] if w.lower() not in STOP_WORDS}
 
             if "US" in self.translated[typ]:
                 self.tokens[typ].add("UNITED_STATES")
@@ -110,6 +111,7 @@ class Document:
             self.named_entities[typ] = find_countries(self.tokens[typ])
             self.find_entities(typ, 'nes')
             self.named_entities[typ] = set(replace_special_symbols(' '.join(self.named_entities[typ])).split())
+            self.named_entities[typ] = {w for w in self.named_entities[typ] if w.lower() not in STOP_WORDS}
 
             self.unite_countries_in(typ, 'tokens')
             self.unite_countries_in(typ, 'nes')
@@ -129,6 +131,7 @@ class Document:
 
             c.execute(f"UPDATE buffer SET nes_{typ}=(?), tokens_{typ}=(?) WHERE reference=(?)",
                       (','.join(self.named_entities[typ]), ','.join(self.tokens[typ]), self.url))
+
             self.conn.commit()
 
             # for date in self.dates:

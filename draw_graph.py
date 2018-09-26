@@ -42,31 +42,23 @@ COLORS = {'Australia': 'dusty rose',
           'Japan': 'sea green'}
 
 
-def draw_graph(nodes, edges, m, fname, type="со связями внутри"):
+def draw_graph(nodes, edges, fname):
     G = nx.Graph()
 
     G.add_nodes_from(enumerate(nodes))
 
-    if type == "без связей внутри":
-        edges = [e for e in edges if G.node[e[0]]['country'] != G.node[e[1]]['country']]
-
     labels = []
 
     for i, d in enumerate(nodes):
-        G.node[i]['number'] = d['number']
-        G.node[i]['title'] = d['title']
-        G.node[i]['url'] = d['url']
-        G.node[i]['country'] = d['country']
-        G.node[i]['date'] = d['scraping_date']
 
-        labels.append(str(G.node[i]['number']) + '<br>' +
-                      G.node[i]['country'] + '<br>'
-                      + G.node[i]['title'] + '<br>'
-                      + G.node[i]['url'] + '<br>' +
-                      G.node[i]['date']
-                      )
+        try:
 
-    G.add_weighted_edges_from(edges)
+            labels.append(", ".join(d['name']))
+
+        except KeyError:
+            labels.append(str(d['title']) + "<br>" + str(d['url']) + "<br>" + str(d['country']))
+
+    G.add_edges_from(edges)
 
     pos = nx.spring_layout(G)
 
@@ -99,7 +91,11 @@ def draw_graph(nodes, edges, m, fname, type="со связями внутри"):
         node_trace['y'].append(pos[nd][1])
 
     for node, adjacencies in enumerate(G.adjacency()):
-        node_trace['marker']['color'].append(COLORS[G.nodes[node]['country']])
+        try:
+            if node["name"]:
+                node_trace['marker']['color'].append("red")
+        except KeyError:
+            node_trace['marker']['color'].append("gray")
         num_conn = len(adjacencies[1])
         if num_conn <= 6:
             node_trace['marker']['size'].append(6)
@@ -122,13 +118,6 @@ def draw_graph(nodes, edges, m, fname, type="со связями внутри"):
         yaxis=YAxis(showgrid=False, zeroline=False, showticklabels=False)),
         data=Data([edge_trace, node_trace]))
 
-    py.plot(fig, filename=fname + str(m))
+    py.plot(fig, filename=fname)
 
 
-for m in range(2,6):
-    corp = Corpus()
-    data = Topnews(corp, mweight=m)
-    nodes = data.data
-    edges = data.edges
-
-    draw_graph(nodes,edges,m,fname=f"{m} месяц без связей внутри стран ",type="без связей внутри")

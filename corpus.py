@@ -11,12 +11,17 @@ all_rows = c.fetchall()
 COUNTRIES = [row[0] for row in all_rows]
 
 
+# Add here
+STOP_WORDS_FOR_UNIQUE = {}
+
+
 class Topic:
 
     def __init__(self, name, init_news):
 
         self.name = name
         self.new_name = self.name.copy()
+        self.new_name = {w for w in self.new_name if w not in STOP_WORDS_FOR_UNIQUE}
 
         self.news = init_news
         # self.sentences_by_words = dict.fromkeys(self.name)
@@ -342,6 +347,7 @@ class Corpus:
                             print(f"Deleting from {topic.name} because other topic is {ot.name},"
                                   f"common_words: {cw}"
                                   f"New name is: {topic.new_name}")
+            topic.new_name = {w for w in topic.new_name if w not in STOP_WORDS_FOR_UNIQUE}
 
 
         to_remove = set()
