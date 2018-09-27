@@ -52,22 +52,22 @@ def translate(text, arg=None):
             if arg in COUNTRIES_R.keys():
                 language = COUNTRIES_R[arg]
                 translated_text = t.translate(text, dest=language).text
-                print(translated_text)
+                # print(translated_text)
                 return translated_text
 
             elif arg in COUNTRIES.keys():
                 language = arg
                 translated_text = t.translate(text, dest=language).text
-                print(translated_text)
+                # print(translated_text)
                 return translated_text
         except ValueError:
             translated_text = t.translate(text).text
-            print(translated_text)
+            # print(translated_text)
             return translated_text
 
         return t.translate(text).text
     except json.decoder.JSONDecodeError:
-        print("Error")
+        # print("Error")
         return ""
 
 

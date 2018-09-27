@@ -21,7 +21,7 @@ class Topic:
 
         self.name = name
         self.new_name = self.name.copy()
-        self.new_name = {w for w in self.new_name if w not in STOP_WORDS_FOR_UNIQUE}
+        self.new_name = {w for w in self.new_name if w not in STOP_WORDS_FOR_UNIQUE and not w.isdigit()}
 
         self.news = init_news
         # self.sentences_by_words = dict.fromkeys(self.name)
@@ -294,22 +294,6 @@ class Corpus:
         ch1 = {"Donald Trump"}
         for topic in self.topics:
             other_topics = [t for t in self.topics if t != topic]
-            # not_similar_topic_names = [word for t in other_topics for word in t.name if len(intersect_with_two(topic.name, t.name))/len(t.name) <= 0.5]
-
-            # print("Do imya temy", topic.name)
-            # for word in topic.name:
-            #     max_freq_word = ''
-            #     word_list = word.split()
-            #     if len(word_list) >= 3:
-            #         freqs = [not_similar_topic_names.count(w) for w in word_list]
-            #         max_freq_idx = freqs.index(max(freqs))
-            #         max_freq_word = word_list[max_freq_idx]
-            #     print("Do slovo ", word)
-            #     topic.name -= {word}
-            #     word = ' '.join([w for w in word_list if w != max_freq_word])
-            #     topic.name.add(word)
-            #     print("Posle slovo ", word)
-            # print("Posle imya temy", topic.name)
 
             for ot in other_topics:
                 # cw = topic.name.intersection(ot.name)
@@ -347,7 +331,7 @@ class Corpus:
                             print(f"Deleting from {topic.name} because other topic is {ot.name},"
                                   f"common_words: {cw}"
                                   f"New name is: {topic.new_name}")
-            topic.new_name = {w for w in topic.new_name if w not in STOP_WORDS_FOR_UNIQUE}
+            topic.new_name = {w for w in topic.new_name if w not in STOP_WORDS_FOR_UNIQUE and not w.isdigit()}
 
 
         to_remove = set()
@@ -490,6 +474,7 @@ def intersect_with_2_and_1(set1, set2):
                             pass
     return new1.intersection(new2)
 
+
 def intersect(set1, set2):
     new1 = set1.copy()
     new2 = set2.copy()
@@ -512,6 +497,7 @@ def intersect(set1, set2):
                     new2.remove(s2)
                 new2.add(s1)
     return new1.intersection(new2)
+
 
 def add_column(table, column_name, length, cursor):
     try:

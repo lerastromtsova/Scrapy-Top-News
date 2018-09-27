@@ -92,7 +92,7 @@ def draw_graph(nodes, edges, fname):
 
     for node, adjacencies in enumerate(G.adjacency()):
         try:
-            if node["name"]:
+            if G.node[node]["name"]:
                 node_trace['marker']['color'].append("red")
         except KeyError:
             node_trace['marker']['color'].append("gray")

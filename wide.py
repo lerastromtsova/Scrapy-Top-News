@@ -11,8 +11,7 @@ from document import COUNTRIES
 import itertools
 from draw_graph import draw_graph
 from text_processing.preprocess import STOP_WORDS, check_first_entities, unite_countries_in, unite_countries_in_topic_names
-
-
+from copy import deepcopy
 
 
 with open("text_processing/between-words.txt", "r") as f:
@@ -1564,22 +1563,26 @@ if __name__ == '__main__':
                     new_name = unite_news_text_and_topic_name(topic.name, ot.name)
                     new_unique = unite_news_text_and_topic_name(topic.new_name, ot.name)
                     news_list = list(set(topic.news).union(set(ot.news)))
-                    if new_unique:
-                        new_topic = Topic(new_name, news_list)
-                        t, _ = filter_topics([new_topic])
-                        if t:
+
+                    new_topic = Topic(new_name, news_list)
+                    t, _ = filter_topics([new_topic])
+                    if t:
                             # pos, _ = last_check_topics([new_topic])
                             # if pos:
+                        similar[ot] = t.pop().method
 
-                            similar[ot] = t.pop().method
+            if similar:
+                topic_copy = Topic(topic.name, topic.news)
+                topic_copy.new_name = topic.new_name
+                topic.subtopics.add(topic_copy)
 
-            for s, m in similar.items():
-                topic.subtopics.add(s)
-                s.method = m
-                topic.news.extend(s.news)
-                corpus.topics[corpus.topics.index(s)] = None
-                print(topic.name, s.name)
-            topic.news = delete_dupl_from_news(topic.news)
+                for s, m in similar.items():
+                    topic.subtopics.add(s)
+                    s.method = m
+                    topic.news.extend(s.news)
+                    # corpus.topics[corpus.topics.index(s)] = None
+                    print(topic.name, s.name)
+                topic.news = delete_dupl_from_news(topic.news)
 
     corpus.topics = [t for t in corpus.topics if t]
 
