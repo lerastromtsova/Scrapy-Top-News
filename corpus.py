@@ -336,7 +336,6 @@ class Corpus:
                                   f"New name is: {topic.new_name}")
             topic.new_name = {w for w in topic.new_name if w.lower() not in STOP_WORDS_UNIQUE and not w.isdigit()}
 
-
         to_remove = set()
         for topic in self.topics:
             if not topic.new_name:

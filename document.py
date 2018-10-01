@@ -46,6 +46,7 @@ class Document:
         self.process(['title', 'lead', 'content'])
 
         self.description = self.tokens['title'].union(self.tokens['lead'])
+        self.description = {w for w in self.description if len(w) > 2}
         self.descr_with_countries = set()
 
         self.countries = {w for w in self.named_entities['content'] if w in COUNTRIES}
@@ -334,7 +335,7 @@ def can_be_between(word):
 
 
 def can_be_big(word):
-    if word[0].isupper() and word not in TITLES and word.upper() not in COUNTRIES and word.lower() not in PREPS:
+    if word[0].isupper() and word not in TITLES and word.upper() not in COUNTRIES and word.lower() not in PREPS and len(word)>1:
         return True
     return False
 
@@ -459,7 +460,7 @@ def find_all_uppercase_sequences(w_list):
     #     if s in STOP_WORDS:
     #         to_remove.add(s)
 
-    seq = [s for s in seq if s not in to_remove]
+    seq = [s for s in seq if s not in to_remove and len(s) > 2]
     seq = [s for s in seq if s.lower() not in STOP_WORDS]
 
     for i in range(len(seq)):

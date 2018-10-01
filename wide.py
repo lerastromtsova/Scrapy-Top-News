@@ -1414,7 +1414,7 @@ def add_news(topics, data):
                 new_name = unite_news_text_and_topic_name(new.all_text, topic.name)
                 new_unique = unite_news_text_and_topic_name(new.all_text, topic.new_name)
 
-                if new_unique:
+                if new_unique or new_name == topic.name:
                     if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
                             news_list = topic.news.copy()
                             news_list.append(new)
@@ -1445,22 +1445,21 @@ if __name__ == '__main__':
     corpus = Corpus(db, table)
     corpus.find_topics()
     corpus.delete_small()
-    write_topics(f"{db}-0.xlsx", corpus.topics)
+    write_topics(f"documents/{db}-0.xlsx", corpus.topics)
     print(0, len(corpus.topics))
 
     corpus.topics = unite_fio(corpus.topics)
-    write_topics(f"{db}-1.xlsx", corpus.topics)
+    write_topics(f"documents/{db}-1.xlsx", corpus.topics)
     print(1, len(corpus.topics))
 
     corpus.topics = check_topics(corpus.topics)
-    write_topics(f"{db}-2.xlsx", corpus.topics)
+    write_topics(f"documents/{db}-2.xlsx", corpus.topics)
     # initial_topics = corpus.topics.copy()
     print(2, len(corpus.topics))
 
     corpus.check_unique()
-    write_topics(f"{db}-3.xlsx", corpus.topics)
+    write_topics(f"documents/{db}-3.xlsx", corpus.topics)
     print(3, len(corpus.topics))
-
 
     for topic in corpus.topics:
         topic.name = clean_topic_name(topic.name)
@@ -1468,20 +1467,17 @@ if __name__ == '__main__':
 
     corpus.topics, neg = filter_topics(corpus.topics)
 
-    write_topics(f"{db}-5-прошли.xlsx", corpus.topics)
+    write_topics(f"documents/{db}-5-прошли.xlsx", corpus.topics)
 
-    write_topics(f"{db}-5-не прошли.xlsx", neg)
+    write_topics(f"documents/{db}-5-не прошли.xlsx", neg)
     print(5, len(corpus.topics))
 
     united_topics = set()
 
     corpus.topics = add_news(corpus.topics, corpus.data)
-
-
-
     corpus.topics = delete_duplicates(corpus.topics)
 
-    write_topics(f"{db}-6.xlsx", corpus. topics)
+    write_topics(f"documents/{db}-6.xlsx", corpus. topics)
 
     print(6, len(corpus.topics))
 
@@ -1522,16 +1518,16 @@ if __name__ == '__main__':
 
     corpus.check_unique()
 
-    write_topics_with_subtopics(f"{db}-8.xlsx", corpus.topics)
+    write_topics_with_subtopics(f"documents/{db}-8.xlsx", corpus.topics)
     print(8, len(corpus.topics))
     # corpus.topics, neg3 = last_check_topics(corpus.topics)
     corpus.topics = delete_duplicates(corpus.topics)
-    write_topics_with_subtopics(f"{db}-9.xlsx", corpus.topics)
+    write_topics_with_subtopics(f"documents/{db}-9.xlsx", corpus.topics)
     # write_topics("9-не прошли.xlsx", neg3)
     print(9, len(corpus.topics))
 
     corpus.topics = delete_subtopics(corpus.topics)
-    write_topics_with_subtopics(f"{db}-10.xlsx", corpus.topics)
+    write_topics_with_subtopics(f"documents/{db}-10.xlsx", corpus.topics)
     print(10, len(corpus.topics))
     print(datetime.now() - time)
 
@@ -1544,13 +1540,11 @@ if __name__ == '__main__':
         nodes.append(node_object)
         topic_number = number
         number += 1
-        print(number)
         for n in t.news:
             node_object = {"title": n.translated['title'],
                            "url": n.url,
                            "country": n.country}
             nodes.append(node_object)
-            print(number)
             edges.append((topic_number, number))
             number += 1
 
