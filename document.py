@@ -8,7 +8,7 @@ from string import punctuation
 PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––']
 TITLES = {"President", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime", "The", "Federation", "Middle", "Islamic"}
 PREPS = ['at', 'on', 'in', 'by', 'of', 'to', 'is']
-
+BRACKETS = [')', '(', '[', ']']
 
 class Document:
 
@@ -329,13 +329,13 @@ def delete_duplicates(text):
 
 
 def can_be_between(word):
-    if len(word) == 2 and word.islower() and word not in PREPS or word[0].isupper() and len(word) == 1 or word == "-":
+    if len(word) == 2 and word.islower() and word not in PREPS or word[0].isupper() and len(word) == 1 or word == "-" or word in BRACKETS:
         return True
     return False
 
 
 def can_be_big(word):
-    if word[0].isupper() and word not in TITLES and word.upper() not in COUNTRIES and word.lower() not in PREPS and len(word)>1:
+    if word[0].isupper() and word not in TITLES and word.upper() not in COUNTRIES and word.lower() not in PREPS and len(word) > 1:
         return True
     return False
 
@@ -460,7 +460,7 @@ def find_all_uppercase_sequences(w_list):
     #     if s in STOP_WORDS:
     #         to_remove.add(s)
 
-    seq = [s for s in seq if s not in to_remove and len(s) > 2]
+    seq = [s for s in seq if s not in to_remove and (len(s) > 3 or (s.isupper() and s.lower() not in STOP_WORDS))]
     seq = [s for s in seq if s.lower() not in STOP_WORDS]
 
     for i in range(len(seq)):

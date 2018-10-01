@@ -308,8 +308,8 @@ class Corpus:
                     cw = intersect_with_2_and_1(topic.name, ot.name)
                     percent2 = len(cw) / len(ot.name)
 
-                    # if (ch.issubset(topic.name) or ch1.issubset(topic.name)) and (ch.issubset(cw) or ch1.issubset(cw)):
-                    #     debug = True
+                    if (ch.issubset(topic.name) or ch1.issubset(topic.name)) and (ch.issubset(cw) or ch1.issubset(cw)):
+                        debug = True
 
                     if count_countries(cw) >= 1 and count_not_countries(cw) >= 3 and len(ot.name) <= len(topic.name):
                         if debug:
@@ -336,12 +336,12 @@ class Corpus:
                                   f"New name is: {topic.new_name}")
             topic.new_name = {w for w in topic.new_name if w.lower() not in STOP_WORDS_UNIQUE and not w.isdigit()}
 
-        to_remove = set()
-        for topic in self.topics:
-            if not topic.new_name:
-                to_remove.add(topic)
-
-        self.topics = [t for t in self.topics if t not in to_remove]
+        # to_remove = set()
+        # for topic in self.topics:
+        #     if not topic.new_name:
+        #         to_remove.add(topic)
+        #
+        # self.topics = [t for t in self.topics if t not in to_remove]
 
     def delete_small(self):
         all_names = {frozenset(topic.name) for topic in self.topics}
