@@ -9,6 +9,7 @@ c = conn.cursor()
 c.execute("SELECT * FROM countries")
 all_rows = c.fetchall()
 COUNTRIES = [row[0] for row in all_rows]
+print(COUNTRIES)
 
 
 STOP_PATH_UNIQUE = 'text_processing/stop-words-unique.txt'
@@ -293,8 +294,8 @@ class Corpus:
         self.topics = list(set(self.topics))
 
     def check_unique(self):
-        ch = {"Trump"}
-        ch1 = {"Donald Trump"}
+        ch = {"Putin"}
+        ch1 = {"Vladimir Putin"}
         for topic in self.topics:
             other_topics = [t for t in self.topics if t != topic]
 
@@ -319,7 +320,7 @@ class Corpus:
                                   f"common_words: {cw}")
                         continue
 
-                    elif count_countries(cw) >= 1 and count_not_countries(ot.name) < 3 and percent2 > 0.5:
+                    elif count_countries(cw) >= 1 and len(ot.name) < 3 and percent2 > 0.5:
                         if debug:
                             print(f"Not deleting from {topic.name} because other topic is {ot.name}, "
                                   f"countries: {count_countries(cw)}, "
