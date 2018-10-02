@@ -9,7 +9,6 @@ c = conn.cursor()
 c.execute("SELECT * FROM countries")
 all_rows = c.fetchall()
 COUNTRIES = [row[0] for row in all_rows]
-print(COUNTRIES)
 
 
 STOP_PATH_UNIQUE = 'text_processing/stop-words-unique.txt'

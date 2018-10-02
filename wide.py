@@ -11,7 +11,7 @@ from document import COUNTRIES
 import itertools
 from draw_graph import draw_graph
 from text_processing.preprocess import STOP_WORDS, check_first_entities, unite_countries_in, unite_countries_in_topic_names
-from copy import deepcopy
+from copy import copy
 
 
 with open("text_processing/between-words.txt", "r") as f:
@@ -1490,6 +1490,9 @@ if __name__ == '__main__':
             topic.subtopics = set()
             others = [t for t in corpus.topics if t and set(t.news) != set(topic.news)]
             similar = {}
+            topic_copy = Topic(topic.name.copy(), topic.news.copy())
+            topic_copy.new_name = topic.new_name.copy()
+
             for ot in others:
                 if ot:
                     new_name = unite_news_text_and_topic_name(topic.name, ot.name)
@@ -1503,10 +1506,7 @@ if __name__ == '__main__':
                         similar[ot] = t.pop().method
 
             if similar:
-                topic_copy = Topic(topic.name, topic.news)
-                topic_copy.new_name = topic.new_name
-                topic.subtopics.add(topic_copy)
-
+                similar[topic_copy] = ''
                 for s, m in similar.items():
                     topic.subtopics.add(s)
                     s.method = m
