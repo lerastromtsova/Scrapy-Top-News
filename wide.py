@@ -1384,7 +1384,7 @@ def delete_subtopics(topics):
 
 
 def clean_topic_name(name):
-    name = {w for w in name if not any(word for word in name-{w} if w.lower() in word.lower())}
+    name = {w for w in name if not any(word for word in name-{w} if w.lower() in word.lower().split())}
     return name
 
 
@@ -1464,8 +1464,14 @@ if __name__ == '__main__':
     print(3, len(corpus.topics))
 
     for topic in corpus.topics:
+        if "MP" in topic.name:
+            print(topic.name)
+            print(topic.new_name)
         topic.name = clean_topic_name(topic.name)
         topic.new_name = clean_topic_name(topic.new_name)
+        if "MP" in topic.name:
+            print(topic.name)
+            print(topic.new_name)
 
     corpus.topics, neg = filter_topics(corpus.topics)
 
