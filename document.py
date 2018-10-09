@@ -3,12 +3,14 @@ from text_processing.translate import translate
 import re
 import sqlite3
 from string import punctuation
+from utils import iscountry
 
 
 PUNKTS = ["''",'``','...','’','‘','-','“','"','—','”','–','–––','––']
 TITLES = {"President", "Democrat", "Governor", "King", "Queen", "Ministry", "Minister", "Prime", "The", "Federation", "Middle", "Islamic"}
 PREPS = ['at', 'on', 'in', 'by', 'of', 'to', 'is']
 BRACKETS = [')', '(', '[', ']']
+
 
 class Document:
 
@@ -49,7 +51,7 @@ class Document:
         self.description = {w for w in self.description if len(w) > 2}
         self.descr_with_countries = set()
 
-        self.countries = {w for w in self.named_entities['content'] if w in COUNTRIES}
+        self.countries = {w for w in self.named_entities['content'] if iscountry(w)}
         self.descr_with_countries = self.description.union(self.countries)
 
         self.all_text = self.description.copy()
@@ -335,7 +337,7 @@ def can_be_between(word):
 
 
 def can_be_big(word):
-    if word[0].isupper() and word not in TITLES and word.upper() not in COUNTRIES and word.lower() not in PREPS and len(word) > 1:
+    if word[0].isupper() and word not in TITLES and not iscountry(word) and word.lower() not in PREPS and len(word) > 1:
         return True
     return False
 
@@ -491,4 +493,3 @@ conn = sqlite3.connect("db/countries.db")
 c = conn.cursor()
 c.execute("SELECT * FROM countries")
 all_rows = c.fetchall()
-COUNTRIES = [row[0] for row in all_rows]

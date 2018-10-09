@@ -9,16 +9,13 @@ def find_connection(data, m):
     edges = []
     for i in range(len(data)):
         for j in range(i+1,len(data)):
-            text = data[i][5].split()
-            text1 = data[j][5].split()
+            text = data[i].tokens['content']
+            text1 = data[j].tokens['content']
 
             common = set(text).intersection(set(text1))
             weight = len(common)
 
-            if weight>int(m):
-                print(text)
-                print(text1)
-                print(weight)
+            if weight > int(m):
                 edges.append({'from':i+1,'to':j+1,'weight':weight})
 
     return edges

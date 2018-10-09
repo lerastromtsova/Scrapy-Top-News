@@ -1,5 +1,6 @@
 import sqlite3
-
+from utils import count_countries, count_not_countries, iscountry
+from utils import intersect, intersect_with_2_and_1, add_column
 from document import Document
 import operator
 
@@ -42,6 +43,12 @@ class Topic:
         self.all_numbers = set()
         self.old_name = name.copy()
 
+        self.sum_1 = 0
+        self.sum_2 = 0
+        self.prod = 0
+
+        self.coefficient_sums = {}
+
         # for key in self.sentences_by_words:
         #     self.sentences_by_words[key] = []
         #
@@ -57,7 +64,7 @@ class Topic:
         return text, len(text)
 
     def all_wo_countries(self, text):
-        all_wo_countries = [w for w in text if w not in COUNTRIES]
+        all_wo_countries = [w for w in text if not iscountry(w)]
         return all_wo_countries, len(all_wo_countries)
 
     def all_wo_countries_and_small(self, text):
@@ -65,11 +72,11 @@ class Topic:
         return all_wo_countries_and_small, len(all_wo_countries_and_small)
 
     def fio(self, text):
-        fio = [w for w in text if ' ' in w and w not in COUNTRIES]
+        fio = [w for w in text if ' ' in w and not iscountry(w)]
         return fio, len(fio)
 
     def big(self, text):
-        big = [w for w in text if w not in COUNTRIES and w not in self.fio(text)[0] and w[0].isupper()]
+        big = [w for w in text if not iscountry(w) and w not in self.fio(text)[0] and w[0].isupper()]
         return big, len(big)
 
     def small(self, text):
@@ -77,7 +84,7 @@ class Topic:
         return small, len(small)
 
     def countries(self, text):
-        countries = [w for w in text if w in COUNTRIES]
+        countries = [w for w in text if iscountry(w)]
         return countries, len(countries)
 
     def numbers(self, text):
@@ -293,8 +300,8 @@ class Corpus:
         self.topics = list(set(self.topics))
 
     def check_unique(self):
-        ch = {"Putin"}
-        ch1 = {"Vladimir Putin"}
+        ch = {"Skripal"}
+        ch1 = {"Sergei Skripal"}
         for topic in self.topics:
             other_topics = [t for t in self.topics if t != topic]
 
@@ -308,8 +315,8 @@ class Corpus:
                     cw = intersect_with_2_and_1(topic.name, ot.name)
                     percent2 = len(cw) / len(ot.name)
 
-                    if (ch.issubset(topic.name) or ch1.issubset(topic.name)) and (ch.issubset(cw) or ch1.issubset(cw)):
-                        debug = True
+                    # if (ch.issubset(topic.name) or ch1.issubset(topic.name)) and (ch.issubset(cw) or ch1.issubset(cw)):
+                    #     debug = True
 
                     if count_countries(cw) >= 1 and count_not_countries(cw) >= 3 and len(ot.name) <= len(topic.name):
                         if debug:
@@ -329,12 +336,39 @@ class Corpus:
                         continue
 
                     elif count_countries(cw):
-                        topic.new_name = {w for w in topic.new_name if not any(c for r in cw for c in r.split() if r in w)}
+                        # Удаляется слово, в котором присутствует любое слово из cw
+                        topic.new_name = {w for w in topic.new_name if
+                                          not any(c for r in cw for c in r.split() if r in w)}
                         if debug:
                             print(f"Deleting from {topic.name} because other topic is {ot.name},"
+                                  f"1st topic is smaller than the 2nd, "
                                   f"common_words: {cw}"
                                   f"New name is: {topic.new_name}")
+
+                        # if len(topic.name) >= len(ot.name):
+                        #     fios, num_fios = topic.fio(topic.name)
+                        #
+                        #     topic.new_name = {w for w in topic.new_name if w in fios or
+                        #                       not any(c for r in cw for c in r.split() if r in w)}
+                        #     if debug:
+                        #         print(f"Deleting from {topic.name} because other topic is {ot.name},"
+                        #               f"1st topic is bigger than the 2nd, "
+                        #               f"common_words: {cw}"
+                        #               f"New name is: {topic.new_name},"
+                        #               f"fios in 1st topic: {fios}")
+                        # else:
+                        #     topic.new_name = {w for w in topic.new_name if
+                        #                       not any(c for r in cw for c in r.split() if r in w)}
+                        #     if debug:
+                        #         print(f"Deleting from {topic.name} because other topic is {ot.name},"
+                        #               f"1st topic is smaller than the 2nd, "
+                        #               f"common_words: {cw}"
+                        #               f"New name is: {topic.new_name}")
+
             topic.new_name = {w for w in topic.new_name if w.lower() not in STOP_WORDS_UNIQUE and not w.isdigit()}
+
+        self.topics = [t for t in self.topics if
+                       t.new_name and not (len(t.new_name) == 1 and t.new_name.pop()[0].islower())]
 
         # to_remove = set()
         # for topic in self.topics:
@@ -391,121 +425,6 @@ class Corpus:
         self.topics = [t for t in self.topics if t not in to_remove]
 
 
-def iscountry(str):
-    if str in COUNTRIES:
-        return True
-    return False
-
-
-def count_countries(name):
-    countries = {w for w in name if iscountry(w)}
-    return len(countries)
-
-
-def count_not_countries(name):
-    not_countries = {w for w in name if not iscountry(w)}
-    return len(not_countries)
-
-
-def intersect_with_two(set1, set2):
-    new1 = set1.copy()
-    new2 = set2.copy()
-    for s1 in set1:
-        for s2 in set2:
-            words_1 = set(s1.split())
-            words_2 = set(s2.split())
-            if len(words_1) >= 2:
-                if len(words_2) >= 2:
-                    cw = words_1.intersection(words_2)
-                    if len(cw) >= 2:
-                        if len(words_1) > len(words_2):
-                            if s1 in new1:
-                                new1.remove(s1)
-                                # print("removed: ", s1)
-                                new1.add(s2)
-                                # print("added: ", s2)
-                        else:
-                            if s2 in new2:
-                                new2.remove(s2)
-                                # print("removed: ", s2)
-                                new2.add(s1)
-                                # print("added: ", s1)
-    return new1.intersection(new2)
-
-def intersect_with_2_and_1(set1, set2):
-    new1 = set1.copy()
-    new2 = set2.copy()
-    for s1 in set1:
-        for s2 in set2:
-            words_1 = set(s1.split())
-            words_2 = set(s2.split())
-            if len(words_1) >= 2:
-                if len(words_2) >= 2:
-                    cw = words_1.intersection(words_2)
-                    if len(cw) >= 2:
-                        if len(words_1) > len(words_2):
-                            if s1 in new1:
-                                try:
-                                    new1.remove(s1)
-                                    new1.add(s2)
-                                except KeyError:
-                                    pass
-                        else:
-                            if s2 in new2:
-                                try:
-                                    new2.remove(s2)
-                                    new2.add(s1)
-                                except KeyError:
-                                    pass
-                if len(words_2) == 1:
-                    cw = words_1.intersection(words_2)
-                    if cw:
-                        try:
-                            new1.remove(s1)
-                            new1.add(s2)
-                        except KeyError:
-                            pass
-            if len(words_1) == 1:
-                if len(words_2) >= 2:
-                    cw = words_1.intersection(words_2)
-                    if cw:
-                        try:
-                            new2.remove(s2)
-                            new2.add(s1)
-                        except KeyError:
-                            pass
-    return new1.intersection(new2)
-
-
-def intersect(set1, set2):
-    new1 = set1.copy()
-    new2 = set2.copy()
-    for s1 in set1:
-        for s2 in set2:
-            if s2.lower() == s1.lower()+'s' or s2.lower() == s1.lower()+'es' or s2.lower() == s1.lower()+'ies':
-                if s2 in new2:
-                    new2.remove(s2)
-                new2.add(s1)
-            elif s1.lower() == s2.lower()+'s' or s1.lower() == s2.lower()+'es' or s1.lower() == s2.lower()+'ies':
-                if s1 in new1:
-                    new1.remove(s1)
-                new1.add(s2)
-            elif s1.lower() == s2:
-                if s1 in new1:
-                    new1.remove(s1)
-                new1.add(s2)
-            elif s1 == s2.lower():
-                if s2 in new2:
-                    new2.remove(s2)
-                new2.add(s1)
-    return new1.intersection(new2)
-
-
-def add_column(table, column_name, length, cursor):
-    try:
-        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column_name} TEXT({length})")
-    except sqlite3.OperationalError:
-        pass
 # if __name__ == '__main__':
 #
 #     db = input("DB name (default - day): ")

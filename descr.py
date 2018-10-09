@@ -294,21 +294,7 @@ class CorpusD:
         self.topics = [t for t in self.topics if t not in to_remove]
 
 
-def count_countries(name):
-    countries = {w for w in name if w.upper() in COUNTRIES}
-    return len(countries)
 
-
-def iscountry(str):
-    if str in COUNTRIES:
-        return True
-    return False
-
-
-def count_not_countries(name):
-    countries = {w for w in name if w.upper() in COUNTRIES}
-    not_countries = name - countries
-    return len(not_countries)
 
 
 def intersect(set1,set2):

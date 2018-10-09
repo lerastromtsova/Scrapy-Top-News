@@ -1,7 +1,6 @@
 import csv
 import openpyxl
 from math import ceil
-from document import COUNTRIES
 
 
 def check_xl(nodes, all_links):
@@ -226,9 +225,31 @@ def write_topics(fname, topics):
     sheet.cell(row=1, column=47).value = "Comment"  # should be empty
     sheet.cell(row=1, column=48).value = "Name"
     sheet.cell(row=1, column=49).value = "Topic"
-    sheet.cell(row=1, column=50).value = "# of added news"
-    sheet.cell(row=1, column=51).value = "News"
-    sheet.cell(row=1, column=52).value = "Method"
+
+    sheet.cell(row=1, column=50).value = "FIO coef 1"
+    sheet.cell(row=1, column=51).value = "Big coef 1"
+    sheet.cell(row=1, column=52).value = "Small coef 1"
+    sheet.cell(row=1, column=53).value = "Countries coef 1"
+
+    sheet.cell(row=1, column=54).value = "FIO coef Y"
+    sheet.cell(row=1, column=55).value = "Big coef Y"
+    sheet.cell(row=1, column=56).value = "Small coef Y"
+    sheet.cell(row=1, column=57).value = "Countries coef Y"
+
+    sheet.cell(row=1, column=58).value = "FIO coef 2"
+    sheet.cell(row=1, column=59).value = "Big coef 2"
+    sheet.cell(row=1, column=60).value = "Small coef 2"
+    sheet.cell(row=1, column=61).value = "Countries coef 2"
+
+    sheet.cell(row=1, column=62).value = "ID coef"
+
+    sheet.cell(row=1, column=63).value = "Sum 1"
+    sheet.cell(row=1, column=64).value = "Sum 2"
+    sheet.cell(row=1, column=65).value = "F"
+
+    sheet.cell(row=1, column=66).value = "# of added news"
+    sheet.cell(row=1, column=67).value = "News"
+    sheet.cell(row=1, column=68).value = "Method"
 
     # counts = [0]*7
 
@@ -344,19 +365,23 @@ def write_topics(fname, topics):
         sheet.cell(row=i + 3, column=47).value = ''
         sheet.cell(row=i + 3, column=48).value = ''
         sheet.cell(row=i + 3, column=49).value = name
-        sheet.cell(row=i + 3, column=50).value = len(topic.news) - 2
-        # sheet.cell(row=i + 3, column=51).value = ', '.join(topic.method)
-        # sheet.cell(row=i + 3, column=50).value = ', '.join(topic.all_numbers)
 
-        col = 51
+        # for k in range(55, 66):
+
+        for key, val in topic.coefficient_sums.items():
+            sheet.cell(row=i + 3, column=55+key).value = val
+
+        sheet.cell(row=i + 3, column=66).value = len(topic.news) - 2
+
+        col = 67
 
         for j in range(2, len(topic.news)):
 
             doc = topic.news[j]
 
             sheet.cell(row=i + 3, column=col).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
-                                               f"{doc.translated['lead']} | " \
-                                               f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
+                                                      f"{doc.translated['lead']} | " \
+                                                      f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
             try:
                 sheet.cell(row=i + 3, column=col + 1).value = ", ".join(topic.methods_for_news[doc.id])
             except KeyError:

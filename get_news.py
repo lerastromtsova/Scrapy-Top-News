@@ -5,26 +5,65 @@ import sqlite3
 from datetime import date
 import json
 import operator
+from document import Document
+from corpus import add_column
 
 
-class Corpus(object):
-    def __init__(self, time=date.today()):
-        self.time = time
+# class Corpus(object):
+#     def __init__(self, time=date.today()):
+#         self.time = time
+#
+#     def __iter__(self):
+#         data = json.load(open('scrapnews/spiders/items.json',encoding="utf8"))
+#         print(data)
+#         for item in data:
+#             yield item
 
-    def __iter__(self):
-        data = json.load(open('scrapnews/spiders/items.json',encoding="utf8"))
-        print(data)
-        for item in data:
-            yield item
+class Corpus:
 
+    def __init__(self, db, table):
 
-# def tokenize(title):
-#     tokens = nltk.word_tokenize(title)  # список слов в новости
-#     for i in range(len(tokens)):
-#         tokens[i] = tokens[i].lower()
-#         if wn.morphy(tokens[i]) is not None:
-#             tokens[i] = wn.morphy(tokens[i])  # используем morphy, чтобы убрать множ число и формы глаголов, а также понижаем регистр
-#     return tokens
+        self.db = db
+        self.table = table
+        self.conn = sqlite3.connect(f"db/{db}.db")
+        self.conn.row_factory = sqlite3.Row
+        self.c = self.conn.cursor()
+        self.c.execute("SELECT * FROM " + table)
+        self.topics = []
+        self.data = []
+        self.trends = []
+        self.similarities = []
+        self.frequencies = {}
+
+        raw_data = self.c.fetchall()
+
+        try:
+            self.create_documents(raw_data)
+
+        except IndexError:
+            self.create_columns_and_documents(raw_data)
+
+    def create_documents(self, data):
+        for i, row in enumerate(data):
+            doc = Document(i, row, self.conn, self.table)
+            self.data.append(doc)
+
+    def create_columns_and_documents(self, raw_data):
+        add_column(self.table, 'translated', 10000, self.c)
+        add_column(self.table, 'translated1', 10000, self.c)
+        add_column(self.table, 'translated_lead', 1000, self.c)
+        add_column(self.table, 'translated1_lead', 1000, self.c)
+        add_column(self.table, 'translated_title', 1000, self.c)
+        add_column(self.table, 'translated1_title', 1000, self.c)
+        add_column(self.table, 'nes_content', 1000, self.c)
+        add_column(self.table, 'nes_lead', 1000, self.c)
+        add_column(self.table, 'nes_title', 1000, self.c)
+        add_column(self.table, 'tokens_content', 10000, self.c)
+        add_column(self.table, 'tokens_lead', 1000, self.c)
+        add_column(self.table, 'tokens_title', 1000, self.c)
+        self.conn.commit()
+        self.create_documents(raw_data)
+
 
 
 com_words = list()
