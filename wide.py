@@ -413,25 +413,22 @@ def filter_topics(topics):
 
         topic.prod = final_result
 
-        keys = list(range(0, 16))
-        values = [fio_coef0,
-                  big_coef0,
-                  small_coef0,
-                  countries_coef0,
-                  fio_coefY,
-                  big_coefY,
-                  small_coefY,
-                  countries_coefY,
-                  fio_coef2,
-                  big_coef2,
-                  small_coef2,
-                  countries_coef2,
-                  ids_coef,
-                  summ_1,
-                  summ_2,
-                  final_result]
-
-        topic.coefficient_sums = dict(zip(keys, values))
+        topic.coefficient_sums = {"fio_coef0": fio_coef0,
+                                  "big_coef0": big_coef0,
+                                  "small_coef0": small_coef0,
+                                  "countries_coef0": countries_coef0,
+                                  "fio_coefY": fio_coefY,
+                                  "big_coefY": big_coefY,
+                                  "small_coefY": small_coefY,
+                                  "countries_coefY": countries_coefY,
+                                  "fio_coef2": fio_coef2,
+                                  "big_coef2": big_coef2,
+                                  "small_coef2": small_coef2,
+                                  "countries_coef2": countries_coef2,
+                                  "ids_coef": ids_coef,
+                                  "summ_1": summ_1,
+                                  "summ_2": summ_2,
+                                  "final_result": final_result}
 
         if final_result > THRESHOLD:
             positive.add(topic)
@@ -560,6 +557,17 @@ def get_nodes(topics):
     return nodes, edges
 
 
+def delete_without_unique(topics):
+    to_remove = set()
+    for t in topics:
+        unique_copy = t.new_name.copy()
+        if not unique_copy or len(unique_copy) == 1 and unique_copy.pop()[0].islower():
+            to_remove.add(t)
+
+    topics = [t for t in topics if t not in to_remove]
+    return topics
+
+
 if __name__ == '__main__':
 
     db = input("DB name (default - day): ")
@@ -572,6 +580,7 @@ if __name__ == '__main__':
 
     time = datetime.now()
 
+    """ Find initial topics """
     corpus = Corpus(db, table)
     corpus.find_topics()
     for topic in corpus.topics:
@@ -580,69 +589,58 @@ if __name__ == '__main__':
     write_topics(f"documents/{db}-0.xlsx", corpus.topics)
     print(0, len(corpus.topics))
 
+    """ Unite words in name + surname combinations """
     corpus.topics = unite_fio(corpus.topics)
     write_topics(f"documents/{db}-1.xlsx", corpus.topics)
     print(1, len(corpus.topics))
 
+    """ Leave only those that have more than 1 country and 2 not-country words in name """
     corpus.topics = check_topics(corpus.topics)
     write_topics(f"documents/{db}-2.xlsx", corpus.topics)
-    # initial_topics = corpus.topics.copy()
     print(2, len(corpus.topics))
 
-    # cities and states
-
+    """ Check uniqueness of each topic against others """
+    """ And delete those without unique words or that have one small unique word"""
     corpus.check_unique()
+    corpus.topics = delete_without_unique(corpus.topics)
     write_topics(f"documents/{db}-3.xlsx", corpus.topics)
     print(3, len(corpus.topics))
 
+    """ Find sums according to specified coefficients for each topic and filter them using threshold """
     corpus.topics, neg = filter_topics(corpus.topics)
-
     write_topics(f"documents/{db}-5-прошли.xlsx", corpus.topics)
-
     write_topics(f"documents/{db}-5-не прошли.xlsx", neg)
     print(5, len(corpus.topics))
 
-    corpus.topics = [t for t in corpus.topics if
-                     t.new_name and not (len(t.new_name) == 1 and t.new_name.pop()[0].islower())]
-
-    united_topics = set()
-
+    """ Add news to topics """
+    corpus.topics = delete_without_unique(corpus.topics)
     corpus.topics = add_news(corpus.topics, corpus.data)
     corpus.topics = delete_duplicates(corpus.topics)
-
     write_topics(f"documents/{db}-6.xlsx", corpus. topics)
-
     print(6, len(corpus.topics))
 
-    corpus.topics = [t for t in corpus.topics if
-                     t.new_name and not (len(t.new_name) == 1 and t.new_name.pop()[0].islower())]
-
+    """ Unite topics """
+    corpus.topics = delete_without_unique(corpus.topics)
     corpus.topics = sorted(corpus.topics, key=lambda x: -len(x.name))
-
     corpus.topics = unite_topics(corpus.topics)
-
     corpus.topics = [t for t in corpus.topics if t]
-
     corpus.topics = delete_duplicates(corpus.topics)
-
     corpus.check_unique()
-
-    # удалять темы без уникальных или с 1 уникальным строчным
-
+    corpus.topics = delete_without_unique(corpus.topics)
     write_topics_with_subtopics(f"documents/{db}-8.xlsx", corpus.topics)
     print(8, len(corpus.topics))
 
+    """ Delete duplicates in topics """
     corpus.topics = delete_duplicates(corpus.topics)
     write_topics_with_subtopics(f"documents/{db}-9.xlsx", corpus.topics)
-
     print(9, len(corpus.topics))
 
+    """ If a topic is small, it is 'eaten' by the bigger one """
     corpus.topics = delete_subtopics(corpus.topics)
     write_topics_with_subtopics(f"documents/{db}-10.xlsx", corpus.topics)
     print(10, len(corpus.topics))
     print(datetime.now() - time)
 
     nodes, edges = get_nodes(corpus.topics)
-
     draw_graph_with_topics(nodes, edges, db)
 

@@ -366,10 +366,23 @@ def write_topics(fname, topics):
         sheet.cell(row=i + 3, column=48).value = ''
         sheet.cell(row=i + 3, column=49).value = name
 
-        # for k in range(55, 66):
-
-        for key, val in topic.coefficient_sums.items():
-            sheet.cell(row=i + 3, column=55+key).value = val
+        if topic.coefficient_sums:
+            sheet.cell(row=1, column=50).value = topic.coefficient_sums["fio_coef0"]
+            sheet.cell(row=1, column=51).value = topic.coefficient_sums["big_coef0"]
+            sheet.cell(row=1, column=52).value = topic.coefficient_sums["small_coef0"]
+            sheet.cell(row=1, column=53).value = topic.coefficient_sums["countries_coef0"]
+            sheet.cell(row=1, column=54).value = topic.coefficient_sums["fio_coefY"]
+            sheet.cell(row=1, column=55).value = topic.coefficient_sums["big_coefY"]
+            sheet.cell(row=1, column=56).value = topic.coefficient_sums["small_coefY"]
+            sheet.cell(row=1, column=57).value = topic.coefficient_sums["countries_coefY"]
+            sheet.cell(row=1, column=58).value = topic.coefficient_sums["fio_coef2"]
+            sheet.cell(row=1, column=59).value = topic.coefficient_sums["big_coef2"]
+            sheet.cell(row=1, column=60).value = topic.coefficient_sums["small_coef2"]
+            sheet.cell(row=1, column=61).value = topic.coefficient_sums["countries_coef2"]
+            sheet.cell(row=1, column=62).value = topic.coefficient_sums["ids_coef"]
+            sheet.cell(row=1, column=63).value = topic.coefficient_sums["summ_1"]
+            sheet.cell(row=1, column=64).value = topic.coefficient_sums["summ_2"]
+            sheet.cell(row=1, column=65).value = topic.coefficient_sums["final_result"]
 
         sheet.cell(row=i + 3, column=66).value = len(topic.news) - 2
 

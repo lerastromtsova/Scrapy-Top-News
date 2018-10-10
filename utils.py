@@ -56,6 +56,22 @@ def count_not_countries(name):
     return len(not_countries)
 
 
+# FIO functions
+
+def isfio(strr):
+    if strr[0].isupper() and ' ' in strr and not iscountry(strr):
+        return True
+    conn = sqlite3.connect("db/fio.db")
+    c = conn.cursor()
+    c.execute("SELECT * FROM fio")
+    res = c.fetchone()
+    while res:
+        if strr in res:
+            return True
+        res = c.fetchone()
+    return False
+
+
 # INTERSECTION functions
 
 def intersect_with_two(set1, set2):

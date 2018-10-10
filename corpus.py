@@ -1,5 +1,5 @@
 import sqlite3
-from utils import count_countries, count_not_countries, iscountry
+from utils import count_countries, count_not_countries, iscountry, isfio
 from utils import intersect, intersect_with_2_and_1, add_column
 from document import Document
 import operator
@@ -72,7 +72,8 @@ class Topic:
         return all_wo_countries_and_small, len(all_wo_countries_and_small)
 
     def fio(self, text):
-        fio = [w for w in text if ' ' in w and not iscountry(w)]
+
+        fio = [w for w in text if isfio(w)]
         return fio, len(fio)
 
     def big(self, text):
@@ -300,8 +301,8 @@ class Corpus:
         self.topics = list(set(self.topics))
 
     def check_unique(self):
-        ch = {"Skripal"}
-        ch1 = {"Sergei Skripal"}
+        ch = {"helicopter"}
+        ch1 = {"Deir ez Zor"}
         for topic in self.topics:
             other_topics = [t for t in self.topics if t != topic]
 
@@ -315,7 +316,8 @@ class Corpus:
                     cw = intersect_with_2_and_1(topic.name, ot.name)
                     percent2 = len(cw) / len(ot.name)
 
-                    # if (ch.issubset(topic.name) or ch1.issubset(topic.name)) and (ch.issubset(cw) or ch1.issubset(cw)):
+                    # if (ch.issubset(topic.name) or ch1.issubset(topic.name)) and (ch.issubset(cw) or ch1.issubset(cw))  \
+                    #     or (ch.issubset(ot.name) or ch1.issubset(ot.name)) and (ch.issubset(cw) or ch1.issubset(cw)):
                     #     debug = True
 
                     if count_countries(cw) >= 1 and count_not_countries(cw) >= 3 and len(ot.name) <= len(topic.name):
@@ -364,11 +366,11 @@ class Corpus:
                         #               f"1st topic is smaller than the 2nd, "
                         #               f"common_words: {cw}"
                         #               f"New name is: {topic.new_name}")
-
+                    if debug:
+                        print(topic.new_name)
             topic.new_name = {w for w in topic.new_name if w.lower() not in STOP_WORDS_UNIQUE and not w.isdigit()}
 
-        self.topics = [t for t in self.topics if
-                       t.new_name and not (len(t.new_name) == 1 and t.new_name.pop()[0].islower())]
+        ## delete without unique
 
         # to_remove = set()
         # for topic in self.topics:
