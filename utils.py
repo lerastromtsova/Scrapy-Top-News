@@ -66,10 +66,46 @@ def isfio(strr):
     c.execute("SELECT * FROM fio")
     res = c.fetchone()
     while res:
-        if strr in res:
+        name = res[0]
+        surname = res[1]
+        middle_name = res[2]
+        country = res[3]
+        if strr == surname:
             return True
+        if name and surname:
+            if strr == name + " " + surname:
+                return True
         res = c.fetchone()
     return False
+
+def replace_presidents(text):
+
+    conn = sqlite3.connect("db/fio.db")
+    c = conn.cursor()
+    c.execute("SELECT * FROM fio")
+    res = c.fetchone()
+
+    to_add = set()
+
+    while res:
+
+            name = res[0]
+            surname = res[1]
+            middle_name = res[2]
+            country = res[3]
+            for word in text:
+                if word == surname:
+
+                    to_add.add(country)
+                if name and surname:
+                    if word == name + " " + surname or name + " " + surname in word:
+
+                        to_add.add(country)
+            res = c.fetchone()
+
+    text = text | to_add
+
+    return text
 
 
 # INTERSECTION functions
@@ -167,6 +203,7 @@ def intersect(set1, set2):
                 new2.add(s1)
     return new1.intersection(new2)
 
+
 def intersection_with_substrings(set1, set2):
     result_set = set()
     for item1 in set1:
@@ -205,6 +242,7 @@ def unite_news_text_and_topic_name(news_text, topic_name):
 class ContinueI(Exception):
     pass
 
+
 def get_other(number):
     if number == 1:
         return 0
@@ -216,10 +254,12 @@ def exists(object):
         return 1
     return 0
 
+
 def more_than_one(object):
     if len(object) > 1:
         return 1
     return 0
+
 
 # DB utils
 def add_column(table, column_name, length, cursor):
@@ -227,3 +267,8 @@ def add_column(table, column_name, length, cursor):
         cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column_name} TEXT({length})")
     except sqlite3.OperationalError:
         pass
+
+
+def delete_redundant(name):
+    name = {w for w in name if not any(word for word in name-{w} if w.lower() in word.lower().split())}
+    return name

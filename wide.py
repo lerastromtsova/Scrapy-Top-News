@@ -4,7 +4,7 @@ from xl_stats import write_topics, write_topics_with_subtopics
 from datetime import datetime
 from utils import iscountry, count_countries, count_not_countries
 from utils import intersection_with_substrings, sublist, unite_news_text_and_topic_name
-from utils import get_other, ContinueI, exists, more_than_one
+from utils import get_other, ContinueI, exists, more_than_one, delete_redundant, replace_presidents
 
 from draw_graph import draw_graph_with_topics
 from text_processing.preprocess import STOP_WORDS, unite_countries_in, unite_countries_in_topic_names
@@ -559,12 +559,18 @@ def get_nodes(topics):
 
 def delete_without_unique(topics):
     to_remove = set()
+
     for t in topics:
         unique_copy = t.new_name.copy()
-        if not unique_copy or len(unique_copy) == 1 and unique_copy.pop()[0].islower():
+        unique_in_name = unique_copy.intersection(t.name)
+        if not unique_copy or (len(unique_copy) == 1 and unique_copy.pop()[0].islower()) or (len(t.name) == 3 and len(unique_in_name) < 2):
             to_remove.add(t)
+        else:
+            # Here we delete words if they are in some word combination in topic name
+            t.name = delete_redundant(t.name)
 
     topics = [t for t in topics if t not in to_remove]
+
     return topics
 
 
@@ -601,6 +607,8 @@ if __name__ == '__main__':
 
     """ Check uniqueness of each topic against others """
     """ And delete those without unique words or that have one small unique word"""
+    for t in corpus.topics:
+        t.name = replace_presidents(t.name)
     corpus.check_unique()
     corpus.topics = delete_without_unique(corpus.topics)
     write_topics(f"documents/{db}-3.xlsx", corpus.topics)

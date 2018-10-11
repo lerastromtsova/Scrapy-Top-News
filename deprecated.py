@@ -859,9 +859,7 @@ def delete_without_lower(topics):
 
     return new_topics
 
-def clean_topic_name(name):
-    name = {w for w in name if not any(word for word in name-{w} if w.lower() in word.lower().split())}
-    return name
+
 
 
 
