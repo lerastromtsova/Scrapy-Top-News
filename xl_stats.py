@@ -396,7 +396,7 @@ def write_topics(fname, topics):
                                                       f"{doc.translated['lead']} | " \
                                                       f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
             try:
-                sheet.cell(row=i + 3, column=col + 1).value = ", ".join(topic.methods_for_news[doc.id])
+                sheet.cell(row=i + 3, column=col + 1).value = "| ".join(topic.methods_for_news[doc.id])
             except KeyError:
                 sheet.cell(row=i + 3, column=col + 1).value = ""
             col += 2
