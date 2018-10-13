@@ -294,7 +294,9 @@ def unite_fio(topics):
         strs_to_check[0] = [w for w in strs_to_check[0] if w not in to_remove[0]]
         strs_to_check[1] = [w for w in strs_to_check[1] if w not in to_remove[1]]
 
-        fios = unite_fio_in_two_strings(strs_to_check, debug)
+        add_fios = unite_fio_in_two_strings(strs_to_check, debug)
+        fios[0].update(add_fios[0])
+        fios[1].update(add_fios[1])
 
         if debug:
             print("FIO1", fios[0])
