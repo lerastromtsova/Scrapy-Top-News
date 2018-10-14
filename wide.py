@@ -488,6 +488,36 @@ def add_news(topics, data):
         topic.news = delete_dupl_from_news(topic.news)
     return topics
 
+# 7
+
+def unite_topics_by_news(topics):
+
+    to_remove = set()
+    to_add = set()
+
+    for topic in topics:
+        other_topics = [t for t in topics if t != topic]
+        for other_topic in other_topics:
+            common_news = [n for n in topic.news if n in other_topic.news]
+            if len(topic.news)-len(common_news)<=1 or len(other_topic.news)-len(common_news)<=1:
+                    news = topic.news.copy()
+                    news.extend(other_topic.news)
+                    name = topic.name.union(other_topic.name)
+
+                    new_topic = Topic(name, news)
+                    new_topic.news = delete_dupl_from_news(new_topic.news)
+                    f, _ = filter_topics([new_topic])
+                    if f:
+                        to_add.add(new_topic)
+                        to_remove.add(topic)
+                        to_remove.add(other_topic)
+
+    topics = [t for t in topics if t not in to_remove]
+    topics.extend(to_add)
+    topics = delete_duplicates(topics)
+
+    return topics
+
 
 # 8
 def unite_topics(topics):
@@ -652,6 +682,16 @@ if __name__ == '__main__':
     corpus.topics = delete_duplicates(corpus.topics)
     write_topics(f"documents/{db}-6.xlsx", corpus. topics)
     print(6, len(corpus.topics))
+
+    """ Unite topics by news """
+    topics_copy = {}
+
+    while topics_copy != corpus.topics:
+        topics_copy = corpus.topics
+        corpus.topics = unite_topics_by_news(corpus.topics)
+        print("iterating>>>", len(corpus.topics))
+    write_topics(f"documents/{db}-7.xlsx", corpus.topics)
+    print(7, len(corpus.topics))
 
     """ Unite topics """
     corpus.topics = delete_without_unique(corpus.topics)
