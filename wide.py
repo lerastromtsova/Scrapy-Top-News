@@ -13,9 +13,9 @@ from text_processing.preprocess import STOP_WORDS, unite_countries_in, unite_cou
 COEFFICIENTS_1 = {"KA0": 0.35,
                   "KB0": 0.25,
                   "KC0": 0.16,
-                  "KD0": 0.075,
+                  "KD0": 0.08,
                   "Kid": 1.5,
-                  "KAY": 0.9,
+                  "KAY": 1.25,
                   "KBY": 0.38,
                   "KCY": 0.33,
                   "KDY": 0.27}
@@ -23,7 +23,7 @@ COEFFICIENTS_1 = {"KA0": 0.35,
 COEFFICIENTS_2 = {"a": 0.34,
                   "b": 0.34,
                   "c": 0.34,
-                  "d": 0.34}
+                  "d": 0.1}
 
 THRESHOLD = 0.75
 
@@ -348,11 +348,12 @@ def check_topics(topics):
 
 
 # 5
-def filter_topics(topics):
+def filter_topics(topics, debug=False):
 
     positive = set()
 
     for topic in topics:
+
 
         all_words, num_all_words = topic.all_words(topic.name)
         all_wo_countries, num_all_wo_countries = topic.all_wo_countries(all_words)
@@ -429,6 +430,16 @@ def filter_topics(topics):
         if final_result > THRESHOLD:
             positive.add(topic)
 
+        if debug:
+            print(all_words)
+            print(fio)
+            print(big)
+            print(small)
+            print(countries)
+            print(ids)
+            print(unique_words)
+            print(topic.coefficient_sums)
+
     negative = {t for t in topics if t not in positive}
 
     return positive, negative
@@ -438,6 +449,7 @@ def filter_topics(topics):
 def add_news(topics, data):
     for topic in topics:
         for new in data:
+            d = False
             if new not in topic.news:
                 to_check = {0: list(topic.name),
                             1: new.uppercase_sequences}
@@ -464,8 +476,10 @@ def add_news(topics, data):
                             new.all_text = new.description
                             new.all_text.update(new.tokens['content'])
                             new_topic = Topic(new_name, news_list)
-                            new_topic.new_name = topic.name
-                            t, _ = filter_topics([new_topic])
+                            new_topic.new_name = new_unique
+                            if new.id == 152:
+                                d = True
+                            t, _ = filter_topics([new_topic],d)
                             if t:
 
                                 topic.methods_for_news[new.id] = [str(t.pop().coefficient_sums["final_result"]), ', '.join(new_name), ', '.join(new_unique)]
@@ -627,7 +641,7 @@ if __name__ == '__main__':
     print(3, len(corpus.topics))
 
     """ Find sums according to specified coefficients for each topic and filter them using threshold """
-    corpus.topics, neg = filter_topics(corpus.topics)
+    corpus.topics, neg = filter_topics(corpus.topics, False)
     write_topics(f"documents/{db}-5-прошли.xlsx", corpus.topics)
     write_topics(f"documents/{db}-5-не прошли.xlsx", neg)
     print(5, len(corpus.topics))
