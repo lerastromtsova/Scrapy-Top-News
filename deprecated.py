@@ -1186,4 +1186,61 @@ def filter_topics_copy(topics):
     return positive, negative
 
 
+def unite_topics_by_news(topics):
 
+    to_remove = set()
+    to_add = set()
+
+    for topic in topics:
+        other_topics = [t for t in topics if t != topic]
+        for other_topic in other_topics:
+            common_news = [n for n in topic.news if n in other_topic.news]
+            if len(topic.news)-len(common_news)<=1 or len(other_topic.news)-len(common_news)<=1:
+                    news = topic.news.copy()
+                    news.extend(other_topic.news)
+                    name = topic.name.union(other_topic.name)
+
+                    new_topic = Topic(name, news)
+                    new_topic.news = delete_dupl_from_news(new_topic.news)
+                    f, _ = filter_topics([new_topic])
+                    if f:
+                        to_add.add(new_topic)
+                        to_remove.add(topic)
+                        to_remove.add(other_topic)
+
+    topics = [t for t in topics if t not in to_remove]
+    topics.extend(to_add)
+    topics = delete_duplicates(topics)
+
+    return topics
+
+def unite_topics(topics):
+    for i, topic in enumerate(topics):
+        if topic:
+            topic.subtopics = set()
+            others = [t for t in corpus.topics if t and set(t.news) != set(topic.news)]
+            similar = {}
+            topic_copy = Topic(topic.name.copy(), topic.news.copy())
+            topic_copy.new_name = topic.new_name.copy()
+
+            for ot in others:
+                if ot:
+                    new_name = unite_news_text_and_topic_name(topic.name, ot.name)
+                    new_unique = unite_news_text_and_topic_name(topic.new_name, ot.name)
+                    news_list = list(set(topic.news).union(set(ot.news)))
+
+                    new_topic = Topic(new_name, news_list)
+                    new_topic.new_name = new_unique
+                    t, _ = filter_topics([new_topic])
+                    if t:
+                        similar[ot] = t.pop().method
+
+            if similar:
+                similar[topic_copy] = ''
+                for s, m in similar.items():
+                    topic.subtopics.add(s)
+                    s.method = m
+                    topic.news.extend(s.news)
+
+                topic.news = delete_dupl_from_news(topic.news)
+    return topics
