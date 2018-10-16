@@ -450,6 +450,9 @@ def add_news(topics, data):
     for topic in topics:
         for new in data:
             d = False
+            new.all_text = new.description
+            new.all_text.update(new.tokens['content'])
+
             if new not in topic.news:
                 to_check = {0: list(topic.name),
                             1: new.uppercase_sequences}
@@ -473,8 +476,10 @@ def add_news(topics, data):
                     if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
                             news_list = topic.news.copy()
                             news_list.append(new)
-                            new.all_text = new.description
-                            new.all_text.update(new.tokens['content'])
+
+                            # new.all_text = new.description
+                            # new.all_text.update(new.tokens['content'])
+
                             new_topic = Topic(new_name, news_list)
                             new_topic.new_name = new_unique
                             if new.id == 152:
@@ -630,6 +635,28 @@ def delete_without_unique(topics):
     return topics
 
 
+def add_news_2(topics, data):
+    for topic in topics:
+        for new in data:
+            if new not in topic.news:
+                name = new.all_text.intersection(topic.name)
+                unique = name.intersection(topic.new_name)
+                news = topic.news.copy()
+                news.append(new)
+                t = Topic(name, news)
+                t.new_name = unique
+                f, _ = filter_topics([t])
+                if f:
+                    topic.news.append(new)
+                    new_t = f.pop()
+                    topic.methods_for_news[new.id] = [str(new_t.coefficient_sums["final_result"]),
+                                                      ', '.join(name), ', '.join(new_t.new_name)]
+                    topic.news.append(new)
+        topic.news = delete_dupl_from_news(topic.news)
+
+    return topics
+
+
 if __name__ == '__main__':
 
     db = input("DB name (default - day): ")
@@ -650,16 +677,19 @@ if __name__ == '__main__':
     corpus.delete_small()
     write_topics(f"documents/{db}-0.xlsx", corpus.topics)
     print(0, len(corpus.topics))
+    print(datetime.now() - time)
 
     """ Unite words in name + surname combinations """
     corpus.topics = unite_fio(corpus.topics)
     write_topics(f"documents/{db}-1.xlsx", corpus.topics)
     print(1, len(corpus.topics))
+    print(datetime.now() - time)
 
     """ Leave only those that have more than 1 country and 2 not-country words in name """
     corpus.topics = check_topics(corpus.topics)
     write_topics(f"documents/{db}-2.xlsx", corpus.topics)
     print(2, len(corpus.topics))
+    print(datetime.now() - time)
 
     """ Check uniqueness of each topic against others """
     """ And delete those without unique words or that have one small unique word"""
@@ -675,6 +705,7 @@ if __name__ == '__main__':
     write_topics(f"documents/{db}-5-прошли.xlsx", corpus.topics)
     write_topics(f"documents/{db}-5-не прошли.xlsx", neg)
     print(5, len(corpus.topics))
+    print(datetime.now() - time)
 
     """ Add news to topics """
     corpus.topics = delete_without_unique(corpus.topics)
@@ -682,6 +713,7 @@ if __name__ == '__main__':
     corpus.topics = delete_duplicates(corpus.topics)
     write_topics(f"documents/{db}-6.xlsx", corpus. topics)
     print(6, len(corpus.topics))
+    print(datetime.now() - time)
 
     """ Unite topics by news """
     topics_copy = {}
@@ -690,8 +722,11 @@ if __name__ == '__main__':
         topics_copy = corpus.topics
         corpus.topics = unite_topics_by_news(corpus.topics)
         print("iterating>>>", len(corpus.topics))
+        print(datetime.now() - time)
+
     write_topics(f"documents/{db}-7.xlsx", corpus.topics)
     print(7, len(corpus.topics))
+    print(datetime.now() - time)
 
     """ Unite topics """
     corpus.topics = delete_without_unique(corpus.topics)
@@ -703,16 +738,23 @@ if __name__ == '__main__':
     corpus.topics = delete_without_unique(corpus.topics)
     write_topics_with_subtopics(f"documents/{db}-8.xlsx", corpus.topics)
     print(8, len(corpus.topics))
+    print(datetime.now() - time)
 
     """ Delete duplicates in topics """
     corpus.topics = delete_duplicates(corpus.topics)
     write_topics_with_subtopics(f"documents/{db}-9.xlsx", corpus.topics)
     print(9, len(corpus.topics))
+    print(datetime.now() - time)
 
     """ If a topic is small, it is 'eaten' by the bigger one """
     corpus.topics = delete_subtopics(corpus.topics)
     write_topics_with_subtopics(f"documents/{db}-10.xlsx", corpus.topics)
     print(10, len(corpus.topics))
+    print(datetime.now() - time)
+
+    corpus.topics = add_news_2(corpus.topics, corpus.data)
+    write_topics(f"documents/{db}-11.xlsx", corpus.topics)
+    print(11, len(corpus.topics))
     print(datetime.now() - time)
 
     nodes, edges = get_nodes(corpus.topics)
