@@ -461,8 +461,10 @@ def write_topics_with_subtopics(fname, topics):
     sheet.cell(row=1, column=48).value = "Name"
     sheet.cell(row=1, column=49).value = "Topic"
 
-    sheet.cell(row=1, column=50).value = "News"
-    sheet.cell(row=1, column=51).value = "Method"
+    sheet.cell(row=1, column=50).value = "# of News"
+
+    sheet.cell(row=1, column=51).value = "News"
+    sheet.cell(row=1, column=52).value = "Method"
 
     # counts = [0]*7
 
@@ -566,11 +568,12 @@ def write_topics_with_subtopics(fname, topics):
         sheet.cell(row=row_num, column=47).value = ''
         sheet.cell(row=row_num, column=48).value = ''
         sheet.cell(row=row_num, column=49).value = ', '.join(topic.name)
+        sheet.cell(row=row_num, column=50).value = len(topic.news)
 
         # sheet.cell(row=i + 3, column=51).value = ', '.join(topic.method)
         # sheet.cell(row=i + 3, column=50).value = ', '.join(topic.all_numbers)
 
-        col = 50
+        col = 51
 
         for j in range(2, len(topic.news)):
 
@@ -688,10 +691,12 @@ def write_topics_with_subtopics(fname, topics):
                 sheet.cell(row=row_num, column=47).value = ''
                 sheet.cell(row=row_num, column=48).value = ''
                 sheet.cell(row=row_num, column=49).value = ', '.join(s.name)
+                sheet.cell(row=row_num, column=50).value = len(s.news)
+
                 # sheet.cell(row=i + 3, column=51).value = ', '.join(s.method)
                 # sheet.cell(row=i + 3, column=50).value = ', '.join(s.all_numbers)
 
-                col = 50
+                col = 51
 
                 for j in range(2, len(s.news)):
 

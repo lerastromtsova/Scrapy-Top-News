@@ -5,6 +5,7 @@ from datetime import datetime
 from utils import iscountry, count_countries, count_not_countries
 from utils import intersection_with_substrings, sublist, unite_news_text_and_topic_name
 from utils import get_other, ContinueI, exists, more_than_one, delete_redundant, replace_presidents
+from utils import get_topic_subtopic_nodes, get_topic_news_nodes
 
 from draw_graph import draw_graph_with_topics
 from text_processing.preprocess import STOP_WORDS, unite_countries_in, unite_countries_in_topic_names
@@ -497,9 +498,9 @@ def add_news(topics, data):
 # 7
 def define_main_topics(topics):
 
-    topic_indicators = {topic: False for topic in topics} # True if topic is main or added to other
+    topic_indicators = {topic: False for topic in topics}  # True if topic is main or added to other
 
-    for i,topic in enumerate(topics):
+    for i, topic in enumerate(topics):
         if not topic_indicators[topic]:
             old_name = {}
             other_topics = [t for t in topics if not topic_indicators[t] and t != topic]
@@ -513,6 +514,15 @@ def extend_topic(topic, other_topics, t_i):
     topic_copy = Topic(topic.name.copy(), topic.news.copy())
     topic_copy.new_name = topic.new_name.copy()
 
+    def extend_first_topic():
+        topic.name = topic.name.union(other_topic.name)
+        topic.new_name = topic.new_name.union(other_topic.new_name)
+        topic.news = new_topic.news
+        topic.subtopics.add(other_topic)
+        topic.subtopics.add(topic_copy)
+        t_i[other_topic] = True
+        t_i[topic] = True
+
     for other_topic in other_topics:
 
         new_name = unite_news_text_and_topic_name(topic.name, other_topic.name)
@@ -522,13 +532,13 @@ def extend_topic(topic, other_topics, t_i):
         new_topic.new_name = new_unique
         t, _ = filter_topics([new_topic])
         if t:
-            topic.name = topic.name.union(other_topic.name)
-            topic.new_name = topic.new_name.union(other_topic.new_name)
-            topic.news = new_topic.news
-            topic.subtopics.add(other_topic)
-            topic.subtopics.add(topic_copy)
-            t_i[other_topic] = True
-            t_i[topic] = True
+            extend_first_topic()
+
+        else:
+            news_difference1 = {n for n in topic.news if n not in other_topic.news}
+            news_difference2 = {n for n in other_topic.news if n not in topic.news}
+            if len(news_difference1) <= 1 or len(news_difference2) <= 1:
+                extend_first_topic()
 
     return topic
 
@@ -545,45 +555,80 @@ def unite_subtopics(topics):
                 for os in other_subtopics:
                     news_difference1 = {n for n in subtopic.news if n not in os.news}
                     news_difference2 = {n for n in os.news if n not in subtopic.news}
-                    if len(news_difference1) <= 1 and len(news_difference2) <= 1:
+                    if len(news_difference1) <= 1 or len(news_difference2) <= 1:
                         subtopic.name.update(os.name)
                         subtopic.new_name.update(os.new_name)
                         subtopic.news.extend(os.news)
                         subtopic_indicators[os] = True
-                        subtopic_indicators[subtopic] = True
+                        # subtopic_indicators[subtopic] = True
 
         topic.subtopics = delete_duplicates(topic.subtopics)
+        topic.subtopics = {s for s in topic.subtopics if not subtopic_indicators[s]}
+        if len(topic.subtopics) == 1:
+            topic.subtopics = set()
 
     return topics
 
 
 # 11
 def add_news_2(topics, data):
+
+    def add_news_to_topic(topic, data):
+        debug = False
+        # if "Vladimir Putin" in topic.name:
+        #     debug = True
+        for new in data:
+            if new not in topic.news:
+                new.all_text.update(new.tokens['content'])
+                name = unite_news_text_and_topic_name(new.all_text, topic.name)
+                unique = unite_news_text_and_topic_name(new.all_text, topic.new_name)
+                news = topic.news.copy()
+                news.append(new)
+                t = Topic(name, news)
+                t.new_name = unique
+                f, _ = filter_topics([t])
+                if debug:
+                    print("Common words", name)
+                    print("Common unique", unique)
+                    print("News ID", new.id)
+                    print("Topic name", topic.name)
+                if f:
+                    topic.news.append(new)
+                    new_t = f.pop()
+                    topic.methods_for_news[new.id] = [str(new_t.coefficient_sums["final_result"]),
+                                                      ', '.join(name), ', '.join(new_t.new_name)]
+                    topic.news.append(new)
+        topic.news = delete_dupl_from_news(topic.news)
+        return topic
+
+    new_topics = set()
     for i, topic in enumerate(topics):
-        topic = add_news_to_topic(topic,data)
-        for j,s in enumerate(topic.subtopics):
-            s = add_news_to_topic(s, data)
+        new_topic = add_news_to_topic(topic, data)
+
+        for j, s in enumerate(topic.subtopics):
+            sub = add_news_to_topic(s, data)
+            new_topic.subtopics.add(sub)
+
+        new_topics.add(new_topic)
+
+    return new_topics
+
+
+# 12
+def add_minor_to_subtopics(topics):
+    to_remove = set()
+    for topic in topics:
+        others = [t for t in topics if t != topic]
+        topic_ids = {n.id for n in topic.news}
+
+        for ot in others:
+            ot_ids = {n.id for n in ot.news}
+            if ot_ids.issubset(topic_ids) and ot_ids != topic_ids:
+                to_remove.add(ot)
+                topic.subtopics.add(ot)
+
+    topics = [t for t in topics if t not in to_remove]
     return topics
-
-
-def add_news_to_topic(topic, data):
-    for new in data:
-        if new not in topic.news:
-            name = new.all_text.intersection(topic.name)
-            unique = name.intersection(topic.new_name)
-            news = topic.news.copy()
-            news.append(new)
-            t = Topic(name, news)
-            t.new_name = unique
-            f, _ = filter_topics([t])
-            if f:
-                topic.news.append(new)
-                new_t = f.pop()
-                topic.methods_for_news[new.id] = [str(new_t.coefficient_sums["final_result"]),
-                                                  ', '.join(name), ', '.join(new_t.new_name)]
-                topic.news.append(new)
-    topic.news = delete_dupl_from_news(topic.news)
-    return topic
 
 
 def delete_duplicates(topics):
@@ -627,26 +672,6 @@ def delete_subtopics(topics):
     return topics
 
 
-def get_nodes(topics):
-    nodes = list()
-    edges = list()
-    number = 0
-
-    for t in topics:
-        node_object = {"name": t.name}
-        nodes.append(node_object)
-        topic_number = number
-        number += 1
-        for n in t.news:
-            node_object = {"title": n.translated['title'],
-                           "url": n.url,
-                           "country": n.country}
-            nodes.append(node_object)
-            edges.append((topic_number, number))
-            number += 1
-    return nodes, edges
-
-
 def delete_without_unique(topics):
     to_remove = set()
 
@@ -675,6 +700,8 @@ if __name__ == '__main__':
         table = "buffer"
 
     time = datetime.now()
+
+    print("started working")
 
     """ Find initial topics """
     corpus = Corpus(db, table)
@@ -724,6 +751,7 @@ if __name__ == '__main__':
 
     """ Unite topics by news """
     topics_copy = {}
+    corpus.topics = sorted(corpus.topics, key=lambda x: -len(x.name))
     corpus.topics = define_main_topics(corpus.topics)
     corpus.topics = delete_duplicates(corpus.topics)
     write_topics_with_subtopics(f"documents/{db}-7.xlsx", corpus.topics)
@@ -754,6 +782,13 @@ if __name__ == '__main__':
     print(11, len(corpus.topics))
     print(datetime.now() - time)
 
-    nodes, edges = get_nodes(corpus.topics)
+    corpus.topics = add_minor_to_subtopics(corpus.topics)
+    write_topics_with_subtopics(f"documents/{db}-12.xlsx", corpus.topics)
+    print(12, len(corpus.topics))
+    print(datetime.now() - time)
+
+    nodes, edges = get_topic_news_nodes(corpus.topics)
     draw_graph_with_topics(nodes, edges, db)
 
+    sub_nodes, sub_edges = get_topic_subtopic_nodes(corpus.topics)
+    draw_graph_with_topics(sub_nodes, sub_edges, db+"1")

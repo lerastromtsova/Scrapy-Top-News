@@ -269,6 +269,61 @@ def add_column(table, column_name, length, cursor):
         pass
 
 
+# Working with topic name
 def delete_redundant(name):
     name = {w for w in name if not any(word for word in name-{w} if w.lower() in word.lower().split())}
     return name
+
+
+# Plotting utils
+def get_topic_news_nodes(topics):
+    nodes = list()
+    edges = list()
+    number = 0
+
+    for t in topics:
+        node_object = {"name": t.name}
+        nodes.append(node_object)
+        topic_number = number
+        number += 1
+        for n in t.news:
+            node_object = {"title": n.translated['title'],
+                           "url": n.url,
+                           "country": n.country}
+            nodes.append(node_object)
+            edges.append((topic_number, number))
+            number += 1
+    return nodes, edges
+
+
+def get_topic_subtopic_nodes(topics):
+    nodes = list()
+    edges = list()
+    number = 0
+    for t in topics:
+        node_object = {"name": t.name}
+        nodes.append(node_object)
+        topic_number = number
+        number += 1
+        for s in t.subtopics:
+            node_object = {"name": t.name}
+            nodes.append(node_object)
+            subtopic_number = number
+            edges.append((topic_number, subtopic_number))
+            number += 1
+            for n in s.news:
+                node_object = {"title": n.translated['title'],
+                               "url": n.url,
+                               "country": n.country}
+                nodes.append(node_object)
+                edges.append((subtopic_number, number))
+                number += 1
+        if not t.subtopics:
+            for n in t.news:
+                node_object = {"title": n.translated['title'],
+                               "url": n.url,
+                               "country": n.country}
+                nodes.append(node_object)
+                edges.append((topic_number, number))
+                number += 1
+    return nodes, edges

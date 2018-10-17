@@ -42,6 +42,24 @@ COLORS = {'Australia': 'dusty rose',
           'Japan': 'sea green'}
 
 
+def plot_figure(fname, edge_trace, node_trace):
+    fig = Figure(layout=Layout(
+        title=fname + " " + datetime.today().strftime('%d/%m/%Y'),
+        titlefont=dict(size=16),
+        showlegend=False,
+        hovermode='closest',
+        margin=dict(b=20, l=5, r=5, t=40),
+        annotations=[dict(
+            showarrow=False,
+            xref="paper", yref="paper",
+            x=0.005, y=-0.002)],
+        xaxis=XAxis(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=YAxis(showgrid=False, zeroline=False, showticklabels=False)),
+        data=Data([edge_trace, node_trace]))
+
+    py.plot(fig, filename=fname)
+
+
 def draw_graph_only_news(nodes, edges, m, fname, type="со связями внутри"):
     G = nx.Graph()
 
@@ -110,25 +128,11 @@ def draw_graph_only_news(nodes, edges, m, fname, type="со связями вн�
         else:
             node_trace['marker']['size'].append(num_conn)
 
-    fig = Figure(layout=Layout(
-        title=fname + " " + datetime.today().strftime('%d/%m/%Y'),
-        titlefont=dict(size=16),
-        showlegend=False,
-        hovermode='closest',
-        margin=dict(b=20, l=5, r=5, t=40),
-        annotations=[dict(
-            showarrow=False,
-            xref="paper", yref="paper",
-            x=0.005, y=-0.002)],
-        xaxis=XAxis(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=YAxis(showgrid=False, zeroline=False, showticklabels=False)),
-        data=Data([edge_trace, node_trace]))
-
-    py.plot(fig, filename=fname + str(m))
-
+        plot_figure(fname, edge_trace, node_trace)
 
 
 def draw_graph_with_topics(nodes, edges, fname):
+
     G = nx.Graph()
 
     G.add_nodes_from(enumerate(nodes))
@@ -190,20 +194,5 @@ def draw_graph_with_topics(nodes, edges, fname):
         else:
             node_trace['marker']['size'].append(num_conn)
 
-    fig = Figure(layout=Layout(
-        title=fname + " " + datetime.today().strftime('%d/%m/%Y'),
-        titlefont=dict(size=16),
-        showlegend=False,
-        hovermode='closest',
-        margin=dict(b=20, l=5, r=5, t=40),
-        annotations=[dict(
-            showarrow=False,
-            xref="paper", yref="paper",
-            x=0.005, y=-0.002)],
-        xaxis=XAxis(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=YAxis(showgrid=False, zeroline=False, showticklabels=False)),
-        data=Data([edge_trace, node_trace]))
-
-    py.plot(fig, filename=fname)
-
+    plot_figure(fname, edge_trace, node_trace)
 
