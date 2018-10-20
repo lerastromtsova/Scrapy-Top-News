@@ -572,6 +572,12 @@ def define_main_topics(topics):
 
     topics = [t for t in topics if t not in to_remove]
 
+    for t in topics:
+        t.news = delete_dupl_from_news(t.news)
+        for s in t.subtopics:
+            s.news = delete_dupl_from_news(s.news)
+
+
     return topics
 
 
