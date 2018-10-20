@@ -584,7 +584,7 @@ def write_topics_with_subtopics(fname, topics):
                                            f"{doc.translated['lead']} | " \
                                            f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
             try:
-                sheet.cell(row=row_num, column=col + 1).value = ", ".join(topic.methods_for_news[doc.id])
+                sheet.cell(row=row_num, column=col + 1).value = "| ".join(topic.methods_for_news[doc.id])
             except KeyError:
                 sheet.cell(row=row_num, column=col + 1).value = ""
             col += 2
@@ -707,7 +707,7 @@ def write_topics_with_subtopics(fname, topics):
                                                    f"{doc.translated['lead']} | " \
                                                    f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
                     try:
-                        sheet.cell(row=row_num, column=col + 1).value = ", ".join(s.methods_for_news[doc.id])
+                        sheet.cell(row=row_num, column=col + 1).value = "| ".join(s.methods_for_news[doc.id])
                     except KeyError:
                         sheet.cell(row=row_num, column=col + 1).value = ""
                     col += 2

@@ -1244,3 +1244,52 @@ def unite_topics(topics):
 
                 topic.news = delete_dupl_from_news(topic.news)
     return topics
+
+
+def define_main_topics_copy(topics):
+
+    topic_indicators = {topic: False for topic in topics}  # True if topic is main or added to other
+
+    for i, topic in enumerate(topics):
+        if not topic_indicators[topic]:
+            old_name = {}
+            other_topics = [t for t in topics if not topic_indicators[t] and t != topic]
+            while old_name != topic.name:
+                old_name = topic.name.copy()
+                topic = extend_topic(topic, other_topics, topic_indicators)
+
+
+    return topics
+
+
+def extend_topic_copy(topic, other_topics, t_i):
+    topic_copy = Topic(topic.name.copy(), topic.news.copy())
+    topic_copy.new_name = topic.new_name.copy()
+
+    def extend_first_topic():
+        topic.name = topic.name.union(other_topic.name)
+        topic.new_name = topic.new_name.union(other_topic.new_name)
+        topic.news = new_topic.news
+        topic.subtopics.add(other_topic)
+        topic.subtopics.add(topic_copy)
+        t_i[other_topic] = True
+        t_i[topic] = True
+
+    for other_topic in other_topics:
+
+        new_name = unite_news_text_and_topic_name(topic.name, other_topic.name)
+        new_unique = unite_news_text_and_topic_name(topic.new_name, other_topic.name)
+        news_list = list(set(topic.news).union(set(other_topic.news)))
+        new_topic = Topic(new_name, news_list)
+        new_topic.new_name = new_unique
+        t, _ = filter_topics([new_topic])
+        if t:
+            extend_first_topic()
+
+        else:
+            news_difference1 = {n for n in topic.news if n not in other_topic.news}
+            news_difference2 = {n for n in other_topic.news if n not in topic.news}
+            if len(news_difference1) <= 1 or len(news_difference2) <= 1:
+                extend_first_topic()
+
+    return topic

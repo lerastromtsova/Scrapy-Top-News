@@ -37,7 +37,7 @@ class Topic:
         self.frequent = list()
         self.freq_dict = dict()
         self.method = set()
-        self.subtopics = set()
+        self.subtopics = []
         self.methods_for_news = {}
         self.result = 0
         self.all_numbers = set()
