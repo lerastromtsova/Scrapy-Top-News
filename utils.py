@@ -271,7 +271,7 @@ def add_column(table, column_name, length, cursor):
 
 # Working with topic name
 def delete_redundant(name):
-    name = {w for w in name if not any(word for word in name-{w} if w.lower() in word.lower().split())}
+    name = {w for w in name if not any(word for word in name-{w} if set(w.lower().split()).issubset(set(word.lower().split())))}
     return name
 
 

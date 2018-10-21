@@ -447,7 +447,7 @@ def filter_topics(topics, debug=False):
 
 
 # 6
-def add_news(topics, data, mode="Main"):
+def add_news(topics, data):
     for topic in topics:
         for new in data:
             d = False
@@ -473,25 +473,27 @@ def add_news(topics, data, mode="Main"):
                 new_unique.update(inters_2)
                 new_unique = delete_redundant(new_unique)
 
-                if mode == "Sub" and new_unique or mode == "Main":
-                    if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
+                if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
                             news_list = topic.news.copy()
                             news_list.append(new)
 
-                            # new.all_text = new.description
-                            # new.all_text.update(new.tokens['content'])
-
                             new_topic = Topic(new_name, news_list)
                             new_topic.new_name = new_unique
-                            if new.id == 152:
-                                d = True
-                            t, _ = filter_topics([new_topic],d)
-                            top = t.pop()
 
-                            if top.coefficient_sums["summ_1"] >= THRESHOLD:
-
-                                topic.methods_for_news[new.id] = [str(top.coefficient_sums["summ_1"]), ', '.join(new_name), ', '.join(new_unique)]
+                            t, n = filter_topics([new_topic], d)
+                            try:
+                                top = t.pop()
+                                topic.methods_for_news[new.id] = ["F", str(top.coefficient_sums["final_result"]),
+                                                                  ', '.join(new_name), ', '.join(new_unique)]
                                 topic.news.append(new)
+
+                            except KeyError:
+                                if new_unique and any(True for u in new_unique if u[0].isupper()):
+                                    top = n.pop()
+                                    if top.coefficient_sums["summ_1"] >= THRESHOLD:
+                                        topic.methods_for_news[new.id] = ["E", str(top.coefficient_sums["summ_1"]),
+                                                                         ', '.join(new_name), ', '.join(new_unique)]
+                                        topic.news.append(new)
 
         topic.news = delete_dupl_from_news(topic.news)
     return topics
@@ -514,7 +516,9 @@ def define_main_topics(topics):
                 new_name = unite_news_text_and_topic_name(topic.name, other_topic.name)
                 new_unique = unite_news_text_and_topic_name(topic.new_name, other_topic.new_name)
 
-                if len(new_name) == 3 and len(new_unique) >= 2 or len(new_name) > 3:
+                upper_unique = {u for u in new_unique if u[0].isupper()}
+
+                if len(new_name) == 3 and len(upper_unique) >= 2 or len(new_name) > 3:
                     news_list = list(set(topic.news).union(set(other_topic.news)))
                     new_topic = Topic(new_name, news_list)
                     new_topic.new_name = new_unique
@@ -526,8 +530,6 @@ def define_main_topics(topics):
                         extend_topic(topic, other_topic)
                         marked_subtopics[other_topic] = True
 
-    write_topics_with_subtopics(f"documents/{db}-7-1.xlsx", topics)
-
     to_remove = set()
     for t in topics:
         for ot in topics:
@@ -536,8 +538,6 @@ def define_main_topics(topics):
 
     topics = [t for t in topics if t not in to_remove]
 
-    write_topics_with_subtopics(f"documents/{db}-7-2.xlsx", topics)
-
     for t in topics:
         if len(t.subtopics) == 1:
             t.subtopics = []
@@ -545,9 +545,12 @@ def define_main_topics(topics):
     for t in topics:
         t = add_news([t], corpus.data)[0]
         for s in t.subtopics:
-            s = add_news([s], corpus.data, "Sub")[0]
+            s = add_news([s], corpus.data)[0]
 
-    write_topics_with_subtopics(f"documents/{db}-7-3.xlsx", topics)
+    for t in topics:
+        t.news = delete_dupl_from_news(t.news)
+        for s in t.subtopics:
+            s.news = delete_dupl_from_news(s.news)
 
     to_remove = set()
 
@@ -576,11 +579,12 @@ def define_main_topics(topics):
         for s in t.subtopics:
             s.news = delete_dupl_from_news(s.news)
 
-
     return topics
 
 
 def extend_topic(topic, other_topic):
+    print(f"Extending topic {topic.name} with other {other_topic.name}")
+    print(f"because news_ids: 1: {[n.id for n in topic.news]} 2: {[n.id for n in other_topic.news]}")
     topic.name = topic.name.union(other_topic.name)
     topic.new_name = topic.new_name.union(other_topic.new_name)
 
@@ -795,6 +799,10 @@ if __name__ == '__main__':
     write_topics(f"documents/{db}-6.xlsx", corpus. topics)
     print(6, len(corpus.topics))
     print(datetime.now() - time)
+
+    """ Delete redundant words from topic names """
+    for t in corpus.topics:
+        t.name = delete_redundant(t.name)
 
     """ Unite topics by news """
     topics_copy = {}
