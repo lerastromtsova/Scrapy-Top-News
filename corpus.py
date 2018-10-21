@@ -283,7 +283,7 @@ class Corpus:
         self.conn.commit()
         self.create_documents(raw_data)
 
-    def find_topics(self):
+    def find_topics(self, mode={"country":1, "not_country":2}):
 
         for row in self.data:
             others = [r for r in self.data if r.country != row.country]
@@ -292,7 +292,7 @@ class Corpus:
                 cw = intersect(row.all_text, ot.all_text)
                 # cw = {w for w in cw if w[0].islower() or w in COUNTRIES}
 
-                if count_not_countries(cw) >= 2 and count_countries(cw) >= 1:
+                if count_not_countries(cw) >= mode["not_country"] and count_countries(cw) >= mode["country"]:
                     # if len(cw) >= 4 and count_countries(cw) >= 1:
                     news = [row, ot]
                     new_topic = Topic(cw, news)
