@@ -759,7 +759,7 @@ if __name__ == '__main__':
     corpus.find_topics(mode={"country": 0, "not_country": 2})
     corpus.topics = delete_unique(corpus.topics)
     nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db+" 2общ. без стран")
+    draw_graph_with_topics(nodes, edges, db+" 2общ. без стран-no-unique")
     corpus.topics = []
 
     """ Find initial topics """
@@ -772,7 +772,7 @@ if __name__ == '__main__':
     nodes, edges = get_topic_news_nodes(corpus.topics)
     draw_graph_with_topics(nodes, edges, db+"2 общ. и 1 страна")
 
-    write_topics(f"documents/{db}-0.xlsx", corpus.topics)
+    write_topics(f"documents/{db}-0-no-unique.xlsx", corpus.topics)
     print(0, len(corpus.topics))
     print(datetime.now() - time)
 
@@ -781,9 +781,9 @@ if __name__ == '__main__':
 
     # 3) График по 3 общим токенам (с ФИО)
     nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db+" 1")
+    draw_graph_with_topics(nodes, edges, db+" 1-no-unique")
 
-    write_topics(f"documents/{db}-1.xlsx", corpus.topics)
+    write_topics(f"documents/{db}-1-no-unique.xlsx", corpus.topics)
     print(1, len(corpus.topics))
     print(datetime.now() - time)
 
@@ -791,9 +791,9 @@ if __name__ == '__main__':
     corpus.topics = check_topics(corpus.topics)
 
     nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 2")
+    draw_graph_with_topics(nodes, edges, db + " 2-no-unique")
 
-    write_topics(f"documents/{db}-2.xlsx", corpus.topics)
+    write_topics(f"documents/{db}-2-no-unique.xlsx", corpus.topics)
     print(2, len(corpus.topics))
     print(datetime.now() - time)
 
@@ -805,9 +805,9 @@ if __name__ == '__main__':
     # corpus.topics = delete_without_unique(corpus.topics)
 
     nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 3")
+    draw_graph_with_topics(nodes, edges, db + " 3-no-unique")
 
-    write_topics(f"documents/{db}-3.xlsx", corpus.topics)
+    write_topics(f"documents/{db}-3-no-unique.xlsx", corpus.topics)
     print(3, len(corpus.topics))
     print(datetime.now() - time)
 
@@ -815,10 +815,10 @@ if __name__ == '__main__':
     corpus.topics, neg = filter_topics(corpus.topics, False)
 
     nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 5")
+    draw_graph_with_topics(nodes, edges, db + " 5-no-unique")
 
-    write_topics(f"documents/{db}-5-прошли.xlsx", corpus.topics)
-    write_topics(f"documents/{db}-5-не прошли.xlsx", neg)
+    write_topics(f"documents/{db}-5-прошли-no-unique.xlsx", corpus.topics)
+    write_topics(f"documents/{db}-5-не прошли-no-unique.xlsx", neg)
     print(5, len(corpus.topics))
     print(datetime.now() - time)
 
@@ -828,9 +828,9 @@ if __name__ == '__main__':
     corpus.topics = delete_duplicates(corpus.topics)
 
     nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 6")
+    draw_graph_with_topics(nodes, edges, db + " 6-no-unique")
 
-    write_topics(f"documents/{db}-6.xlsx", corpus. topics)
+    write_topics(f"documents/{db}-6-no-unique.xlsx", corpus. topics)
     print(6, len(corpus.topics))
     print(datetime.now() - time)
 
@@ -845,9 +845,9 @@ if __name__ == '__main__':
     corpus.topics = delete_duplicates(corpus.topics)
 
     nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 7")
+    draw_graph_with_topics(nodes, edges, db + " 7-no-unique")
 
-    write_topics_with_subtopics(f"documents/{db}-7.xlsx", corpus.topics)
+    write_topics_with_subtopics(f"documents/{db}-7-no-unique.xlsx", corpus.topics)
     print(7, len(corpus.topics))
     print(datetime.now() - time)
 
@@ -856,9 +856,9 @@ if __name__ == '__main__':
     corpus.topics = unite_subtopics(corpus.topics)
 
     nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 8")
+    draw_graph_with_topics(nodes, edges, db + " 8-no-unique")
 
-    write_topics_with_subtopics(f"documents/{db}-8.xlsx", corpus.topics)
+    write_topics_with_subtopics(f"documents/{db}-8-no-unique.xlsx", corpus.topics)
     print(8, len(corpus.topics))
     print(datetime.now() - time)
 
@@ -866,7 +866,7 @@ if __name__ == '__main__':
     corpus.topics = delete_duplicates(corpus.topics)
 
     nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 9")
+    draw_graph_with_topics(nodes, edges, db + " 9-no-unique")
 
     write_topics_with_subtopics(f"documents/{db}-9.xlsx", corpus.topics)
     print(9, len(corpus.topics))
@@ -876,17 +876,17 @@ if __name__ == '__main__':
     corpus.topics = delete_subtopics(corpus.topics)
 
     nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 10")
+    draw_graph_with_topics(nodes, edges, db + " 10-no-unique")
 
-    write_topics_with_subtopics(f"documents/{db}-10.xlsx", corpus.topics)
+    write_topics_with_subtopics(f"documents/{db}-10-no-unique.xlsx", corpus.topics)
     print(10, len(corpus.topics))
     print(datetime.now() - time)
 
     corpus.topics = add_minor_to_subtopics(corpus.topics)
 
     nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 12")
+    draw_graph_with_topics(nodes, edges, db + " 12-no-unique")
 
-    write_topics_with_subtopics(f"documents/{db}-12.xlsx", corpus.topics)
+    write_topics_with_subtopics(f"documents/{db}-12-no-unique.xlsx", corpus.topics)
     print(12, len(corpus.topics))
     print(datetime.now() - time)
