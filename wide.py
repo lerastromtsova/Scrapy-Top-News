@@ -447,7 +447,7 @@ def filter_topics(topics, debug=False):
 
 
 # 6
-def add_news(topics, data):
+def add_news(topics, data, mode="Main"):
     for topic in topics:
         for new in data:
             d = False
@@ -473,7 +473,7 @@ def add_news(topics, data):
                 new_unique.update(inters_2)
                 new_unique = delete_redundant(new_unique)
 
-                if new_unique:
+                if mode == "Sub" and new_unique or mode == "Main":
                     if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2:
                             news_list = topic.news.copy()
                             news_list.append(new)
@@ -486,9 +486,11 @@ def add_news(topics, data):
                             if new.id == 152:
                                 d = True
                             t, _ = filter_topics([new_topic],d)
-                            if t:
+                            top = t.pop()
 
-                                topic.methods_for_news[new.id] = [str(t.pop().coefficient_sums["final_result"]), ', '.join(new_name), ', '.join(new_unique)]
+                            if top.coefficient_sums["summ_1"] >= THRESHOLD:
+
+                                topic.methods_for_news[new.id] = [str(top.coefficient_sums["summ_1"]), ', '.join(new_name), ', '.join(new_unique)]
                                 topic.news.append(new)
 
         topic.news = delete_dupl_from_news(topic.news)
@@ -518,14 +520,11 @@ def define_main_topics(topics):
                     new_topic.new_name = new_unique
                     t, _ = filter_topics([new_topic])
                     if t:
-                            extend_topic(topic, other_topic)
-                            marked_subtopics[other_topic] = True
-                    # elif len(topic.news) > 2 and len(other_topic.news) > 2:
-                    #         news_difference1 = {n for n in topic.news if n not in other_topic.news}
-                    #         news_difference2 = {n for n in other_topic.news if n not in topic.news}
-                    #         if len(news_difference1) <= 1 or len(news_difference2) <= 1:
-                    #             extend_topic(topic, other_topic)
-                    #             marked_subtopics[other_topic] = True
+                        extend_topic(topic, other_topic)
+                        marked_subtopics[other_topic] = True
+                    elif len(new_unique) >= 2:
+                        extend_topic(topic, other_topic)
+                        marked_subtopics[other_topic] = True
 
     write_topics_with_subtopics(f"documents/{db}-7-1.xlsx", topics)
 
@@ -537,7 +536,7 @@ def define_main_topics(topics):
 
     topics = [t for t in topics if t not in to_remove]
 
-    write_topics_with_subtopics(f"documents/{db}-7-1.xlsx", topics)
+    write_topics_with_subtopics(f"documents/{db}-7-2.xlsx", topics)
 
     for t in topics:
         if len(t.subtopics) == 1:
@@ -546,9 +545,9 @@ def define_main_topics(topics):
     for t in topics:
         t = add_news([t], corpus.data)[0]
         for s in t.subtopics:
-            s = add_news([s], corpus.data)[0]
+            s = add_news([s], corpus.data, "Sub")[0]
 
-    write_topics_with_subtopics(f"documents/{db}-7-1.xlsx", topics)
+    write_topics_with_subtopics(f"documents/{db}-7-3.xlsx", topics)
 
     to_remove = set()
 
