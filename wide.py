@@ -744,6 +744,9 @@ def unite_small_topics(topics):
     big_topics = [t for t in topics if t not in small_topics]
     to_remove = set()
 
+    for t in topics:
+        t.subtopics = list(t.subtopics)
+
     for st in small_topics:
         for bt in big_topics:
             if set(st.news).intersection(set(bt.news)):

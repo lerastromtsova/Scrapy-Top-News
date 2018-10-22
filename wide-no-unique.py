@@ -738,10 +738,14 @@ def delete_without_unique(topics):
 
     return topics
 
+
 def unite_small_topics(topics):
     small_topics = [t for t in topics if len(t.news) == 2]
     big_topics = [t for t in topics if t not in small_topics]
     to_remove = set()
+
+    for t in topics:
+        t.subtopics = list(t.subtopics)
 
     for st in small_topics:
         for bt in big_topics:
