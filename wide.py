@@ -739,10 +739,32 @@ def delete_without_unique(topics):
     return topics
 
 
+def unite_small_topics(topics):
+    small_topics = [t for t in topics if len(t.news) == 2]
+    big_topics = [t for t in topics if t not in small_topics]
+    to_remove = set()
+
+    for st in small_topics:
+        for bt in big_topics:
+            if set(st.news).intersection(set(bt.news)):
+                extend_topic(bt, st)
+                to_remove.add(st)
+                break
+        for ost in small_topics:
+            if st != ost and set(st.news).intersection(set(ost.news)):
+                extend_topic(st, ost)
+                to_remove.add(ost)
+
+    topics = [t for t in topics if t not in to_remove]
+
+    return topics
+
+
 if __name__ == '__main__':
 
     db = input("DB name (default - day): ")
     table = input("Table name (default - buffer): ")
+    with_graphs = input("Draw graphs? default - no, print any letter to draw graphs: ")
 
     if not db:
         db = "day"
@@ -755,10 +777,12 @@ if __name__ == '__main__':
 
     corpus = Corpus(db, table)
 
-    # 1) график по 2 общим словам без стран
     corpus.find_topics(mode={"country": 0, "not_country": 2})
-    nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db+" 2общ. без стран")
+
+    if with_graphs:
+        # 1) график по 2 общим словам без стран
+        nodes, edges = get_topic_news_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db+" 2общ. без стран")
     corpus.topics = []
 
     """ Find initial topics """
@@ -767,9 +791,10 @@ if __name__ == '__main__':
         topic.name = {w for w in topic.name if len(w) > 3 or w.isupper()}
     corpus.delete_small()
 
-    # 2) график по 2 общим словам со странами (хотя бы 1 страна)
-    nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db+"2 общ. и 1 страна")
+    if with_graphs:
+        # 2) график по 2 общим словам со странами (хотя бы 1 страна)
+        nodes, edges = get_topic_news_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db+"2 общ. и 1 страна")
 
     write_topics(f"documents/{db}-0.xlsx", corpus.topics)
     print(0, len(corpus.topics))
@@ -778,9 +803,10 @@ if __name__ == '__main__':
     """ Unite words in name + surname combinations """
     corpus.topics = unite_fio(corpus.topics)
 
-    # 3) График по 3 общим токенам (с ФИО)
-    nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db+" 1")
+    if with_graphs:
+        # 3) График по 3 общим токенам (с ФИО)
+        nodes, edges = get_topic_news_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db+" 1")
 
     write_topics(f"documents/{db}-1.xlsx", corpus.topics)
     print(1, len(corpus.topics))
@@ -789,8 +815,9 @@ if __name__ == '__main__':
     """ Leave only those that have more than 1 country and 2 not-country words in name """
     corpus.topics = check_topics(corpus.topics)
 
-    nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 2")
+    if with_graphs:
+        nodes, edges = get_topic_news_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 2")
 
     write_topics(f"documents/{db}-2.xlsx", corpus.topics)
     print(2, len(corpus.topics))
@@ -803,8 +830,9 @@ if __name__ == '__main__':
     corpus.check_unique()
     corpus.topics = delete_without_unique(corpus.topics)
 
-    nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 3")
+    if with_graphs:
+        nodes, edges = get_topic_news_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 3")
 
     write_topics(f"documents/{db}-3.xlsx", corpus.topics)
     print(3, len(corpus.topics))
@@ -813,8 +841,9 @@ if __name__ == '__main__':
     """ Find sums according to specified coefficients for each topic and filter them using threshold """
     corpus.topics, neg = filter_topics(corpus.topics, False)
 
-    nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 5")
+    if with_graphs:
+        nodes, edges = get_topic_news_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 5")
 
     write_topics(f"documents/{db}-5-прошли.xlsx", corpus.topics)
     write_topics(f"documents/{db}-5-не прошли.xlsx", neg)
@@ -826,8 +855,9 @@ if __name__ == '__main__':
     # corpus.topics = add_news(corpus.topics, corpus.data)
     corpus.topics = delete_duplicates(corpus.topics)
 
-    nodes, edges = get_topic_news_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 6")
+    if with_graphs:
+        nodes, edges = get_topic_news_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 6")
 
     write_topics(f"documents/{db}-6.xlsx", corpus. topics)
     print(6, len(corpus.topics))
@@ -843,8 +873,9 @@ if __name__ == '__main__':
     corpus.topics = define_main_topics(corpus.topics)
     corpus.topics = delete_duplicates(corpus.topics)
 
-    nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 7")
+    if with_graphs:
+        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 7")
 
     write_topics_with_subtopics(f"documents/{db}-7.xlsx", corpus.topics)
     print(7, len(corpus.topics))
@@ -854,8 +885,9 @@ if __name__ == '__main__':
     corpus.topics = sorted(corpus.topics, key=lambda x: -len(x.name))
     corpus.topics = unite_subtopics(corpus.topics)
 
-    nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 8")
+    if with_graphs:
+        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 8")
 
     write_topics_with_subtopics(f"documents/{db}-8.xlsx", corpus.topics)
     print(8, len(corpus.topics))
@@ -864,8 +896,9 @@ if __name__ == '__main__':
     """ Delete duplicates in topics """
     corpus.topics = delete_duplicates(corpus.topics)
 
-    nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 9")
+    if with_graphs:
+        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 9")
 
     write_topics_with_subtopics(f"documents/{db}-9.xlsx", corpus.topics)
     print(9, len(corpus.topics))
@@ -874,29 +907,31 @@ if __name__ == '__main__':
     """ If a topic is small, it is 'eaten' by the bigger one """
     corpus.topics = delete_subtopics(corpus.topics)
 
-    nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 10")
+    if with_graphs:
+        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 10")
 
     write_topics_with_subtopics(f"documents/{db}-10.xlsx", corpus.topics)
     print(10, len(corpus.topics))
     print(datetime.now() - time)
 
-    # corpus.topics = add_news_2(corpus.topics, corpus.data)
-    # write_topics_with_subtopics(f"documents/{db}-11.xlsx", corpus.topics)
-    # print(11, len(corpus.topics))
-    # print(datetime.now() - time)
-
     corpus.topics = add_minor_to_subtopics(corpus.topics)
 
-    nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-    draw_graph_with_topics(nodes, edges, db + " 12")
+    if with_graphs:
+        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 12")
 
     write_topics_with_subtopics(f"documents/{db}-12.xlsx", corpus.topics)
     print(12, len(corpus.topics))
     print(datetime.now() - time)
 
-    # nodes, edges = get_topic_news_nodes(corpus.topics)
-    # draw_graph_with_topics(nodes, edges, db)
-    #
-    # sub_nodes, sub_edges = get_topic_subtopic_nodes(corpus.topics)
-    # draw_graph_with_topics(sub_nodes, sub_edges, db+"1")
+    corpus.topics = unite_small_topics(corpus.topics)
+
+    if with_graphs:
+        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 13")
+
+    write_topics_with_subtopics(f"documents/{db}-13.xlsx", corpus.topics)
+    print(13, len(corpus.topics))
+    print(datetime.now() - time)
+
