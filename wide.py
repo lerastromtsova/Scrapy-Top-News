@@ -583,8 +583,8 @@ def define_main_topics(topics):
 
 
 def extend_topic(topic, other_topic):
-    print(f"Extending topic {topic.name} with other {other_topic.name}")
-    print(f"because news_ids: 1: {[n.id for n in topic.news]} 2: {[n.id for n in other_topic.news]}")
+    # print(f"Extending topic {topic.name} with other {other_topic.name}")
+    # print(f"because news_ids: 1: {[n.id for n in topic.news]} 2: {[n.id for n in other_topic.news]}")
     topic.name = topic.name.union(other_topic.name)
     topic.new_name = topic.new_name.union(other_topic.new_name)
 
@@ -681,6 +681,25 @@ def add_minor_to_subtopics(topics):
     return topics
 
 
+# 13
+def add_tokens_to_topics(topics):
+    for t in topics:
+        token_freq = {}
+        for new in t.news:
+            for v in new.tokens.values():
+                for word in v:
+                    if word not in token_freq.keys():
+                        token_freq[word] = 1
+                    else:
+                        token_freq[word] += 1
+
+        for k, i in token_freq.items():
+            if i >= 2:
+                topic.name.add(k)
+        t.name = delete_redundant(t.name)
+    return topics
+
+
 def delete_duplicates(topics):
     topics = list(topics)
     for i, t in enumerate(topics):
@@ -739,6 +758,7 @@ def delete_without_unique(topics):
     return topics
 
 
+# 14
 def unite_small_topics(topics):
     small_topics = [t for t in topics if len(t.news) == 2]
     big_topics = [t for t in topics if t not in small_topics]
@@ -749,12 +769,12 @@ def unite_small_topics(topics):
 
     for st in small_topics:
         for bt in big_topics:
-            if set(st.news).intersection(set(bt.news)):
+            if len(set(st.news).intersection(set(bt.news))) >= 2:
                 extend_topic(bt, st)
                 to_remove.add(st)
                 break
         for ost in small_topics:
-            if st != ost and set(st.news).intersection(set(ost.news)):
+            if st != ost and len(set(st.news).intersection(set(ost.news))) >= 2:
                 extend_topic(st, ost)
                 to_remove.add(ost)
 
@@ -768,6 +788,7 @@ if __name__ == '__main__':
     db = input("DB name (default - day): ")
     table = input("Table name (default - buffer): ")
     with_graphs = input("Draw graphs? default - no, print any letter to draw graphs: ")
+
 
     if not db:
         db = "day"
@@ -928,7 +949,7 @@ if __name__ == '__main__':
     print(12, len(corpus.topics))
     print(datetime.now() - time)
 
-    corpus.topics = unite_small_topics(corpus.topics)
+    corpus.topics = add_tokens_to_topics(corpus.topics)
 
     if with_graphs:
         nodes, edges = get_topic_subtopic_nodes(corpus.topics)
@@ -936,5 +957,15 @@ if __name__ == '__main__':
 
     write_topics_with_subtopics(f"documents/{db}-13.xlsx", corpus.topics)
     print(13, len(corpus.topics))
+    print(datetime.now() - time)
+
+    corpus.topics = unite_small_topics(corpus.topics)
+
+    if with_graphs:
+        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 14")
+
+    write_topics_with_subtopics(f"documents/{db}-14.xlsx", corpus.topics)
+    print(14, len(corpus.topics))
     print(datetime.now() - time)
 
