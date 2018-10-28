@@ -231,6 +231,7 @@ def unite_fio_in_two_strings(strings_to_check, debug=False):
                     continue
     return fios
 
+
 # 1
 def unite_fio(topics):
     STOP_WORDS.append("house")
@@ -447,7 +448,7 @@ def filter_topics(topics, debug=False):
 
 
 # 6
-def add_news(topics, data):
+def add_news(topics, data, mode="main"):
     for topic in topics:
         for new in data:
             d = False
@@ -473,7 +474,13 @@ def add_news(topics, data):
                 new_unique.update(inters_2)
                 new_unique = delete_redundant(new_unique)
 
-                if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2 and new_unique:
+                common_freq = set(topic.frequent).intersection(new.all_text)
+
+                freq_diff = set(topic.frequent) - common_freq
+
+                if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2 \
+                        and ((len(new_name) == 3 and len(new_unique) >= 2) or (len(new_name) != 3 and new_unique))\
+                        or not freq_diff or len(common_freq) >= 3 and len(common_freq) == 1 and common_freq.pop()[0].islower():
                             news_list = topic.news.copy()
                             news_list.append(new)
 
@@ -519,7 +526,7 @@ def define_main_topics(topics):
 
                 upper_unique = {u for u in new_unique if u[0].isupper()}
 
-                if len(new_name) == 3 and len(upper_unique) >= 2 or len(new_name) > 3:
+                if len(new_name) == 3 and len(upper_unique) >= 2 or len(new_name) != 3:
                     news_list = list(set(topic.news).union(set(other_topic.news)))
                     new_topic = Topic(new_name, news_list)
                     new_topic.new_name = new_unique
@@ -546,7 +553,7 @@ def define_main_topics(topics):
     for t in topics:
         t = add_news([t], corpus.data)[0]
         for s in t.subtopics:
-            s = add_news([s], corpus.data)[0]
+            s = add_news([s], corpus.data, mode="sub")[0]
 
     for t in topics:
         t.news = delete_dupl_from_news(t.news)
@@ -586,6 +593,7 @@ def define_main_topics(topics):
 def extend_topic(topic, other_topic):
     # print(f"Extending topic {topic.name} with other {other_topic.name}")
     # print(f"because news_ids: 1: {[n.id for n in topic.news]} 2: {[n.id for n in other_topic.news]}")
+
     topic.name = topic.name.union(other_topic.name)
     topic.new_name = topic.new_name.union(other_topic.new_name)
 
@@ -719,6 +727,8 @@ def delete_duplicates(topics):
                     if ids == other_ids:
                         o.name |= t.name
                         topics[i] = None
+                    if t.name.issubset(o.name):
+                        topics[i] = None
     topics = {t for t in topics if t is not None}
     return topics
 
@@ -764,7 +774,7 @@ def delete_without_unique(topics):
     return topics
 
 
-# 14
+# 15
 def unite_small_topics(topics):
     small_topics = [t for t in topics if len(t.news) == 2]
     big_topics = [t for t in topics if t not in small_topics]
@@ -804,12 +814,31 @@ def unite_small_topics(topics):
     return topics
 
 
+# 16
+def form_new_wide(topics, data):
+    small_topics = [t for t in topics if len(t.news)==2]
+    news_in_small = [n for t in topics for n in t.news]
+    counts = {n: news_in_small.count(n) for n in set(news_in_small)}
+    to_remove = set()
+    for id, count in counts.items():
+        if count == max(counts.values()) and count > 1:
+            new_topic = Topic(name=data[id].translated["title"], init_news=data[id])
+            for st in small_topics:
+                ids = {new.id for new in st.news}
+                if id in ids:
+                    new_topic.subtopics.append(st)
+                    to_remove.add(st)
+            if new_topic.subtopics:
+                topics.append(new_topic)
+    topics = [t for t in topics if t not in to_remove]
+    return topics
+
+
 if __name__ == '__main__':
 
     db = input("DB name (default - day): ")
     table = input("Table name (default - buffer): ")
     with_graphs = input("Draw graphs? default - no, print any letter to draw graphs: ")
-
 
     if not db:
         db = "day"
@@ -818,7 +847,7 @@ if __name__ == '__main__':
 
     time = datetime.now()
 
-    print("Started working")
+    print(f"Started working at {time}")
 
     corpus = Corpus(db, table)
 
@@ -845,6 +874,7 @@ if __name__ == '__main__':
     print(datetime.now() - time)
 
     """ Unite words in name + surname combinations """
+    corpus.topics = delete_duplicates(corpus.topics)
     corpus.topics = unite_fio(corpus.topics)
 
     if with_graphs:
@@ -857,6 +887,7 @@ if __name__ == '__main__':
     print(datetime.now() - time)
 
     """ Leave only those that have more than 1 country and 2 not-country words in name """
+    corpus.topics = delete_duplicates(corpus.topics)
     corpus.topics = check_topics(corpus.topics)
 
     if with_graphs:
@@ -871,7 +902,15 @@ if __name__ == '__main__':
     """ And delete those without unique words or that have one small unique word"""
     for t in corpus.topics:
         t.name = replace_presidents(t.name)
+    corpus.topics = sorted(corpus.topics, key=lambda x: -len(x.name))
     corpus.check_unique()
+
+    for t in corpus.topics:
+        t.name = delete_redundant(t.name)
+        t.name = {w for w in t.name if not any((w1 for w1 in t.name - {w} if w1.lower() in w.lower()))}
+        t.new_name = delete_redundant(t.new_name)
+        t.new_name = {w for w in t.new_name if not any((w1 for w1 in t.new_name - {w} if w1.lower() in w.lower()))}
+
     corpus.topics = delete_without_unique(corpus.topics)
 
     if with_graphs:
@@ -996,4 +1035,14 @@ if __name__ == '__main__':
 
     write_topics_with_subtopics(f"documents/{db}-15.xlsx", corpus.topics)
     print(15, len(corpus.topics))
+    print(datetime.now() - time)
+
+    corpus.topics = form_new_wide(corpus.topics, corpus.data)
+
+    if with_graphs:
+        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db + " 16")
+
+    write_topics_with_subtopics(f"documents/{db}-16.xlsx", corpus.topics)
+    print(16, len(corpus.topics))
     print(datetime.now() - time)

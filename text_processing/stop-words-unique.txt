@@ -1,12 +1,8 @@
 kingdom
 case
-
 special
-
 article
-
 trial
-
 chairman
 treasury
 financial
@@ -44,4 +40,4 @@ open
 short
 born
 medical
-
+university

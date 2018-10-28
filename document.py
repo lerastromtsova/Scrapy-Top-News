@@ -11,6 +11,10 @@ TITLES = {"President", "Democrat", "Governor", "King", "Queen", "Ministry", "Min
 PREPS = ['at', 'on', 'in', 'by', 'of', 'to', 'is']
 BRACKETS = [')', '(', '[', ']']
 
+STOP_PATH_FIO = "text_processing/stop-words-fio.txt"
+with open(STOP_PATH_FIO, "r") as f:
+    STOP_WORDS_FIO = f.read().split('\n')
+
 
 class Document:
 
@@ -352,90 +356,91 @@ def find_all_uppercase_sequences(w_list):
         print(words_list)
     for i in range(len(words_list)):
         word = words_list[i]
-        if can_be_big(word):
-            try:
-                n_word = words_list[i+1]
-                words_list[i + 1] = ' '
+        if word not in STOP_WORDS_FIO:
+            if can_be_big(word):
+                try:
+                    n_word = words_list[i+1]
+                    words_list[i + 1] = ' '
 
-                if can_be_big(n_word):
-                    try:
-                        nn_word = words_list[i+2]
-                        words_list[i + 2] = ' '
-                        if can_be_big(nn_word):
-                            try:
-                                nnn_word = words_list[i+3]
-                                words_list[i + 3] = ' '
-                                if can_be_big(nnn_word):
-                                    fio = " ".join([word, n_word, nn_word, nnn_word])  # BBBB
-                                    seq.append(fio)
-                                else:
+                    if can_be_big(n_word):
+                        try:
+                            nn_word = words_list[i+2]
+                            words_list[i + 2] = ' '
+                            if can_be_big(nn_word):
+                                try:
+                                    nnn_word = words_list[i+3]
+                                    words_list[i + 3] = ' '
+                                    if can_be_big(nnn_word):
+                                        fio = " ".join([word, n_word, nn_word, nnn_word])  # BBBB
+                                        seq.append(fio)
+                                    else:
+                                        fio = " ".join([word, n_word, nn_word])  # BBB
+                                        seq.append(fio)
+                                except IndexError:
                                     fio = " ".join([word, n_word, nn_word])  # BBB
                                     seq.append(fio)
-                            except IndexError:
-                                fio = " ".join([word, n_word, nn_word])  # BBB
-                                seq.append(fio)
-                        elif can_be_between(nn_word):
-                            try:
-                                nnn_word = words_list[i + 3]
-                                words_list[i + 3] = ' '
-                                if can_be_big(nnn_word):
-                                    fio = " ".join([word, n_word, nn_word, nnn_word])  # BBsB
-                                    seq.append(fio)
-                                else:
+                            elif can_be_between(nn_word):
+                                try:
+                                    nnn_word = words_list[i + 3]
+                                    words_list[i + 3] = ' '
+                                    if can_be_big(nnn_word):
+                                        fio = " ".join([word, n_word, nn_word, nnn_word])  # BBsB
+                                        seq.append(fio)
+                                    else:
+                                        fio = " ".join([word, n_word])  # BB
+                                        seq.append(fio)
+                                except IndexError:
                                     fio = " ".join([word, n_word])  # BB
                                     seq.append(fio)
-                            except IndexError:
+                            else:
                                 fio = " ".join([word, n_word])  # BB
                                 seq.append(fio)
-                        else:
+                        except IndexError:
                             fio = " ".join([word, n_word])  # BB
                             seq.append(fio)
-                    except IndexError:
-                        fio = " ".join([word, n_word])  # BB
-                        seq.append(fio)
 
-                elif can_be_between(n_word):
-                    try:
-                        nn_word = words_list[i + 2]
-                        words_list[i + 2] = ' '
-                        if nn_word[0].isupper():
-                            try:
-                                nnn_word = words_list[i + 3]
-                                words_list[i + 3] = ' '
-                                if nnn_word[0].isupper():
-                                    fio = " ".join([word, n_word, nn_word, nnn_word])  # BsBB
-                                    seq.append(fio)
-                                else:
+                    elif can_be_between(n_word):
+                        try:
+                            nn_word = words_list[i + 2]
+                            words_list[i + 2] = ' '
+                            if nn_word[0].isupper():
+                                try:
+                                    nnn_word = words_list[i + 3]
+                                    words_list[i + 3] = ' '
+                                    if nnn_word[0].isupper():
+                                        fio = " ".join([word, n_word, nn_word, nnn_word])  # BsBB
+                                        seq.append(fio)
+                                    else:
+                                        fio = " ".join([word, n_word, nn_word])  # BsB
+                                        seq.append(fio)
+                                except IndexError:
                                     fio = " ".join([word, n_word, nn_word])  # BsB
                                     seq.append(fio)
-                            except IndexError:
-                                fio = " ".join([word, n_word, nn_word])  # BsB
-                                seq.append(fio)
-                        elif can_be_between(nn_word):
-                            try:
-                                nnn_word = words_list[i + 3]
-                                words_list[i + 3] = ' '
-                                if nnn_word[0].isupper():
-                                    fio = " ".join([word, n_word, nn_word, nnn_word])  # BssB
-                                    seq.append(fio)
-                                else:
+                            elif can_be_between(nn_word):
+                                try:
+                                    nnn_word = words_list[i + 3]
+                                    words_list[i + 3] = ' '
+                                    if nnn_word[0].isupper():
+                                        fio = " ".join([word, n_word, nn_word, nnn_word])  # BssB
+                                        seq.append(fio)
+                                    else:
+                                        fio = word  # B
+                                        seq.append(fio)
+                                except IndexError:
                                     fio = word  # B
                                     seq.append(fio)
-                            except IndexError:
+                            else:
                                 fio = word  # B
                                 seq.append(fio)
-                        else:
-                            fio = word  # B
+                        except IndexError:
+                            fio = word
                             seq.append(fio)
-                    except IndexError:
+                    else:
                         fio = word
                         seq.append(fio)
-                else:
+                except IndexError:
                     fio = word
                     seq.append(fio)
-            except IndexError:
-                fio = word
-                seq.append(fio)
 
     to_remove = set()
     to_add = []
