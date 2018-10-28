@@ -453,7 +453,7 @@ def write_topics_with_subtopics(fname, topics):
     sheet.cell(row=1, column=40).value = "u# of IDs (unique)"
     sheet.cell(row=1, column=41).value = "Most frequent"
     sheet.cell(row=1, column=42).value = "50% frequent"
-    sheet.cell(row=1, column=43).value = "What"
+    sheet.cell(row=1, column=43).value = "FREQUENT-NEW"
     sheet.cell(row=1, column=44).value = "What2"
     sheet.cell(row=1, column=45).value = "Common in descriptions"
     sheet.cell(row=1, column=46).value = "Common in text"
@@ -503,10 +503,13 @@ def write_topics_with_subtopics(fname, topics):
         sheet.cell(row=row_num, column=6).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                   f"{doc.translated['lead']} | " \
                                                   f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
-        doc = topic.news[1]
-        sheet.cell(row=row_num, column=7).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
-                                                  f"{doc.translated['lead']} | " \
-                                                  f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
+        try:
+            doc = topic.news[1]
+            sheet.cell(row=row_num, column=7).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+                                                      f"{doc.translated['lead']} | " \
+                                                      f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
+        except IndexError:
+            pass
 
         sheet.cell(row=row_num, column=8).value = len(all_words)
         sheet.cell(row=row_num, column=9).value = len(unique_words)
@@ -558,12 +561,15 @@ def write_topics_with_subtopics(fname, topics):
 
         sheet.cell(row=row_num, column=42).value = ', '.join(freq_50)
 
-        sheet.cell(row=row_num, column=43).value = ', '.join(topic.objects)
+        sheet.cell(row=row_num, column=43).value = ', '.join(topic.frequent_50())
         sheet.cell(row=row_num, column=44).value = ', '.join(topic.obj)
-        sheet.cell(row=row_num, column=45).value = ', '.join(
-            topic.news[0].description.intersection(topic.news[1].description))
-        sheet.cell(row=row_num, column=46).value = ', '.join(
-            topic.news[0].named_entities['content'].intersection(topic.news[1].named_entities['content']))
+        try:
+            sheet.cell(row=row_num, column=45).value = ', '.join(
+                topic.news[0].description.intersection(topic.news[1].description))
+            sheet.cell(row=row_num, column=46).value = ', '.join(
+                topic.news[0].named_entities['content'].intersection(topic.news[1].named_entities['content']))
+        except IndexError:
+            pass
 
         sheet.cell(row=row_num, column=47).value = ''
         sheet.cell(row=row_num, column=48).value = ''
@@ -625,11 +631,14 @@ def write_topics_with_subtopics(fname, topics):
                            column=6).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                              f"{doc.translated['lead']} | " \
                                              f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
-                doc = s.news[1]
-                sheet.cell(row=row_num,
-                           column=7).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
-                                             f"{doc.translated['lead']} | " \
-                                             f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
+                try:
+                    doc = s.news[1]
+                    sheet.cell(row=row_num,
+                               column=7).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+                                                 f"{doc.translated['lead']} | " \
+                                                 f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
+                except IndexError:
+                    pass
 
                 sheet.cell(row=row_num, column=8).value = len(all_words)
                 sheet.cell(row=row_num, column=9).value = len(unique_words)
@@ -681,12 +690,15 @@ def write_topics_with_subtopics(fname, topics):
 
                 sheet.cell(row=row_num, column=42).value = ', '.join(freq_50)
 
-                sheet.cell(row=row_num, column=43).value = ', '.join(s.objects)
+                sheet.cell(row=row_num, column=43).value = ', '.join(s.frequent_50())
                 sheet.cell(row=row_num, column=44).value = ', '.join(s.obj)
-                sheet.cell(row=row_num, column=45).value = ', '.join(
-                    s.news[0].description.intersection(s.news[1].description))
-                sheet.cell(row=row_num, column=46).value = ', '.join(
-                    s.news[0].named_entities['content'].intersection(s.news[1].named_entities['content']))
+                try:
+                    sheet.cell(row=row_num, column=45).value = ', '.join(
+                        s.news[0].description.intersection(s.news[1].description))
+                    sheet.cell(row=row_num, column=46).value = ', '.join(
+                        s.news[0].named_entities['content'].intersection(s.news[1].named_entities['content']))
+                except IndexError:
+                    pass
 
                 sheet.cell(row=row_num, column=47).value = ''
                 sheet.cell(row=row_num, column=48).value = ''
@@ -714,8 +726,8 @@ def write_topics_with_subtopics(fname, topics):
 
         row_num += 2
 
-
     wb.save(fname)
+
 
 def write_news(fname, news):
     wb = openpyxl.Workbook()

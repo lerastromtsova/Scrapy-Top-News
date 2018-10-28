@@ -6,6 +6,7 @@ from utils import iscountry, count_countries, count_not_countries
 from utils import intersection_with_substrings, sublist, unite_news_text_and_topic_name
 from utils import get_other, ContinueI, exists, more_than_one, delete_redundant, replace_presidents
 from utils import get_topic_subtopic_nodes, get_topic_news_nodes
+from math import ceil
 
 from draw_graph import draw_graph_with_topics
 from text_processing.preprocess import STOP_WORDS, unite_countries_in, unite_countries_in_topic_names
@@ -448,7 +449,7 @@ def filter_topics(topics, debug=False):
 
 
 # 6
-def add_news(topics, data, mode="main"):
+def add_news(topics, data, mode=1):
     for topic in topics:
         for new in data:
             d = False
@@ -474,9 +475,14 @@ def add_news(topics, data, mode="main"):
                 new_unique.update(inters_2)
                 new_unique = delete_redundant(new_unique)
 
-                common_freq = set(topic.frequent).intersection(new.all_text)
+                if mode == 1:
+                    freq_words = set(topic.most_frequent()[:ceil(len(topic.frequent) / 2)])
+                elif mode == 2:
+                    freq_words = topic.frequent_50()
 
-                freq_diff = set(topic.frequent) - common_freq
+                common_freq = freq_words.intersection(new.all_text)
+
+                freq_diff = freq_words - common_freq
 
                 if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2 \
                         and ((len(new_name) == 3 and len(new_unique) >= 2) or (len(new_name) != 3 and new_unique))\
@@ -553,7 +559,7 @@ def define_main_topics(topics):
     for t in topics:
         t = add_news([t], corpus.data)[0]
         for s in t.subtopics:
-            s = add_news([s], corpus.data, mode="sub")[0]
+            s = add_news([s], corpus.data)[0]
 
     for t in topics:
         t.news = delete_dupl_from_news(t.news)
@@ -818,11 +824,11 @@ def unite_small_topics(topics):
 def form_new_wide(topics, data):
     small_topics = [t for t in topics if len(t.news)==2]
     news_in_small = [n for t in topics for n in t.news]
-    counts = {n: news_in_small.count(n) for n in set(news_in_small)}
+    counts = {n.id: news_in_small.count(n) for n in set(news_in_small)}
     to_remove = set()
     for id, count in counts.items():
         if count == max(counts.values()) and count > 1:
-            new_topic = Topic(name=data[id].translated["title"], init_news=data[id])
+            new_topic = Topic(name={data[id].translated["title"]}, init_news=[data[id]])
             for st in small_topics:
                 ids = {new.id for new in st.news}
                 if id in ids:
@@ -1017,7 +1023,7 @@ if __name__ == '__main__':
     print(13, len(corpus.topics))
     print(datetime.now() - time)
 
-    corpus.topics = add_news(corpus.topics, corpus.data)
+    corpus.topics = add_news(corpus.topics, corpus.data, 2)
 
     if with_graphs:
         nodes, edges = get_topic_subtopic_nodes(corpus.topics)

@@ -366,11 +366,11 @@ def find_all_uppercase_sequences(w_list):
                         try:
                             nn_word = words_list[i+2]
                             words_list[i + 2] = ' '
-                            if can_be_big(nn_word):
+                            if can_be_big(nn_word) and not nn_word.isupper():
                                 try:
                                     nnn_word = words_list[i+3]
                                     words_list[i + 3] = ' '
-                                    if can_be_big(nnn_word):
+                                    if can_be_big(nnn_word) and not nnn_word.isupper():
                                         fio = " ".join([word, n_word, nn_word, nnn_word])  # BBBB
                                         seq.append(fio)
                                     else:
@@ -383,7 +383,7 @@ def find_all_uppercase_sequences(w_list):
                                 try:
                                     nnn_word = words_list[i + 3]
                                     words_list[i + 3] = ' '
-                                    if can_be_big(nnn_word):
+                                    if can_be_big(nnn_word) and not nnn_word.isupper():
                                         fio = " ".join([word, n_word, nn_word, nnn_word])  # BBsB
                                         seq.append(fio)
                                     else:
@@ -403,11 +403,11 @@ def find_all_uppercase_sequences(w_list):
                         try:
                             nn_word = words_list[i + 2]
                             words_list[i + 2] = ' '
-                            if nn_word[0].isupper():
+                            if nn_word[0].isupper() and not nn_word.isupper():
                                 try:
                                     nnn_word = words_list[i + 3]
                                     words_list[i + 3] = ' '
-                                    if nnn_word[0].isupper():
+                                    if nnn_word[0].isupper() and not nnn_word.isupper():
                                         fio = " ".join([word, n_word, nn_word, nnn_word])  # BsBB
                                         seq.append(fio)
                                     else:
@@ -420,7 +420,7 @@ def find_all_uppercase_sequences(w_list):
                                 try:
                                     nnn_word = words_list[i + 3]
                                     words_list[i + 3] = ' '
-                                    if nnn_word[0].isupper():
+                                    if nnn_word[0].isupper() and not nnn_word.isupper():
                                         fio = " ".join([word, n_word, nn_word, nnn_word])  # BssB
                                         seq.append(fio)
                                     else:

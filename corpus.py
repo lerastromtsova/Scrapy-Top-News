@@ -237,6 +237,22 @@ class Topic:
 
         return ans
 
+    def frequent_50(self):
+        token_freq = {}
+        result = set()
+        for new in self.news:
+            for word in new.all_text:
+                if word not in token_freq.keys():
+                    token_freq[word] = 1
+                else:
+                    token_freq[word] += 1
+
+        for k, i in token_freq.items():
+            if i > len(self.news) / 2:
+                result.add(k)
+        result = {w for w in result if not any(w1 for w1 in result if w in w1 and w != w1)}
+        return result
+
 
 class Corpus:
 
