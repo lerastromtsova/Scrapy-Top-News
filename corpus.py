@@ -3,6 +3,7 @@ from utils import count_countries, count_not_countries, iscountry, isfio
 from utils import intersect, intersect_with_2_and_1, add_column
 from document import Document
 import operator
+from math import ceil
 
 
 conn = sqlite3.connect("db/countries.db")
@@ -97,111 +98,7 @@ class Topic:
 
         return ids, len(ids)
 
-    def isvalid(self):
-
-        a = self.point_a()
-        b = self.point_b()
-        c = self.point_c()
-        d = self.point_d()
-        e = self.point_e()
-        f = self.point_f()
-        self.valid = a | c | d
-
-        if a:
-            self.method.add("a")
-        if c:
-            self.method.add("c")
-        if d:
-            self.method.add("d")
-
-        if e:
-            self.method.add("e")
-            return self.valid
-
-        return self.valid & f
-
-    def point_a(self):
-
-        # Пункт а
-        # С названиями
-
-        com_words = self.news[0].descr_with_countries.intersection(self.news[1].descr_with_countries)
-
-        # com_words = self.news[0].description.intersection(self.news[1].description)
-
-        if count_countries(com_words) >= 1 and count_not_countries(com_words) >= 2:
-
-            self.main_words.update(com_words)
-            return True
-        return False
-
-    def point_b(self):
-
-        # Пункт б
-        # Вариант "Или"
-
-        sents = [{s: {w for w in self.new_name if w in s} for s in new.sentences} for new in self.news]
-        a = False
-        b = False
-
-
-        for new in sents:
-            other = [s for s in sents if s != new]
-            for o in other:
-                if any([len(val1.intersection(val2)) >= 2 for val1 in new.values() for val2 in o.values()]):
-                    a = True
-
-        for new in sents:
-            other = [s for s in sents if s != new]
-            for o in other:
-                if any([len(set(s1.split()).intersection(set(s2.split()))-self.unique_words) >= 2 and len(v1) >= 2 and len(v2) >= 2 for s1,v1 in new.items() for s2,v2 in o.items()]):
-                    b = True
-
-        return a | b
-
-    def point_c(self):
-
-        # Пункт в
-
-        for new in self.news:
-            cw_in_tokens = new.descr_with_countries.intersection(self.new_name)
-
-            if count_countries(cw_in_tokens) >= 1 and count_not_countries(cw_in_tokens) >= 2:
-                    # count_countries(cw_in_tokens) >= 2 and count_not_countries(cw_in_tokens) >= 1:
-
-                self.main_words.update(cw_in_tokens)
-                return True
-        return False
-
-    def point_d(self):
-
-        # un_words = {w for w in self.new_name if w[0].islower()}
-        # if len(un_words) >= 2:
-
-        if count_not_countries(self.new_name) >= 2 and count_countries(self.new_name) >= 1:
-            self.main_words.update(self.new_name)
-            return True
-        return False
-
-    def point_e(self):
-
-        # un_words = {w for w in self.new_name if w[0].islower()}
-        # if len(un_words) >= 2:
-        text = set.intersection(*[n.named_entities['content'] for n in self.news])
-
-        if count_not_countries(self.new_name) >= 3 and count_countries(text) >= 1:
-            self.main_words.update(self.new_name)
-            return True
-        return False
-
-    def point_f(self):
-        text = set.intersection(*[n.named_entities['content'] for n in self.news])
-        if count_not_countries(text) < 2:
-            return False
-        else:
-            return True
-
-    def most_frequent(self):
+    def most_frequent_old(self):
         freq_words = set(self.news[0].all_text)
 
         for i in range(1, len(self.news)):
@@ -237,20 +134,30 @@ class Topic:
 
         return ans
 
-    def frequent_50(self):
+    def most_frequent(self, coefs=(1, 1)):
+        coef, percent_of_words = coefs
         token_freq = {}
-        result = set()
+        result = []
         for new in self.news:
-            for word in new.all_text:
+            all_text = new.all_text.union(new.tokens["content"])
+            for word in all_text:
                 if word not in token_freq.keys():
                     token_freq[word] = 1
                 else:
                     token_freq[word] += 1
 
         for k, i in token_freq.items():
-            if i > len(self.news) / 2:
-                result.add(k)
-        result = {w for w in result if not any(w1 for w1 in result if w in w1 and w != w1)}
+            if i >= len(self.news)*coef:
+                result.append(k)
+
+        ans = sorted(token_freq.items(), key=operator.itemgetter(1), reverse=True)
+        ans = [a[0] for a in ans if a[1] != 0 and a[0] in result]
+
+        result = [w for w in ans if not any(w1 for w1 in ans if w in w1 and w != w1)]
+        num_of_words = ceil(len(result)*percent_of_words)
+        result = result[:num_of_words]
+
+        self.frequent = result
         return result
 
 

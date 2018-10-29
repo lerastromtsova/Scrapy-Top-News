@@ -6,28 +6,10 @@ from utils import iscountry, count_countries, count_not_countries
 from utils import intersection_with_substrings, sublist, unite_news_text_and_topic_name
 from utils import get_other, ContinueI, exists, more_than_one, delete_redundant, replace_presidents
 from utils import get_topic_subtopic_nodes, get_topic_news_nodes
-from math import ceil
 
 from draw_graph import draw_graph_with_topics
 from text_processing.preprocess import STOP_WORDS, unite_countries_in, unite_countries_in_topic_names
-
-
-COEFFICIENTS_1 = {"KA0": 0.35,
-                  "KB0": 0.25,
-                  "KC0": 0.16,
-                  "KD0": 0.08,
-                  "Kid": 1.5,
-                  "KAY": 1.25,
-                  "KBY": 0.38,
-                  "KCY": 0.33,
-                  "KDY": 0.27}
-
-COEFFICIENTS_2 = {"a": 0.34,
-                  "b": 0.34,
-                  "c": 0.34,
-                  "d": 0.1}
-
-THRESHOLD = 0.75
+from coefs import COEFFICIENT_2_FOR_NEWS, COEFFICIENT_1_FOR_NEWS, COEFFICIENTS_2, COEFFICIENTS_1, THRESHOLD, COEF_FOR_FREQUENT, COEF_FOR_FREQUENT_UPPER
 
 
 with open("text_processing/between-words.txt", "r") as f:
@@ -476,38 +458,37 @@ def add_news(topics, data, mode=1):
                 new_unique = delete_redundant(new_unique)
 
                 if mode == 1:
-                    freq_words = set(topic.most_frequent()[:ceil(len(topic.frequent) / 2)])
+                    if count_countries(new_name) and new_unique and len(new_name) != 3 or len(new_name) == 3 and len(new_unique) >= 2:
+                        news_list = topic.news.copy()
+                        news_list.append(new)
+
+                        new_topic = Topic(new_name, news_list)
+                        new_topic.new_name = new_unique
+
+                        t, n = filter_topics([new_topic], d)
+
+                        try:
+                            top = t.pop()
+                            topic.methods_for_news[new.id] = ["F", str(top.coefficient_sums["final_result"]),
+                                                              ', '.join(new_name), ', '.join(new_unique)]
+                            topic.news.append(new)
+
+                        except KeyError:
+                            if len([u for u in new_unique if u[0].isupper() and not u.isupper()]) >= 2:
+                                top = n.pop()
+                                if top.coefficient_sums["summ_1"] >= THRESHOLD:
+                                    topic.methods_for_news[new.id] = ["E", str(top.coefficient_sums["summ_1"]),
+                                                                      ', '.join(new_name), ', '.join(new_unique)]
+                                    topic.news.append(new)
+
                 elif mode == 2:
-                    freq_words = topic.frequent_50()
+                    freq_words = set(topic.most_frequent(COEFFICIENT_1_FOR_NEWS))
+                    common_freq = freq_words.intersection(new.all_text)
 
-                common_freq = freq_words.intersection(new.all_text)
+                    if freq_words and count_countries(new_name):
 
-                freq_diff = freq_words - common_freq
-
-                if count_countries(new_name) >= 1 and count_not_countries(new_name) >= 2 \
-                        and ((len(new_name) == 3 and len(new_unique) >= 2) or (len(new_name) != 3 and new_unique))\
-                        or not freq_diff or len(common_freq) >= 3 and len(common_freq) == 1 and common_freq.pop()[0].islower():
-                            news_list = topic.news.copy()
-                            news_list.append(new)
-
-                            new_topic = Topic(new_name, news_list)
-                            new_topic.new_name = new_unique
-
-                            t, n = filter_topics([new_topic], d)
-
-                            try:
-                                top = t.pop()
-                                topic.methods_for_news[new.id] = ["F", str(top.coefficient_sums["final_result"]),
-                                                                  ', '.join(new_name), ', '.join(new_unique)]
-                                topic.news.append(new)
-
-                            except KeyError:
-                                if len([u for u in new_unique if u[0].isupper()]) >= 2:
-                                    top = n.pop()
-                                    if top.coefficient_sums["summ_1"] >= THRESHOLD:
-                                        topic.methods_for_news[new.id] = ["E", str(top.coefficient_sums["summ_1"]),
-                                                                         ', '.join(new_name), ', '.join(new_unique)]
-                                        topic.news.append(new)
+                        if len(common_freq) / len(freq_words) >= 0.5:
+                            topic.news.append(new)
 
         topic.news = delete_dupl_from_news(topic.news)
     return topics
@@ -565,6 +546,26 @@ def define_main_topics(topics):
         t.news = delete_dupl_from_news(t.news)
         for s in t.subtopics:
             s.news = delete_dupl_from_news(s.news)
+
+    return topics
+
+
+def delete_without_frequent(topics):
+    for t in topics:
+        freq = t.most_frequent(COEFFICIENT_2_FOR_NEWS)
+        for i, n in enumerate(t.news):
+            text = n.all_text.union(n.tokens['content'])
+            freq_text = text.intersection(freq)
+            freq_upper = [w for w in freq_text if w[0].isupper() and not w.isupper()]
+            if len(freq_valid) < COEF_FOR_FREQUENT or len(freq_upper) < COEF_FOR_FREQUENT_UPPER:
+                t.news[i] = None
+        t.news = [n for n in t.news if n]
+    return topics
+
+
+def unite_topics_by_news(topics):
+
+    topics = add_news(topics,corpus.data,2)
 
     to_remove = set()
 
@@ -707,14 +708,11 @@ def add_tokens_to_topics(topics):
                         token_freq[word] = 1
                 else:
                         token_freq[word] += 1
-        print(t.name)
-        print(token_freq)
 
         for k, i in token_freq.items():
             if i >= 3:
                 t.name.add(k)
-            if i > len(t.news)/2:
-                t.frequent.append(k)
+
         t.name = delete_redundant(t.name)
         t.name = {w for w in t.name if not any((w1 for w1 in t.name-{w} if w1.lower() in w.lower()))}
     return topics
@@ -968,6 +966,17 @@ if __name__ == '__main__':
     write_topics_with_subtopics(f"documents/{db}-7.xlsx", corpus.topics)
     print(7, len(corpus.topics))
     print(datetime.now() - time)
+
+    corpus.topics = delete_without_frequent(corpus.topics)
+    write_topics_with_subtopics(f"documents/{db}-7-1.xlsx", corpus.topics)
+    print(71, len(corpus.topics))
+    print(datetime.now() - time)
+
+    corpus.topics = unite_topics_by_news(corpus.topics)
+    write_topics_with_subtopics(f"documents/{db}-7-2.xlsx", corpus.topics)
+    print(72, len(corpus.topics))
+    print(datetime.now() - time)
+
 
     """ Unite topics """
     corpus.topics = sorted(corpus.topics, key=lambda x: -len(x.name))

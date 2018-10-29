@@ -1,6 +1,7 @@
 import csv
 import openpyxl
 from math import ceil
+from coefs import COEFFICIENT_1_FOR_NEWS, COEFFICIENT_2_FOR_NEWS
 
 
 def check_xl(nodes, all_links):
@@ -342,19 +343,8 @@ def write_topics(fname, topics):
         sheet.cell(row=i + 3, column=38).value = ", ".join(unique_countries)
         sheet.cell(row=i + 3, column=39).value = unique_num_numbers
         sheet.cell(row=i + 3, column=40).value = unique_num_ids
-
-        if not topic.frequent:
-            topic.frequent = topic.most_frequent()
-
-        sheet.cell(row=i + 3, column=41).value = ', '.join(topic.frequent)
-
-        if len(topic.frequent) >= 8:
-            freq_50 = topic.frequent[:ceil(len(topic.frequent) / 2)]
-        elif 4 <= len(topic.frequent) <= 8:
-            freq_50 = topic.frequent[:4]
-        else:
-            freq_50 = topic.frequent[:len(topic.frequent)]
-
+        sheet.cell(row=i + 3, column=41).value = ', '.join(topic.most_frequent((1,1)))
+        freq_50 = topic.most_frequent(COEFFICIENT_1_FOR_NEWS)
         sheet.cell(row=i + 3, column=42).value = ', '.join(freq_50)
 
         sheet.cell(row=i + 3, column=43).value = ', '.join(topic.objects)
@@ -547,21 +537,12 @@ def write_topics_with_subtopics(fname, topics):
         sheet.cell(row=row_num, column=39).value = unique_num_numbers
         sheet.cell(row=row_num, column=40).value = unique_num_ids
 
-        if not topic.frequent:
-            topic.frequent = topic.most_frequent()
-
-        sheet.cell(row=row_num, column=41).value = ', '.join(topic.frequent)
-
-        if len(topic.frequent) >= 8:
-            freq_50 = topic.frequent[:ceil(len(topic.frequent) / 2)]
-        elif 4 <= len(topic.frequent) <= 8:
-            freq_50 = topic.frequent[:4]
-        else:
-            freq_50 = topic.frequent[:len(topic.frequent)]
+        sheet.cell(row=row_num, column=41).value = ', '.join(topic.most_frequent((1, 1)))
+        freq_50 = topic.most_frequent(COEFFICIENT_1_FOR_NEWS)
 
         sheet.cell(row=row_num, column=42).value = ', '.join(freq_50)
 
-        sheet.cell(row=row_num, column=43).value = ', '.join(topic.frequent_50())
+        sheet.cell(row=row_num, column=43).value = ', '.join(topic.most_frequent(COEFFICIENT_2_FOR_NEWS))
         sheet.cell(row=row_num, column=44).value = ', '.join(topic.obj)
         try:
             sheet.cell(row=row_num, column=45).value = ', '.join(
@@ -676,21 +657,12 @@ def write_topics_with_subtopics(fname, topics):
                 sheet.cell(row=row_num, column=39).value = unique_num_numbers
                 sheet.cell(row=row_num, column=40).value = unique_num_ids
 
-                if not s.frequent:
-                    s.frequent = s.most_frequent()
-
-                sheet.cell(row=row_num, column=41).value = ', '.join(s.frequent)
-
-                if len(s.frequent) >= 8:
-                    freq_50 = s.frequent[:ceil(len(s.frequent) / 2)]
-                elif 4 <= len(s.frequent) <= 8:
-                    freq_50 = s.frequent[:4]
-                else:
-                    freq_50 = s.frequent[:len(s.frequent)]
+                sheet.cell(row=row_num, column=41).value = ', '.join(s.most_frequent((1, 1)))
+                freq_50 = s.most_frequent(COEFFICIENT_1_FOR_NEWS)
 
                 sheet.cell(row=row_num, column=42).value = ', '.join(freq_50)
 
-                sheet.cell(row=row_num, column=43).value = ', '.join(s.frequent_50())
+                sheet.cell(row=row_num, column=43).value = ', '.join(s.most_frequent(COEFFICIENT_2_FOR_NEWS))
                 sheet.cell(row=row_num, column=44).value = ', '.join(s.obj)
                 try:
                     sheet.cell(row=row_num, column=45).value = ', '.join(
