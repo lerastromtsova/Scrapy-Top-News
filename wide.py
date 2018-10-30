@@ -662,7 +662,8 @@ def unite_subtopics(topics):
                 for os in other_subtopics:
                     news_difference1 = {n for n in subtopic.news if n not in os.news}
                     news_difference2 = {n for n in os.news if n not in subtopic.news}
-                    if len(news_difference1) <= 1 or len(news_difference2) <= 1:
+                    if ((len(news_difference1) <= 1 or len(news_difference2) <= 1) and len(os.news) > 2 and len(subtopic.news) > 2)\
+                            or set(os.news).issubset(set(subtopic.news)):
                         subtopic.name.update(os.name)
                         subtopic.new_name.update(os.new_name)
                         subtopic.news.extend(os.news)
