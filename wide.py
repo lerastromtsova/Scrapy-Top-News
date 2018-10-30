@@ -435,8 +435,8 @@ def add_news(topics, data, mode=1):
     for topic in topics:
         for new in data:
             d = False
-            # new.all_text = new.description
-            # new.all_text.update(new.tokens['content'])
+            new.all_text = new.description
+            new.all_text.update(new.tokens['content'])
 
             if new not in topic.news:
                 to_check = {0: list(topic.name),
@@ -483,11 +483,15 @@ def add_news(topics, data, mode=1):
 
                 elif mode == 2:
                     freq_words = set(topic.most_frequent(COEFFICIENT_1_FOR_NEWS))
+                    freq_lower = {w for w in freq_words if w[0].islower()}
+
                     common_freq = freq_words.intersection(new.all_text)
+                    freq_diff = freq_words - common_freq
 
-                    if freq_words and count_countries(new_name):
+                    if count_countries(new_name) and len(freq_words) >= 2 \
+                        and freq_lower != freq_words and (freq_words == common_freq or
+                        len(freq_words) >= 3 and len(freq_diff) == 1 and freq_diff.pop()[0].islower()):
 
-                        if len(common_freq) / len(freq_words) >= 0.5:
                             topic.news.append(new)
 
         topic.news = delete_dupl_from_news(topic.news)
@@ -557,7 +561,7 @@ def delete_without_frequent(topics):
             text = n.all_text.union(n.tokens['content'])
             freq_text = text.intersection(freq)
             freq_upper = [w for w in freq_text if w[0].isupper() and not w.isupper()]
-            if len(freq_valid) < COEF_FOR_FREQUENT or len(freq_upper) < COEF_FOR_FREQUENT_UPPER:
+            if len(freq_text) < COEF_FOR_FREQUENT or len(freq_upper) < COEF_FOR_FREQUENT_UPPER:
                 t.news[i] = None
         t.news = [n for n in t.news if n]
     return topics
