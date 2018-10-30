@@ -500,6 +500,34 @@ def add_news(topics, data, mode=1):
                         len(freq_words) >= 3 and len(freq_diff) == 1 and freq_diff.pop()[0].islower()):
 
                             topic.news.append(new)
+        if mode == 2:
+            for s in topic.subtopics:
+                for new in data:
+                    if new not in s.news:
+                        to_check = {0: list(s.name),
+                                    1: new.uppercase_sequences}
+                        fio_in_name = unite_fio_in_two_strings(to_check, False)
+                        new_name = fio_in_name[0].intersection(fio_in_name[1])
+
+                        inters_1 = s.name.intersection(new.description.union(new.tokens["content"]))
+                        new_name.update(inters_1)
+                        new_name = delete_redundant(new_name)
+
+                        to_check = {0: list(s.new_name),
+                                    1: new.uppercase_sequences}
+                        fio_in_unique = unite_fio_in_two_strings(to_check, False)
+                        new_unique = fio_in_unique[0].intersection(fio_in_unique[1])
+
+                        inters_2 = s.new_name.intersection(new.all_text)
+                        new_unique.update(inters_2)
+                        new_unique = delete_redundant(new_unique)
+
+                        freq_words = set(s.most_frequent(COEFFICIENT_1_FOR_NEWS))
+
+                        common_freq = freq_words.intersection(new.all_text)
+
+                        if count_countries(new_name) and freq_words == common_freq and new_unique:
+                            s.news.append(new)
 
         topic.news = delete_dupl_from_news(topic.news)
     return topics
@@ -989,7 +1017,6 @@ if __name__ == '__main__':
     write_topics_with_subtopics(f"documents/{db}-7-2.xlsx", corpus.topics)
     print(72, len(corpus.topics))
     print(datetime.now() - time)
-
 
     """ Unite topics """
     corpus.topics = sorted(corpus.topics, key=lambda x: -len(x.name))

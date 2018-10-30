@@ -571,6 +571,8 @@ def delete_without_frequent(topics):
             if len(freq_text) < COEF_FOR_FREQUENT or len(freq_upper) < COEF_FOR_FREQUENT_UPPER:
                 t.news[i] = None
         t.news = [n for n in t.news if n]
+        if t.subtopics:
+            t.subtopics = delete_without_frequent(t.subtopics)
     return topics
 
 
