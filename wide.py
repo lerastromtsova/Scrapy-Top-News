@@ -440,6 +440,10 @@ def filter_topics(topics, debug=False):
 # 6
 def add_news(topics, data, mode=1):
     for topic in topics:
+
+        freq_words = set(topic.most_frequent(COEFFICIENT_1_FOR_NEWS))
+        freq_lower = {w for w in freq_words if w[0].islower()}
+
         for new in data:
             d = False
             new.all_text = new.description
@@ -489,19 +493,28 @@ def add_news(topics, data, mode=1):
                                     topic.news.append(new)
 
                 elif mode == 2:
-                    freq_words = set(topic.most_frequent(COEFFICIENT_1_FOR_NEWS))
-                    freq_lower = {w for w in freq_words if w[0].islower()}
 
                     common_freq = freq_words.intersection(new.all_text)
                     freq_diff = freq_words - common_freq
 
-                    if count_countries(new_name) and len(freq_words) >= 2 \
-                        and freq_lower != freq_words and (freq_words == common_freq or
-                        len(freq_words) >= 3 and len(freq_diff) == 1 and freq_diff.pop()[0].islower()):
+                    # if count_countries(new_name) and len(freq_words) >= 2 \
+                    #     and freq_lower != freq_words and (freq_words == common_freq or
+                    #     len(freq_words) >= 3 and len(freq_diff) == 1 and list(freq_diff)[0].islower()):
+                    if count_countries(new_name) and freq_words==common_freq:
+
+                            print("Topic: ", topic.name)
+                            print("Frequent 50%: ", freq_words)
+                            print("Common frequent: ", common_freq)
+                            print("News ID: ", new.id)
+                            print("\n")
 
                             topic.news.append(new)
+
         if mode == 2:
             for s in topic.subtopics:
+
+                freq_words = set(s.most_frequent(COEFFICIENT_1_FOR_NEWS))
+
                 for new in data:
                     if new not in s.news:
                         to_check = {0: list(s.name),
@@ -521,8 +534,6 @@ def add_news(topics, data, mode=1):
                         inters_2 = s.new_name.intersection(new.all_text)
                         new_unique.update(inters_2)
                         new_unique = delete_redundant(new_unique)
-
-                        freq_words = set(s.most_frequent(COEFFICIENT_1_FOR_NEWS))
 
                         common_freq = freq_words.intersection(new.all_text)
 
@@ -606,29 +617,29 @@ def delete_without_frequent(topics):
 
 def unite_topics_by_news(topics):
 
-    topics = add_news(topics,corpus.data,2)
+    topics = add_news(topics, corpus.data, 2)
 
-    to_remove = set()
+    # to_remove = set()
 
-    for t in topics:
-        if not t.subtopics:
-
-            for ot in topics:
-
-                if ot.subtopics:
-
-                    if set(t.news).issubset(set(ot.news)):
-                            extend_topic(ot, t)
-                            to_remove.add(t)
-
-                    elif len(t.news) > 2 and len(ot.news) > 2:
-                            news_difference1 = {n for n in t.news if n not in ot.news}
-                            news_difference2 = {n for n in ot.news if n not in t.news}
-                            if len(news_difference1) <= 1 or len(news_difference2) <= 1:
-                                extend_topic(ot, t)
-                                to_remove.add(t)
-
-    topics = [t for t in topics if t not in to_remove]
+    # for t in topics:
+    #     if not t.subtopics:
+    #
+    #         for ot in topics:
+    #
+    #             if ot.subtopics:
+    #
+    #                 if set(t.news).issubset(set(ot.news)):
+    #                         extend_topic(ot, t)
+    #                         to_remove.add(t)
+    #
+    #                 elif len(t.news) > 2 and len(ot.news) > 2:
+    #                         news_difference1 = {n for n in t.news if n not in ot.news}
+    #                         news_difference2 = {n for n in ot.news if n not in t.news}
+    #                         if len(news_difference1) <= 1 or len(news_difference2) <= 1:
+    #                             extend_topic(ot, t)
+    #                             to_remove.add(t)
+    #
+    # topics = [t for t in topics if t not in to_remove]
 
     for t in topics:
         t.news = delete_dupl_from_news(t.news)
