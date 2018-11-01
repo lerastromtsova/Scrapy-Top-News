@@ -134,7 +134,7 @@ class Topic:
 
         return ans
 
-    def most_frequent(self, coefs=(1, 1)):
+    def most_frequent(self, coefs=(1, 1), with_fio=False):
         coef, percent_of_words = coefs
         token_freq = {}
         result = []
@@ -154,8 +154,21 @@ class Topic:
         ans = [a[0] for a in ans if a[1] != 0 and a[0] in result]
 
         result = [w for w in ans if not any(w1 for w1 in ans if w in w1 and w != w1)]
+
+        if with_fio:
+
+            for word in self.name:
+                fio_list = word.split()
+                similar_freq = [w for w in result if w in fio_list]
+                if len(similar_freq) >= 2:
+                    idx = [result.index(w) for w in similar_freq]
+                    min_idx = min(idx)
+                    result[min_idx] = word
+                    result = [w for w in result if w not in similar_freq]
+
         num_of_words = ceil(len(result)*percent_of_words)
-        result = result[:num_of_words]
+        if num_of_words >= 3:
+            result = result[:num_of_words]
 
         self.frequent = result
         return result

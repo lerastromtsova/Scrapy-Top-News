@@ -437,12 +437,14 @@ def filter_topics(topics, debug=False):
     return positive, negative
 
 
-# 6
+# 6,7.2
 def add_news(topics, data, mode=1):
     for topic in topics:
 
-        freq_words = set(topic.most_frequent(COEFFICIENT_1_FOR_NEWS))
+        freq_words = set(topic.most_frequent(COEFFICIENT_1_FOR_NEWS, True))
         freq_lower = {w for w in freq_words if w[0].islower()}
+
+        flat_freq = {w for k in freq_words for w in k.split()}
 
         for new in data:
             d = False
@@ -494,26 +496,27 @@ def add_news(topics, data, mode=1):
 
                 elif mode == 2:
 
-                    common_freq = freq_words.intersection(new.all_text)
+                    flat_text = {w for k in new.all_text for w in k.split()}
+                    common_freq = flat_freq.intersection(flat_text)
                     freq_diff = freq_words - common_freq
 
                     # if count_countries(new_name) and len(freq_words) >= 2 \
                     #     and freq_lower != freq_words and (freq_words == common_freq or
                     #     len(freq_words) >= 3 and len(freq_diff) == 1 and list(freq_diff)[0].islower()):
-                    if count_countries(new_name) and freq_words==common_freq:
+                    if count_countries(new_name) and freq_words == common_freq:
 
-                            print("Topic: ", topic.name)
-                            print("Frequent 50%: ", freq_words)
-                            print("Common frequent: ", common_freq)
-                            print("News ID: ", new.id)
-                            print("\n")
+                            # print("Topic: ", topic.name)
+                            # print("Frequent 50%: ", freq_words)
+                            # print("Common frequent: ", common_freq)
+                            # print("News ID: ", new.id)
+                            # print("\n")
 
                             topic.news.append(new)
 
         if mode == 2:
             for s in topic.subtopics:
 
-                freq_words = set(s.most_frequent(COEFFICIENT_1_FOR_NEWS))
+                freq_words = set(s.most_frequent(COEFFICIENT_1_FOR_NEWS, True))
 
                 for new in data:
                     if new not in s.news:
@@ -599,7 +602,7 @@ def define_main_topics(topics):
 
     return topics
 
-
+# 7.1
 def delete_without_frequent(topics):
     for t in topics:
         freq = t.most_frequent(COEFFICIENT_2_FOR_NEWS)
@@ -612,9 +615,10 @@ def delete_without_frequent(topics):
         t.news = [n for n in t.news if n]
         if t.subtopics:
             t.subtopics = delete_without_frequent(t.subtopics)
+    topics = [t for t in topics if t.news]
     return topics
 
-
+# 7.2
 def unite_topics_by_news(topics):
 
     topics = add_news(topics, corpus.data, 2)
@@ -688,50 +692,6 @@ def unite_subtopics(topics):
 
     return topics
 
-
-# 11
-# def add_news_2(topics, data):
-#
-#     def add_news_to_topic(topic, data):
-#         debug = False
-#         # if "Vladimir Putin" in topic.name:
-#         #     debug = True
-#         for new in data:
-#             if new not in topic.news:
-#                 text = new.all_text.union(new.tokens['content'])
-#                 name = unite_news_text_and_topic_name(text, topic.name)
-#                 unique = unite_news_text_and_topic_name(text, topic.new_name)
-#                 news = topic.news.copy()
-#                 news.append(new)
-#                 t = Topic(name, news)
-#                 t.new_name = unique
-#                 f, _ = filter_topics([t])
-#                 if debug:
-#                     print("Common words", name)
-#                     print("Common unique", unique)
-#                     print("News ID", new.id)
-#                     print("Topic name", topic.name)
-#                 if f:
-#                     if unique:
-#                         topic.news.append(new)
-#                         new_t = f.pop()
-#                         topic.methods_for_news[new.id] = [str(new_t.coefficient_sums["final_result"]),
-#                                                           ', '.join(name), ', '.join(new_t.new_name)]
-#                         topic.news.append(new)
-#         topic.news = delete_dupl_from_news(topic.news)
-#         return topic
-#
-#     new_topics = set()
-#     for i, topic in enumerate(topics):
-#         new_topic = add_news_to_topic(topic, data)
-#
-#         for j, s in enumerate(topic.subtopics):
-#             sub = add_news_to_topic(s, data)
-#             new_topic.subtopics.append(sub)
-#
-#         new_topics.add(new_topic)
-#
-#     return new_topics
 
 
 # 12
@@ -891,6 +851,24 @@ def form_new_wide(topics, data):
     return topics
 
 
+def simple_report(topics, num_points, start_time, db_name):
+    write_topics(f"documents/{db_name}-{num_points}.xlsx", topics)
+    print(num_points, len(topics))
+    print(datetime.now() - start_time)
+    if with_graphs:
+        nodes, edges = get_topic_news_nodes(topics)
+        draw_graph_with_topics(nodes, edges, db_name + f" {num_points}")
+
+
+def subtopics_report(topics, num_points, start_time, db_name, freq_fio=False):
+    write_topics_with_subtopics(f"documents/{db_name}-{num_points}.xlsx", topics, freq_fio)
+    print(num_points, len(topics))
+    print(datetime.now() - start_time)
+    if with_graphs:
+        nodes, edges = get_topic_subtopic_nodes(topics)
+        draw_graph_with_topics(nodes, edges, db_name + f" {num_points}")
+
+
 if __name__ == '__main__':
 
     db = input("DB name (default - day): ")
@@ -921,39 +899,19 @@ if __name__ == '__main__':
         topic.name = {w for w in topic.name if len(w) > 3 or w.isupper()}
     corpus.delete_small()
 
-    if with_graphs:
-        # 2) график по 2 общим словам со странами (хотя бы 1 страна)
-        nodes, edges = get_topic_news_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db+"2 общ. и 1 страна")
-
-    write_topics(f"documents/{db}-0.xlsx", corpus.topics)
-    print(0, len(corpus.topics))
-    print(datetime.now() - time)
+    simple_report(corpus.topics, 0, time, db)
 
     """ Unite words in name + surname combinations """
     corpus.topics = delete_duplicates(corpus.topics)
     corpus.topics = unite_fio(corpus.topics)
 
-    if with_graphs:
-        # 3) График по 3 общим токенам (с ФИО)
-        nodes, edges = get_topic_news_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db+" 1")
-
-    write_topics(f"documents/{db}-1.xlsx", corpus.topics)
-    print(1, len(corpus.topics))
-    print(datetime.now() - time)
+    simple_report(corpus.topics, 1, time, db)
 
     """ Leave only those that have more than 1 country and 2 not-country words in name """
     corpus.topics = delete_duplicates(corpus.topics)
     corpus.topics = check_topics(corpus.topics)
 
-    if with_graphs:
-        nodes, edges = get_topic_news_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 2")
-
-    write_topics(f"documents/{db}-2.xlsx", corpus.topics)
-    print(2, len(corpus.topics))
-    print(datetime.now() - time)
+    simple_report(corpus.topics, 2, time, db)
 
     """ Check uniqueness of each topic against others """
     """ And delete those without unique words or that have one small unique word"""
@@ -970,37 +928,18 @@ if __name__ == '__main__':
 
     corpus.topics = delete_without_unique(corpus.topics)
 
-    if with_graphs:
-        nodes, edges = get_topic_news_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 3")
-
-    write_topics(f"documents/{db}-3.xlsx", corpus.topics)
-    print(3, len(corpus.topics))
-    print(datetime.now() - time)
+    simple_report(corpus.topics, 3, time, db)
 
     """ Find sums according to specified coefficients for each topic and filter them using threshold """
     corpus.topics, neg = filter_topics(corpus.topics, False)
 
-    if with_graphs:
-        nodes, edges = get_topic_news_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 5")
-
-    write_topics(f"documents/{db}-5-прошли.xlsx", corpus.topics)
-    write_topics(f"documents/{db}-5-не прошли.xlsx", neg)
-    print(5, len(corpus.topics))
-    print(datetime.now() - time)
+    simple_report(corpus.topics, 5, time, db)
 
     """ Delete without unique and duplicates """
     corpus.topics = delete_without_unique(corpus.topics)
     corpus.topics = delete_duplicates(corpus.topics)
 
-    if with_graphs:
-        nodes, edges = get_topic_news_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 6")
-
-    write_topics(f"documents/{db}-6.xlsx", corpus. topics)
-    print(6, len(corpus.topics))
-    print(datetime.now() - time)
+    simple_report(corpus.topics, 6, time, db)
 
     """ Delete redundant words from topic names """
     for t in corpus.topics:
@@ -1016,100 +955,46 @@ if __name__ == '__main__':
         nodes, edges = get_topic_subtopic_nodes(corpus.topics)
         draw_graph_with_topics(nodes, edges, db + " 7")
 
-    write_topics_with_subtopics(f"documents/{db}-7.xlsx", corpus.topics)
-    print(7, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 7, time, db)
 
     corpus.topics = delete_without_frequent(corpus.topics)
-    write_topics_with_subtopics(f"documents/{db}-7-1.xlsx", corpus.topics)
-    print(71, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 7.1, time, db)
 
     corpus.topics = unite_topics_by_news(corpus.topics)
-    write_topics_with_subtopics(f"documents/{db}-7-2.xlsx", corpus.topics)
-    print(72, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 7.2, time, db, freq_fio=True)
 
     """ Unite topics """
     corpus.topics = sorted(corpus.topics, key=lambda x: -len(x.name))
     corpus.topics = unite_subtopics(corpus.topics)
 
-    if with_graphs:
-        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 8")
-
-    write_topics_with_subtopics(f"documents/{db}-8.xlsx", corpus.topics)
-    print(8, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 8, time, db, True)
 
     """ Delete duplicates in topics """
     corpus.topics = delete_duplicates(corpus.topics)
 
-    if with_graphs:
-        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 9")
-
-    write_topics_with_subtopics(f"documents/{db}-9.xlsx", corpus.topics)
-    print(9, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 9, time, db, True)
 
     """ If a topic is small, it is 'eaten' by the bigger one """
     corpus.topics = delete_subtopics(corpus.topics)
 
-    if with_graphs:
-        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 10")
-
-    write_topics_with_subtopics(f"documents/{db}-10.xlsx", corpus.topics)
-    print(10, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 10, time, db)
 
     corpus.topics = add_minor_to_subtopics(corpus.topics)
 
-    if with_graphs:
-        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 12")
-
-    write_topics_with_subtopics(f"documents/{db}-12.xlsx", corpus.topics)
-    print(12, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 12, time, db, True)
 
     corpus.topics = add_tokens_to_topics(corpus.topics)
 
-    if with_graphs:
-        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 13")
-
-    write_topics_with_subtopics(f"documents/{db}-13.xlsx", corpus.topics)
-    print(13, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 13, time, db, True)
 
     corpus.topics = add_news(corpus.topics, corpus.data, 2)
 
-    if with_graphs:
-        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 14")
-
-    write_topics_with_subtopics(f"documents/{db}-14.xlsx", corpus.topics)
-    print(14, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 14, time, db, True)
 
     corpus.topics = unite_small_topics(corpus.topics)
 
-    if with_graphs:
-        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 15")
-
-    write_topics_with_subtopics(f"documents/{db}-15.xlsx", corpus.topics)
-    print(15, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 15, time, db, True)
 
     corpus.topics = form_new_wide(corpus.topics, corpus.data)
 
-    if with_graphs:
-        nodes, edges = get_topic_subtopic_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db + " 16")
-
-    write_topics_with_subtopics(f"documents/{db}-16.xlsx", corpus.topics)
-    print(16, len(corpus.topics))
-    print(datetime.now() - time)
+    subtopics_report(corpus.topics, 16, time, db, True)
