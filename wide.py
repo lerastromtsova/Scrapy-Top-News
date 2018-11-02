@@ -444,7 +444,7 @@ def add_news(topics, data, mode=1):
         freq_words = set(topic.most_frequent(COEFFICIENT_1_FOR_NEWS, True))
         freq_lower = {w for w in freq_words if w[0].islower()}
 
-        flat_freq = {w for k in freq_words for w in k.split()}
+        flat_freq = {k.split() for k in freq_words}
 
         for new in data:
             d = False
@@ -471,7 +471,7 @@ def add_news(topics, data, mode=1):
                 new_unique = delete_redundant(new_unique)
 
                 if mode == 1:
-                    if count_countries(new_name) and new_unique and len(new_name) != 3 or len(new_name) == 3 and len(new_unique) >= 2:
+                    if new not in topic.news and count_countries(new_name) and new_unique and len(new_name) != 3 or len(new_name) == 3 and len(new_unique) >= 2:
                         news_list = topic.news.copy()
                         news_list.append(new)
 
@@ -497,12 +497,19 @@ def add_news(topics, data, mode=1):
                 elif mode == 2:
 
                     flat_text = {w for k in new.all_text for w in k.split()}
-                    common_freq = flat_freq.intersection(flat_text)
+                    common_freq = {w for w in flat_text if any(k for k in flat_freq if w in k)}
                     freq_diff = freq_words - common_freq
 
                     # if count_countries(new_name) and len(freq_words) >= 2 \
                     #     and freq_lower != freq_words and (freq_words == common_freq or
                     #     len(freq_words) >= 3 and len(freq_diff) == 1 and list(freq_diff)[0].islower()):
+                    if "Putin" in topic.name or "Vladimir Putin" in topic.name:
+                        print("Topic: ", topic.name)
+                        print(flat_freq)
+                        print(flat_text)
+                        print(new.id)
+                        print(common_freq)
+                        print("\n")
                     if count_countries(new_name) and freq_words == common_freq:
 
                             # print("Topic: ", topic.name)
@@ -510,13 +517,15 @@ def add_news(topics, data, mode=1):
                             # print("Common frequent: ", common_freq)
                             # print("News ID: ", new.id)
                             # print("\n")
+                            if new not in topic.news:
 
-                            topic.news.append(new)
+                                topic.news.append(new)
 
         if mode == 2:
             for s in topic.subtopics:
 
                 freq_words = set(s.most_frequent(COEFFICIENT_1_FOR_NEWS, True))
+                flat_freq = {k.split() for k in freq_words}
 
                 for new in data:
                     if new not in s.news:
@@ -538,9 +547,10 @@ def add_news(topics, data, mode=1):
                         new_unique.update(inters_2)
                         new_unique = delete_redundant(new_unique)
 
-                        common_freq = freq_words.intersection(new.all_text)
+                        flat_text = {w for k in new.all_text for w in k.split()}
+                        common_freq = {w for w in flat_text if any(k for k in flat_freq if w in k)}
 
-                        if count_countries(new_name) and freq_words == common_freq and new_unique:
+                        if count_countries(new_name) and freq_words == common_freq and new_unique and new not in s.news:
                             s.news.append(new)
 
         topic.news = delete_dupl_from_news(topic.news)
@@ -827,6 +837,11 @@ def unite_small_topics(topics):
                             to_remove.add(bt)
 
     topics = [t for t in topics if t not in to_remove]
+
+    for t in topics:
+        t.news = delete_dupl_from_news(t.news)
+        for s in t.subtopics:
+            s.news = delete_dupl_from_news(s.news)
 
     return topics
 
