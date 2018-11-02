@@ -444,7 +444,7 @@ def add_news(topics, data, mode=1):
         freq_words = set(topic.most_frequent(COEFFICIENT_1_FOR_NEWS, True))
         freq_lower = {w for w in freq_words if w[0].islower()}
 
-        flat_freq = {k.split() for k in freq_words}
+        flat_freq = [k.split() for k in freq_words]
 
         for new in data:
             d = False
@@ -525,7 +525,7 @@ def add_news(topics, data, mode=1):
             for s in topic.subtopics:
 
                 freq_words = set(s.most_frequent(COEFFICIENT_1_FOR_NEWS, True))
-                flat_freq = {k.split() for k in freq_words}
+                flat_freq = [k.split() for k in freq_words]
 
                 for new in data:
                     if new not in s.news:
