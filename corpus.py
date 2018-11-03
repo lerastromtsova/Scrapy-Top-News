@@ -16,7 +16,6 @@ COUNTRIES = [row[0] for row in all_rows]
 STOP_PATH_UNIQUE = 'text_processing/stop-words-unique.txt'
 with open(STOP_PATH_UNIQUE, "r") as f:
     STOP_WORDS_UNIQUE = f.read().split('\n')
-    # print(STOP_WORDS_UNIQUE)
 
 
 class Topic:
@@ -29,7 +28,6 @@ class Topic:
         self.new_name = {w for w in self.new_name if w.lower() not in STOP_WORDS_UNIQUE and not w.isdigit()}
 
         self.news = init_news
-        # self.sentences_by_words = dict.fromkeys(self.name)
 
         self.main_words = set()
         self.unique_words = set()
@@ -50,16 +48,10 @@ class Topic:
 
         self.coefficient_sums = {}
 
-        # for key in self.sentences_by_words:
-        #     self.sentences_by_words[key] = []
-        #
-        # for word in self.name:
-        #     for i, new in enumerate(self.news):
-        #         for sent in new.sentences:
-        #             if word in sent:
-        #                 self.sentences_by_words[word].append(sent)
-
-        # self.text_name = self.news[0].named_entities['content'].intersection(self.news[1].named_entities['content'])
+    def __str__(self):
+        name_string = ", ".join(self.name)
+        ids_string = ", ".join([str(n.id) for n in self.news])
+        return f"Name: {name_string} \n News: {ids_string}"
 
     def all_words(self, text):
         return text, len(text)
@@ -220,6 +212,8 @@ class Corpus:
         self.create_documents(raw_data)
 
     def find_topics(self, mode={"country":1, "not_country":2}):
+
+        """ Find initial topics """
 
         for row in self.data:
             others = [r for r in self.data if r.country != row.country]
