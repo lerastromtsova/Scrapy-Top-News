@@ -500,6 +500,13 @@ def add_news(topics, data, mode=1):
                     common_freq = {w for w in flat_text if any(k for k in flat_freq if w in k)}
                     freq_diff = freq_words - common_freq
 
+                    to_remove = set()
+                    for word in common_freq:
+                        for other_word in common_freq:
+                            if word + ' ' + other_word in freq_words:
+                                to_remove.add(word)
+                    common_freq -= to_remove
+
                     # if count_countries(new_name) and len(freq_words) >= 2 \
                     #     and freq_lower != freq_words and (freq_words == common_freq or
                     #     len(freq_words) >= 3 and len(freq_diff) == 1 and list(freq_diff)[0].islower()):
@@ -510,7 +517,7 @@ def add_news(topics, data, mode=1):
                         print(new.id)
                         print(common_freq)
                         print("\n")
-                    if count_countries(new_name) and freq_words == common_freq:
+                    if count_countries(new_name) and len(freq_words) == len(common_freq):
 
                             # print("Topic: ", topic.name)
                             # print("Frequent 50%: ", freq_words)
@@ -549,8 +556,14 @@ def add_news(topics, data, mode=1):
 
                         flat_text = {w for k in new.all_text for w in k.split()}
                         common_freq = {w for w in flat_text if any(k for k in flat_freq if w in k)}
+                        to_remove = set()
+                        for word in common_freq:
+                            for other_word in common_freq:
+                                if word + ' ' + other_word in freq_words:
+                                    to_remove.add(word)
+                        common_freq -= to_remove
 
-                        if count_countries(new_name) and freq_words == common_freq and new_unique and new not in s.news:
+                        if count_countries(new_name) and len(freq_words) == len(common_freq) and new_unique and new not in s.news:
                             s.news.append(new)
 
         topic.news = delete_dupl_from_news(topic.news)
