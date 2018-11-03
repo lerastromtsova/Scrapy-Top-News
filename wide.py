@@ -442,10 +442,15 @@ def filter_topics(topics, debug=False):
 def add_news(topics, data, mode=1):
     for topic in topics:
 
+        debug = False
+
         freq_words = set(topic.most_frequent(COEFFICIENT_1_FOR_NEWS, True))
         freq_lower = {w for w in freq_words if w[0].islower()}
 
         flat_freq = [k.split() for k in freq_words]
+
+        if "helicopter" in topic.name:
+            debug = True
 
         for new in data:
             d = False
@@ -506,7 +511,16 @@ def add_news(topics, data, mode=1):
                         for other_word in common_freq:
                             if word + ' ' + other_word in freq_words:
                                 to_remove.add(word)
+                            for oother_word in common_freq:
+                                if word + ' ' + other_word+ ' ' + oother_word in freq_words:
+                                    to_remove.add(word)
+                                    to_remove.add(other_word)
                     common_freq -= to_remove
+
+                    if debug:
+                        print("Frequent: ", freq_words)
+                        print("ID: ", new.id)
+                        print("Common freq: ", common_freq)
 
                     # if count_countries(new_name) and len(freq_words) >= 2 \
                     #     and freq_lower != freq_words and (freq_words == common_freq or
@@ -562,6 +576,10 @@ def add_news(topics, data, mode=1):
                             for other_word in common_freq:
                                 if word + ' ' + other_word in freq_words:
                                     to_remove.add(word)
+                                for oother_word in common_freq:
+                                    if word + ' ' + other_word + ' ' + oother_word in freq_words:
+                                        to_remove.add(word)
+                                        to_remove.add(other_word)
                         common_freq -= to_remove
 
                         if count_countries(new_name) and len(freq_words) == len(common_freq) and new_unique and new not in s.news:
@@ -772,7 +790,7 @@ def unite_by_news(topics):
         similar = list()
         for ot in topics:
             if ot not in to_remove:
-                if ot != t:
+                if ot.name != t.name:
                     common_news = set(ot.news).intersection(set(t.news))
                     countries_in_common = {n.country for n in common_news}
                     if len(countries_in_common) >= 2:
@@ -797,7 +815,7 @@ def unite_by_news(topics):
 # 11
 def form_new_wide(topics, data):
     small_topics = [t for t in topics if len(t.news)==2]
-    news_in_small = [n for t in topics for n in t.news]
+    news_in_small = [n for t in small_topics for n in t.news]
     counts = {n.id: news_in_small.count(n) for n in set(news_in_small)}
     to_remove = set()
     for id, count in counts.items():

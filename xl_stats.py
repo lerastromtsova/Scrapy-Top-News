@@ -394,7 +394,7 @@ def write_topics(fname, topics):
     wb.save(fname)
 
 
-def write_topics_with_subtopics(fname, topics, fio_in_freq=False):
+def write_topics_with_subtopics(fname, topics, fio_in_freq=False, fio_in_freq_new=False):
     wb = openpyxl.Workbook()
     sheet = wb.active
 
@@ -542,7 +542,7 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False):
 
         sheet.cell(row=row_num, column=42).value = ', '.join(freq_50)
 
-        sheet.cell(row=row_num, column=43).value = ', '.join(topic.most_frequent(COEFFICIENT_2_FOR_NEWS))
+        sheet.cell(row=row_num, column=43).value = ', '.join(topic.most_frequent(COEFFICIENT_2_FOR_NEWS, fio_in_freq_new))
         sheet.cell(row=row_num, column=44).value = ', '.join(topic.obj)
         try:
             sheet.cell(row=row_num, column=45).value = ', '.join(
@@ -662,7 +662,7 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False):
 
                 sheet.cell(row=row_num, column=42).value = ', '.join(freq_50)
 
-                sheet.cell(row=row_num, column=43).value = ', '.join(s.most_frequent(COEFFICIENT_2_FOR_NEWS))
+                sheet.cell(row=row_num, column=43).value = ', '.join(s.most_frequent(COEFFICIENT_2_FOR_NEWS, fio_in_freq_new))
                 sheet.cell(row=row_num, column=44).value = ', '.join(s.obj)
                 try:
                     sheet.cell(row=row_num, column=45).value = ', '.join(

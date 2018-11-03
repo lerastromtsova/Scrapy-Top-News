@@ -145,7 +145,7 @@ class Topic:
         ans = sorted(token_freq.items(), key=operator.itemgetter(1), reverse=True)
         ans = [a[0] for a in ans if a[1] != 0 and a[0] in result]
 
-        result = [w for w in ans if not any(w1 for w1 in ans if w in w1 and w != w1)]
+        result = [w for w in ans if not any(w1 for w1 in ans if w in w1.split() and w != w1)]
 
         if with_fio:
 
