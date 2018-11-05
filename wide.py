@@ -933,16 +933,16 @@ if __name__ == '__main__':
 
     corpus.topics = unite_by_news(corpus.topics)
 
-    subtopics_report(corpus.topics, 9, time, db, freq_fio=True)  # 9(15) - TODO
+    subtopics_report(corpus.topics, 9, time, db, freq_fio=True)
 
-    corpus.topics = unite_subtopics(corpus.topics)  # 10(8) - TODO
+    corpus.topics = unite_subtopics(corpus.topics)
 
     subtopics_report(corpus.topics, 10, time, db, freq_fio=True)
 
     corpus.topics = form_new_wide(corpus.topics, corpus.data)
 
-    subtopics_report(corpus.topics, 11, time, db, freq_fio=True)  # 11(16) - TODO
+    subtopics_report(corpus.topics, 11, time, db, freq_fio=True)
 
     corpus.topics = unite_by_news(corpus.topics)
 
-    subtopics_report(corpus.topics, 12, time, db, freq_fio=True)  # 12(15) - TODO
+    subtopics_report(corpus.topics, 12, time, db, freq_fio=True)
