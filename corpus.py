@@ -272,14 +272,15 @@ class Corpus:
                                     continue
 
                                 elif countries_cw:
-                                    # Удаляется слово, в котором присутствует любое слово из cw
-                                    ot.new_name = {w for w in ot.new_name if
-                                                      not any(c for r in cw for c in r.split() if r in w)}
-                                    if debug:
-                                        print(f"Deleting from {ot.name} because other topic is {topic.name},"
-                                              f"1st topic is smaller than the 2nd, "
-                                              f"common_words: {cw}"
-                                              f"New name is: {ot.new_name}")
+                                    if len(ot.name) < len(topic.name):
+                                        # Удаляется слово, в котором присутствует любое слово из cw
+                                        ot.new_name = {w for w in ot.new_name if
+                                                          not any(c for r in cw for c in r.split() if r in w)}
+                                        if debug:
+                                            print(f"Deleting from {ot.name} because other topic is {topic.name},"
+                                                  f"1st topic is smaller than the 2nd, "
+                                                  f"common_words: {cw}"
+                                                  f"New name is: {ot.new_name}")
 
                                 ot.new_name = {w for w in ot.new_name if w.lower() not in STOP_WORDS_UNIQUE and not w.isdigit()}
 
