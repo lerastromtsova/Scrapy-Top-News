@@ -335,13 +335,13 @@ def delete_duplicates(text):
 
 
 def can_be_between(word):
-    if len(word) == 2 and word.islower() and word not in PREPS or word[0].isupper() and len(word) == 1 or word == "-" or word in BRACKETS:
+    if word.lower() not in STOP_WORDS_FIO and len(word) == 2 and word.islower() and word not in PREPS or word[0].isupper() and len(word) == 1 or word == "-" or word in BRACKETS:
         return True
     return False
 
 
 def can_be_big(word):
-    if word[0].isupper() and word not in TITLES and not iscountry(word) and word.lower() not in PREPS and len(word) > 1:
+    if word[0].isupper() and word not in TITLES and not iscountry(word) and word.lower() not in PREPS and len(word) > 1 and word.lower() not in STOP_WORDS_FIO:
         return True
     return False
 

@@ -88,7 +88,7 @@ def draw_graph_only_news(nodes, edges, m, fname, type="со связями вн�
 
     G.add_weighted_edges_from(edges)
 
-    pos = nx.spring_layout(G)
+    pos = nx.shell_layout(G)
 
     edge_trace = Scatter(
         x=[],
@@ -150,7 +150,7 @@ def draw_graph_with_topics(nodes, edges, fname):
 
     G.add_edges_from(edges)
 
-    pos = nx.spring_layout(G)
+    pos = nx.shell_layout(G)
 
     edge_trace = Scatter(
         x=[],

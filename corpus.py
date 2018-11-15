@@ -4,6 +4,7 @@ from utils import intersect, intersect_with_2_and_1, add_column
 from document import Document
 import operator
 from math import ceil
+from text_processing.preprocess import STOP_WORDS
 
 
 conn = sqlite3.connect("db/countries.db")
@@ -146,6 +147,8 @@ class Topic:
         ans = [a[0] for a in ans if a[1] != 0 and a[0] in result]
 
         result = [w for w in ans if not any(w1 for w1 in ans if w in w1.split() and w != w1)]
+        result = [w for w in result if not any(w1 for w1 in ans if w in w1.split("_") and w != w1)]
+        result = [w for w in result if w.lower() not in STOP_WORDS]
 
         if with_fio:
 
@@ -281,6 +284,10 @@ class Corpus:
                                                   f"1st topic is smaller than the 2nd, "
                                                   f"common_words: {cw}"
                                                   f"New name is: {ot.new_name}")
+                                    else:
+                                        # Не удалять токены с заглавной буквы
+                                        ot.new_name = {w for w in ot.new_name if
+                                                       not any(c for r in cw for c in r.split() if r in w) or w[0].isupper()}
 
                                 ot.new_name = {w for w in ot.new_name if w.lower() not in STOP_WORDS_UNIQUE and not w.isdigit()}
 

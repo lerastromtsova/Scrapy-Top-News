@@ -146,7 +146,7 @@ def write_rows_content(fname, similarities):
         sheet.cell(row=i,column=j).value = ' '.join(topic)
         for doc in row:
             j += 1
-            sheet.cell(row=i,column=j).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+            sheet.cell(row=i,column=j).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                f"{doc.named_entities['title']} | {doc.translated['lead']} |" \
                                                f"{doc.translated['content']} | {doc.named_entities['content']}"
         i += 1
@@ -164,7 +164,7 @@ def write_rows_title(fname, similarities):
         sheet.cell(row=i,column=j).value = ' '.join(topic)
         for doc in row:
             j += 1
-            sheet.cell(row=i,column=j).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+            sheet.cell(row=i,column=j).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                f"{doc.named_entities['title']} | {doc.translated['lead']} |" \
                                                f"{doc.translated['content']} | {doc.named_entities['content']}"
         i += 1
@@ -300,11 +300,11 @@ def write_topics(fname, topics):
         sheet.cell(row=i + 3, column=4).value = name
         sheet.cell(row=i + 3, column=5).value = ', '.join(unique_words)
         doc = topic.news[0]
-        sheet.cell(row=i + 3, column=6).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+        sheet.cell(row=i + 3, column=6).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                 f"{doc.translated['lead']} | " \
                                                 f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
         doc = topic.news[1]
-        sheet.cell(row=i + 3, column=7).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+        sheet.cell(row=i + 3, column=7).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                 f"{doc.translated['lead']} | " \
                                                 f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
 
@@ -382,7 +382,7 @@ def write_topics(fname, topics):
 
             doc = topic.news[j]
 
-            sheet.cell(row=i + 3, column=col).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+            sheet.cell(row=i + 3, column=col).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                       f"{doc.translated['lead']} | " \
                                                       f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
             try:
@@ -490,12 +490,12 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False, fio_in_freq_ne
         sheet.cell(row=row_num, column=4).value = "MAIN TOPIC: "+", ".join(topic.name)
         sheet.cell(row=row_num, column=5).value = ', '.join(unique_words)
         doc = topic.news[0]
-        sheet.cell(row=row_num, column=6).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+        sheet.cell(row=row_num, column=6).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                   f"{doc.translated['lead']} | " \
                                                   f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
         try:
             doc = topic.news[1]
-            sheet.cell(row=row_num, column=7).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+            sheet.cell(row=row_num, column=7).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                       f"{doc.translated['lead']} | " \
                                                       f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
         except IndexError:
@@ -567,7 +567,7 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False, fio_in_freq_ne
             doc = topic.news[j]
 
             sheet.cell(row=row_num,
-                       column=col).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+                       column=col).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                            f"{doc.translated['lead']} | " \
                                            f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
             try:
@@ -609,13 +609,13 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False, fio_in_freq_ne
                 sheet.cell(row=row_num, column=5).value = ', '.join(unique_words)
                 doc = s.news[0]
                 sheet.cell(row=row_num,
-                           column=6).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+                           column=6).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                              f"{doc.translated['lead']} | " \
                                              f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
                 try:
                     doc = s.news[1]
                     sheet.cell(row=row_num,
-                               column=7).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+                               column=7).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                  f"{doc.translated['lead']} | " \
                                                  f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
                 except IndexError:
@@ -687,7 +687,7 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False, fio_in_freq_ne
                     doc = s.news[j]
 
                     sheet.cell(row=row_num,
-                               column=col).value = f"{doc.id} | {doc.country} | {doc.url} | {doc.translated['title']} | " \
+                               column=col).value = f"|{doc.id}| {doc.country} | {doc.url} | {doc.translated['title']} | " \
                                                    f"{doc.translated['lead']} | " \
                                                    f"{doc.translated['content']} | Из краткого: {doc.description} | Из текста: {doc.named_entities['content']}"
                     try:
@@ -705,7 +705,7 @@ def write_news(fname, news):
     wb = openpyxl.Workbook()
     sheet = wb.active
     for i,doc in enumerate(news):
-        sheet.cell(row=i + 1, column=1).value = f"{doc.id} | {doc.country} | {doc.url}"
+        sheet.cell(row=i + 1, column=1).value = f"|{doc.id}| {doc.country} | {doc.url}"
         sheet.cell(row=i + 1, column=2).value = f"{doc.translated['title']} | {doc.named_entities['title']}"
         sheet.cell(row=i + 1, column=3).value = f"{doc.translated['lead']} | {doc.named_entities['lead']}"
         sheet.cell(row=i + 1, column=4).value = f"{doc.translated['content']} | {doc.named_entities['content']}"
