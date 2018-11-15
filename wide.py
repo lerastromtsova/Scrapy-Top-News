@@ -480,39 +480,61 @@ def add_news(topics, data, mode=1, count_unique=False):
 
                 if mode == 1:
                     if new not in topic.news and count_countries(new_name):
+
                         if len(new_name) >= COEF_FOR_NEWS and len(fio_in_new_name) >= COEF_FOR_NEWS_FIO or len(new_name) == len(topic.name):
                             if count_unique:
                                 if new_unique and len(new_name) != 3 or len(new_name) == 3 and len(new_unique) >= 2:
                                     topic.methods_for_news[new.id] = ["* "+", ".join(new_name)]
-                                    topic.news.append(new)
+                                    news_list = topic.news.copy()
+                                    news_list.append(new)
+
+                                    new_topic = Topic(new_name, news_list)
+                                    new_topic.new_name = new_unique
+
+                                    t, n = filter_topics([new_topic], d)
+
+                                    try:
+                                        top = t.pop()
+                                        topic.methods_for_news[new.id].extend(
+                                            ["F", str(top.coefficient_sums["final_result"]),
+                                             ', '.join(new_name), ', '.join(new_unique)])
+                                        topic.news.append(new)
+
+                                    except KeyError:
+                                        # if len([u for u in new_unique if u[0].isupper() and not u.isupper()]) >= 2:
+                                        #     top = n.pop()
+                                        #     if top.coefficient_sums["summ_1"] >= THRESHOLD:
+                                        #         topic.methods_for_news[new.id] = ["E", str(top.coefficient_sums["summ_1"]),
+                                        #                                           ', '.join(new_name), ', '.join(new_unique)]
+                                        #         topic.news.append(new)
+                                        pass
                             else:
                                 topic.methods_for_news[new.id] = ["* "+", ".join(new_name)]
-                                topic.news.append(new)
+                                news_list = topic.news.copy()
+                                news_list.append(new)
 
-                        # news_list = topic.news.copy()
-                        # news_list.append(new)
-                        #
-                        # new_topic = Topic(new_name, news_list)
-                        # new_topic.new_name = new_unique
-                        #
-                        #
+                                new_topic = Topic(new_name, news_list)
+                                new_topic.new_name = new_unique
 
-                        # t, n = filter_topics([new_topic], d)
-                        #
-                        # try:
-                        #     top = t.pop()
-                        #     topic.methods_for_news[new.id] = ["F", str(top.coefficient_sums["final_result"]),
-                        #                                       ', '.join(new_name), ', '.join(new_unique)]
-                        #     topic.news.append(new)
-                        #
-                        # except KeyError:
-                        #     # if len([u for u in new_unique if u[0].isupper() and not u.isupper()]) >= 2:
-                        #     #     top = n.pop()
-                        #     #     if top.coefficient_sums["summ_1"] >= THRESHOLD:
-                        #     #         topic.methods_for_news[new.id] = ["E", str(top.coefficient_sums["summ_1"]),
-                        #     #                                           ', '.join(new_name), ', '.join(new_unique)]
-                        #     #         topic.news.append(new)
-                        #     pass
+                                t, n = filter_topics([new_topic], d)
+
+                                try:
+                                    top = t.pop()
+                                    topic.methods_for_news[new.id].extend(
+                                        ["F", str(top.coefficient_sums["final_result"]),
+                                         ', '.join(new_name), ', '.join(new_unique)])
+                                    topic.news.append(new)
+
+                                except KeyError:
+                                    # if len([u for u in new_unique if u[0].isupper() and not u.isupper()]) >= 2:
+                                    #     top = n.pop()
+                                    #     if top.coefficient_sums["summ_1"] >= THRESHOLD:
+                                    #         topic.methods_for_news[new.id] = ["E", str(top.coefficient_sums["summ_1"]),
+                                    #                                           ', '.join(new_name), ', '.join(new_unique)]
+                                    #         topic.news.append(new)
+                                    pass
+
+
 
                 elif mode == 2:
 
