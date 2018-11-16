@@ -10,6 +10,7 @@ from draw_graph import draw_graph_with_topics
 from text_processing.preprocess import STOP_WORDS, unite_countries_in, unite_countries_in_topic_names
 from coefs import COEFFICIENT_2_FOR_NEWS, COEFFICIENT_1_FOR_NEWS, COEFFICIENTS_2, COEFFICIENTS_1, THRESHOLD, \
                     COEF_FOR_FREQUENT, COEF_FOR_FREQUENT_UPPER, COEF_FOR_NEWS, COEF_FOR_NEWS_FIO
+from time import sleep
 
 
 with open("text_processing/between-words.txt", "r") as f:
@@ -777,7 +778,7 @@ def extend_topic(topic, other_topic, add_subtopics=False):
     return topic
 
 
-# 10
+# 12
 def unite_subtopics(topics):
     for topic in topics:
 
@@ -789,8 +790,8 @@ def unite_subtopics(topics):
                 for os in other_subtopics:
                     news_difference1 = {n for n in subtopic.news if n not in os.news}
                     news_difference2 = {n for n in os.news if n not in subtopic.news}
-                    if ((len(news_difference1) <= 1 or len(news_difference2) <= 1) and len(os.news) > 2 and len(subtopic.news) > 2)\
-                            or set(os.news).issubset(set(subtopic.news)):
+                    if ((len(news_difference1) == 1 and len(news_difference2) == 1) and len(os.news) > 2 and len(subtopic.news) > 2)\
+                            or set(os.news).issubset(set(subtopic.news)) and len(os.news)==2:
                         subtopic.name.update(os.name)
                         subtopic.new_name.update(os.new_name)
                         subtopic.news.extend(os.news)
@@ -800,7 +801,7 @@ def unite_subtopics(topics):
         topic.subtopics = delete_duplicates(topic.subtopics)
         topic.subtopics = {s for s in topic.subtopics if not subtopic_indicators[s]}
         if len(topic.subtopics) == 1:
-            topic.subtopics = []
+            topic.subtopics = set()
 
     return topics
 
@@ -901,24 +902,49 @@ def form_new_wide(topics, data):
     return topics
 
 
-def simple_report(topics, num_points, start_time, db_name, draw_graphs=False):
+def simple_report(topics, num_points, start_time, db_name):
     write_topics(f"documents/{db_name}-{num_points}.xlsx", topics)
     print(num_points, len(topics))
     print(datetime.now() - start_time)
     if with_graphs:
-        if draw_graphs:
             nodes, edges = get_topic_news_nodes(topics)
             draw_graph_with_topics(nodes, edges, db_name + f" {num_points}")
 
 
-def subtopics_report(topics, num_points, start_time, db_name, freq_fio=False, freq_new_fio=False, draw_graphs=True):
+def subtopics_report(topics, num_points, start_time, db_name, freq_fio=False, freq_new_fio=False):
     write_topics_with_subtopics(f"documents/{db_name}-{num_points}.xlsx", topics, freq_fio, freq_new_fio)
     print(num_points, len(topics))
     print(datetime.now() - start_time)
     if with_graphs:
-        if draw_graphs:
             nodes, edges = get_topic_subtopic_nodes(topics)
             draw_graph_with_topics(nodes, edges, db_name + f" {num_points}")
+
+
+def add_news_by_frequent(topics, data):
+    for t in topics:
+        freq = t.most_frequent(COEFFICIENT_1_FOR_NEWS, True)
+        fio_in_freq = [w for w in freq if len(w.split()) >= 2]
+        if len(freq) >= 4 or len(freq) == 3 and len(fio_in_freq) >= 1:
+            for n in data:
+                if n not in t.news:
+                    common_freq = unite_news_text_and_topic_name(freq, n.all_text)
+                    if len(common_freq) == len(freq):
+                        t.news.add(n)
+    return topics
+
+
+# 12
+def add_news_to_subtopics(topics):
+    for t in topics:
+        for s in t.subtopics:
+            for n in t.news:
+                if n not in s.news:
+                    common_unique = n.all_text.intersection(s.new_name)
+                    cu_lower = [w for w in common_unique if w[0].islower()]
+                    cu_upper = [w for w in common_unique if w[0].isupper() and not w.isupper()]
+                    if len(cu_lower) >= 2 or len(cu_upper) >= 1:
+                        s.news.append(n)
+    return topics
 
 
 if __name__ == '__main__':
@@ -938,12 +964,12 @@ if __name__ == '__main__':
 
     corpus = Corpus(db, table)
 
-    # if with_graphs:
-    #     # 1) график по 2 общим словам без стран
-    #     corpus.find_topics(mode={"country": 0, "not_country": 2})
-    #     nodes, edges = get_topic_news_nodes(corpus.topics)
-    #     draw_graph_with_topics(nodes, edges, db+" 2общ. без стран")
-    #     corpus.topics = []
+    if with_graphs:
+        # 1) график по 2 общим словам без стран
+        corpus.find_topics(mode={"country": 0, "not_country": 2})
+        nodes, edges = get_topic_news_nodes(corpus.topics)
+        draw_graph_with_topics(nodes, edges, db+" 2общ. без стран")
+        corpus.topics = []
 
     corpus.find_topics()
     for topic in corpus.topics:
@@ -1000,20 +1026,46 @@ if __name__ == '__main__':
     subtopics_report(corpus.topics, 7, time, db, freq_fio=False, freq_new_fio=True)
 
     corpus.topics = add_news_and_delete_duplicates(corpus.topics)
-    subtopics_report(corpus.topics, 8, time, db, freq_fio=True, freq_new_fio=True, draw_graphs=False)
+    subtopics_report(corpus.topics, 8, time, db, freq_fio=True, freq_new_fio=True,)
 
     corpus.topics = unite_by_news(corpus.topics)
 
-    subtopics_report(corpus.topics, 9, time, db, freq_fio=True, freq_new_fio=True, draw_graphs=False)
+    subtopics_report(corpus.topics, 9, time, db, freq_fio=True, freq_new_fio=True,)
 
-    corpus.topics = unite_subtopics(corpus.topics)
+    corpus.topics = add_news_by_frequent(corpus.topics, corpus.data)
 
-    subtopics_report(corpus.topics, 10, time, db, freq_fio=True, freq_new_fio=True, draw_graphs=False)
+    subtopics_report(corpus.topics, 10, time, db, freq_fio=True, freq_new_fio=True)
+
+    corpus.topics = unite_by_news(corpus.topics)
+
+    subtopics_report(corpus.topics, 11, time, db, freq_fio=True, freq_new_fio=True)
+
+    corpus.topics = add_news_to_subtopics(corpus.topics)
+
+    subtopics_report(corpus.topics, 12, time, db, freq_fio=True, freq_new_fio=True)
+
+    changes_done = True
+    k = 0
+    while changes_done:
+        old_topics = corpus.topics.copy()
+        corpus.topics = unite_subtopics(corpus.topics)
+        changes_done = False
+        for i, t in enumerate(corpus.topics):
+            s = t.subtopics
+            s1 = old_topics[i].subtopics
+            print(s)
+            print(s1)
+            if len(s1) != len(s):
+                changes_done = True
+        k += 1
+        print(k)
+
+    subtopics_report(corpus.topics, 13, time, db, freq_fio=True, freq_new_fio=True)
 
     corpus.topics = form_new_wide(corpus.topics, corpus.data)
 
-    subtopics_report(corpus.topics, 11, time, db, freq_fio=True, freq_new_fio=True, draw_graphs=False)
+    subtopics_report(corpus.topics, 14, time, db, freq_fio=True, freq_new_fio=True)
 
     corpus.topics = unite_by_news(corpus.topics)
 
-    subtopics_report(corpus.topics, 12, time, db, freq_fio=True, freq_new_fio=True,)
+    subtopics_report(corpus.topics, 15, time, db, freq_fio=True, freq_new_fio=True,)
