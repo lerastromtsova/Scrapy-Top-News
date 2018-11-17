@@ -343,6 +343,12 @@ class Corpus:
                 to_remove.add(topic)
         self.topics = [t for t in self.topics if t not in to_remove]
 
+    def sort_topics(self):
+        self.topics = sorted(self.topics, key=lambda x: -len(x.name))
+        for t in self.topics:
+            if t.subtopics:
+                t.subtopics = sorted(t.subtopics, key=lambda x: -len(x.name))
+
 
 # if __name__ == '__main__':
 #
