@@ -1092,21 +1092,24 @@ if __name__ == '__main__':
 
     subtopics_report(corpus.topics, 12, time, db, freq_fio=True, freq_new_fio=True)
 
-    changes_done = True
-    k = 0
-    while changes_done:
-        old_topics = corpus.topics.copy()
+    # changes_done = True
+    # k = 0
+    # while changes_done:
+    #     old_topics = corpus.topics.copy()
+    #     corpus.topics = unite_subtopics(corpus.topics)
+    #     changes_done = False
+    #     for i, t in enumerate(corpus.topics):
+    #         s = t.subtopics
+    #         s1 = old_topics[i].subtopics
+    #         print(s)
+    #         print(s1)
+    #         if len(s1) != len(s):
+    #             changes_done = True
+    #     k += 1
+    #     print(k)
+
+    for k in range(3):
         corpus.topics = unite_subtopics(corpus.topics)
-        changes_done = False
-        for i, t in enumerate(corpus.topics):
-            s = t.subtopics
-            s1 = old_topics[i].subtopics
-            print(s)
-            print(s1)
-            if len(s1) != len(s):
-                changes_done = True
-        k += 1
-        print(k)
 
     subtopics_report(corpus.topics, 13, time, db, freq_fio=True, freq_new_fio=True)
 

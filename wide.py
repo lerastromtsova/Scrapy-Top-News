@@ -11,7 +11,7 @@ from text_processing.preprocess import STOP_WORDS, unite_countries_in, unite_cou
 from coefs import COEFFICIENT_2_FOR_NEWS, COEFFICIENT_1_FOR_NEWS, COEFFICIENTS_2, COEFFICIENTS_1, THRESHOLD, \
                     COEF_FOR_FREQUENT, COEF_FOR_FREQUENT_UPPER, COEF_FOR_NEWS, COEF_FOR_NEWS_FIO
 from time import sleep
-
+from copy import deepcopy
 
 with open("text_processing/between-words.txt", "r") as f:
     BETWEEN_WORDS = f.read().split('\n')
@@ -801,8 +801,7 @@ def unite_subtopics(topics):
                     print("Dif 1", len(news_difference1))
                     news_difference2 = {n for n in os.news if n not in subtopic.news}
                     print("Dif 2", len(news_difference2))
-                    if ((len(news_difference1) == 1 and len(news_difference2) == 1) and len(os.news) > 2 and len(subtopic.news) > 2)\
-                            or set(os.news).issubset(set(subtopic.news)) and len(os.news)==2:
+                    if len(news_difference1) <= 1 and len(news_difference2) <= 1:
                         print("Updating: ", subtopic.name, "with ", os.name)
                         subtopic.name.update(os.name)
                         subtopic.new_name.update(os.new_name)
@@ -991,6 +990,19 @@ def add_news_to_subtopics(topics):
     return topics
 
 
+def create_copy_of_topics(topics):
+    copy_topics = list()
+    for t in topics:
+        new = Topic(t.name.copy(), t.news.copy())
+        new.new_name = t.new_name.copy()
+        for s in t.subtopics:
+            snew = Topic(s.name.copy(), s.news.copy())
+            snew.new_name = s.new_name.copy()
+            new.subtopics.append(snew)
+        copy_topics.append(t)
+    return copy_topics
+
+
 if __name__ == '__main__':
 
     db = input("DB name (default - day): ")
@@ -1089,23 +1101,33 @@ if __name__ == '__main__':
 
     subtopics_report(corpus.topics, 12, time, db, freq_fio=True, freq_new_fio=True)
 
-    changes_done = True
-    k = 0
-    while changes_done:
-        old_topics = corpus.topics.copy()
+    # changes_done = True
+    # k = 0
+    # while changes_done:
+    #     old_topics = create_copy_of_topics(corpus.topics)
+    #     corpus.topics = unite_subtopics(corpus.topics)
+    #     changes_done = False
+    #     for i, t in enumerate(corpus.topics):
+    #         s = t.subtopics
+    #         s1 = old_topics[i].subtopics
+    #         print(t.name)
+    #         print(len(s))
+    #         print(len(s1))
+    #         if len(s1) != len(s):
+    #             print("Changes")
+    #             changes_done = True
+    #     k += 1
+    #     print(k)
+
+    for k in range(3):
         corpus.topics = unite_subtopics(corpus.topics)
-        changes_done = False
-        for i, t in enumerate(corpus.topics):
-            s = t.subtopics
-            s1 = old_topics[i].subtopics
-            print(s)
-            print(s1)
-            if len(s1) != len(s):
-                changes_done = True
-        k += 1
-        print(k)
 
     subtopics_report(corpus.topics, 13, time, db, freq_fio=True, freq_new_fio=True)
+
+    for t in corpus.topics:
+        print("Main: ", ", ".join({str(n.id) for n in t.news}))
+        for s in t.subtopics:
+            print("Micro: ", ", ".join({str(n.id) for n in s.news}))
 
     corpus.topics = form_new_wide(corpus.topics, corpus.data)
 
