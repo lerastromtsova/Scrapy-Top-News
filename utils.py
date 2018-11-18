@@ -306,7 +306,7 @@ def get_topic_subtopic_nodes(topics):
         topic_number = number
         number += 1
         for s in t.subtopics:
-            node_object = {"name": t.name}
+            node_object = {"name": s.name}
             nodes.append(node_object)
             subtopic_number = number
             edges.append((topic_number, subtopic_number))
