@@ -790,17 +790,13 @@ def unite_subtopics(topics):
 
         subtopic_indicators = {subtopic: False for subtopic in topic.subtopics}  # True if topic already added to other
 
-        print("Subtopics #", len(topic.subtopics))
-
         for subtopic in topic.subtopics:
             if not subtopic_indicators[subtopic]:
                 other_subtopics = [s for s in topic.subtopics if s != subtopic and not subtopic_indicators[s]]
-                print("Other Subtopics #", len(other_subtopics))
                 for os in other_subtopics:
                     news_difference1 = {n for n in subtopic.news if n not in os.news}
-                    print("Dif 1", len(news_difference1))
                     news_difference2 = {n for n in os.news if n not in subtopic.news}
-                    print("Dif 2", len(news_difference2))
+
                     if len(news_difference1) <= 1 and len(news_difference2) <= 1:
                         print("Updating: ", subtopic.name, "with ", os.name)
                         subtopic.name.update(os.name)
