@@ -78,7 +78,8 @@ def isfio(strr):
         res = c.fetchone()
     return False
 
-def replace_presidents(text):
+
+def replace_presidents(text, mode="add"):
 
     conn = sqlite3.connect("db/fio.db")
     c = conn.cursor()
@@ -86,6 +87,7 @@ def replace_presidents(text):
     res = c.fetchone()
 
     to_add = set()
+    to_remove = set()
 
     while res:
 
@@ -95,15 +97,20 @@ def replace_presidents(text):
             country = res[3]
             for word in text:
                 if word == surname:
-
-                    to_add.add(country)
+                    if mode == "add":
+                        to_add.add(country)
+                    if mode == "remove":
+                        to_remove.add(word)
                 if name and surname:
                     if word == name + " " + surname or name + " " + surname in word:
-
-                        to_add.add(country)
+                        if mode == "add":
+                            to_add.add(country)
+                        if mode == "remove":
+                            to_remove.add(word)
             res = c.fetchone()
 
-    text = text | to_add
+    text |= to_add
+    text -= to_remove
 
     return text
 
@@ -185,11 +192,11 @@ def intersect(set1, set2):
     new2 = set2.copy()
     for s1 in set1:
         for s2 in set2:
-            if s2.lower() == s1.lower()+'s' or s2.lower() == s1.lower()+'es' or s2.lower() == s1.lower()+'ies':
+            if s2.lower() == s1.lower()+'s' or s2.lower() == s1.lower()+'es' or s2.lower() == s1.lower()+'ies' or s2.lower() == s1.lower()+'er':
                 if s2 in new2:
                     new2.remove(s2)
                 new2.add(s1)
-            elif s1.lower() == s2.lower()+'s' or s1.lower() == s2.lower()+'es' or s1.lower() == s2.lower()+'ies':
+            elif s1.lower() == s2.lower()+'s' or s1.lower() == s2.lower()+'es' or s1.lower() == s2.lower()+'ies' or s1.lower() == s2.lower()+'er':
                 if s1 in new1:
                     new1.remove(s1)
                 new1.add(s2)

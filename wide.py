@@ -358,6 +358,9 @@ def filter_topics(topics, debug=False):
         small, num_small = topic.small(all_words)
         countries, num_countries = topic.countries(all_words)
         ids, num_ids = topic.ids(all_words)
+        presidents, num_presidents = topic.presidents(all_words)
+        num_fio -= num_presidents
+
         unique_words, num_unique_words = topic.all_words(topic.new_name)
         unique_wo_countries, num_unique_wo_countries = topic.all_wo_countries(unique_words)
         unique_wo_small_countries, num_unique_wo_small_countries = topic.all_wo_countries_and_small(unique_words)
@@ -376,6 +379,7 @@ def filter_topics(topics, debug=False):
         small_coefY = num_unique_small * COEFFICIENTS_1["KCY"]
         countries_coefY = num_unique_countries * COEFFICIENTS_1["KDY"]
         ids_coef = num_ids * COEFFICIENTS_1["Kid"]
+        pres_coef = num_presidents * COEFFICIENTS_1["KE0"]
 
         fio_coef2 = COEFFICIENTS_2["a"] * exists(fio)
         big_coef2 = COEFFICIENTS_2["b"] * exists(big)
@@ -390,7 +394,8 @@ def filter_topics(topics, debug=False):
                 + big_coefY \
                 + small_coefY \
                 + countries_coefY \
-                + ids_coef
+                + ids_coef\
+                + pres_coef
 
         topic.sum_1 = summ_1
 
@@ -705,11 +710,32 @@ def delete_without_frequent(topics):
                 elif len(freq) < COEF_FOR_FREQUENT:
                     if len(freq_text) <= len(freq) or len(freq_upper) < COEF_FOR_FREQUENT_UPPER:
                         t.news[i] = None
+                    else:
+                        try:
+                            t.methods_for_news[n.id].insert(0, 'Frequent common words: '+', '.join(freq_text))
+                            t.methods_for_news[n.id].insert(0, 'Frequent common words (uppercase): '+', '.join(freq_upper))
+                        except KeyError:
+                            t.methods_for_news[n.id] = []
+                            t.methods_for_news[n.id].insert(0, 'Frequent common words: ' + ', '.join(freq_text))
+                            t.methods_for_news[n.id].insert(0, 'Frequent common words (uppercase): ' + ', '.join(freq_upper))
+
+                else:
+                    try:
+                        t.methods_for_news[n.id].insert(0, 'Frequent common words: ' + ', '.join(freq_text))
+                        t.methods_for_news[n.id].insert(0, 'Frequent common words (uppercase): ' + ', '.join(freq_upper))
+                    except KeyError:
+                        t.methods_for_news[n.id] = []
+                        t.methods_for_news[n.id].insert(0, 'Frequent common words: ' + ', '.join(freq_text))
+                        t.methods_for_news[n.id].insert(0, 'Frequent common words (uppercase): ' + ', '.join(freq_upper))
         t.news = [n for n in t.news if n]
         if t.subtopics:
             t.subtopics = delete_without_frequent(t.subtopics)
         for s in t.subtopics:
-            t.news = list(set(t.news).union(set(s.news)))
+            for n in s.news:
+                if n not in t.news:
+                    t.news.append(n)
+            t.news = delete_dupl_from_news(t.news)
+            # t.news = list(set(t.news).union(set(s.news)))
     topics = [t for t in topics if t.news]
     return topics
 
@@ -769,6 +795,7 @@ def extend_topic(topic, other_topic, add_subtopics=False):
             topic.subtopics.update(other_topic.subtopics)
 
     return topic
+
 
 def delete_dupl_from_subtopics(subtopics):
     to_remove = set()
@@ -932,7 +959,10 @@ def form_new_wide(topics, data):
 
 
 def simple_report(topics, num_points, start_time, db_name):
-    write_topics(f"documents/{db_name}-{num_points}.xlsx", topics)
+    if news_ids == "All":
+        write_topics(f"documents/{db_name}-{num_points}-{news_ids}.xlsx", topics)
+    else:
+        write_topics(f"documents/{db_name}-{num_points}-{','.join(news_ids)}.xlsx", topics)
     print(num_points, len(topics))
     print(datetime.now() - start_time)
     if with_graphs:
@@ -941,7 +971,10 @@ def simple_report(topics, num_points, start_time, db_name):
 
 
 def subtopics_report(topics, num_points, start_time, db_name, freq_fio=False, freq_new_fio=False):
-    write_topics_with_subtopics(f"documents/{db_name}-{num_points}.xlsx", topics, freq_fio, freq_new_fio)
+    if news_ids == "All":
+        write_topics_with_subtopics(f"documents/{db_name}-{num_points}-{news_ids}.xlsx", topics, freq_fio, freq_new_fio)
+    else:
+        write_topics_with_subtopics(f"documents/{db_name}-{num_points}-{','.join(news_ids)}.xlsx", topics, freq_fio, freq_new_fio)
     print(num_points, len(topics))
     print(datetime.now() - start_time)
     if with_graphs:
@@ -1004,17 +1037,20 @@ if __name__ == '__main__':
     db = input("DB name (default - day): ")
     table = input("Table name (default - buffer): ")
     with_graphs = input("Draw graphs? default - no, print any letter to draw graphs: ")
+    news_ids = input("Input News IDs").split()
 
     if not db:
         db = "day"
     if not table:
         table = "buffer"
+    if not news_ids:
+        news_ids = "All"
 
     time = datetime.now()
 
     print(f"Started working at {time}")
 
-    corpus = Corpus(db, table)
+    corpus = Corpus(db, table, news_ids)
 
     if with_graphs:
         # 1) график по 2 общим словам без стран
@@ -1025,7 +1061,7 @@ if __name__ == '__main__':
 
     corpus.find_topics()
     for topic in corpus.topics:
-        topic.name = {w for w in topic.name if len(w) > 3 or w.isupper()}
+        topic.name = {w for w in topic.name if len(w) > 3 or (w.isupper() and len(w) > 2)}
     corpus.delete_small()
 
     simple_report(corpus.topics, 0, time, db)
@@ -1041,7 +1077,9 @@ if __name__ == '__main__':
     simple_report(corpus.topics, 2, time, db)
 
     for t in corpus.topics:
-        t.name = replace_presidents(t.name)
+        t.name = replace_presidents(t.name, mode="add")
+        t.new_name = replace_presidents(t.new_name, mode="remove")
+
     corpus.sort_topics()
     corpus.check_unique()
 

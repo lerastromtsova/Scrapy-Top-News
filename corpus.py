@@ -91,6 +91,30 @@ class Topic:
 
         return ids, len(ids)
 
+    def presidents(self, text):
+        presidents = []
+
+        conn = sqlite3.connect("db/fio.db")
+        c = conn.cursor()
+        c.execute("SELECT * FROM fio")
+        res = c.fetchone()
+        while res:
+
+            name = res[0]
+            surname = res[1]
+            middle_name = res[2]
+            country = res[3]
+            for word in text:
+                if word == surname:
+                    presidents.append(word)
+                if name and surname:
+                    if word == name + " " + surname or name + " " + surname in word:
+                        presidents.append(word)
+            res = c.fetchone()
+
+        return presidents, len(presidents)
+
+
     def most_frequent_old(self):
         freq_words = set(self.news[0].all_text)
 
@@ -171,7 +195,7 @@ class Topic:
 
 class Corpus:
 
-    def __init__(self, db, table):
+    def __init__(self, db, table, news_ids="All"):
 
         self.db = db
         self.table = table
@@ -184,6 +208,7 @@ class Corpus:
         self.trends = []
         self.similarities = []
         self.frequencies = {}
+        self.news_ids = news_ids
 
         raw_data = self.c.fetchall()
 
@@ -194,9 +219,15 @@ class Corpus:
             self.create_columns_and_documents(raw_data)
 
     def create_documents(self, data):
-        for i, row in enumerate(data):
-            doc = Document(i, row, self.conn, self.table)
-            self.data.append(doc)
+        if self.news_ids == "All":
+            for i, row in enumerate(data):
+                doc = Document(i, row, self.conn, self.table)
+                self.data.append(doc)
+        else:
+            for i, row in enumerate(data):
+                if str(i) in self.news_ids:
+                    doc = Document(i, row, self.conn, self.table)
+                    self.data.append(doc)
 
     def create_columns_and_documents(self, raw_data):
         add_column(self.table, 'translated', 10000, self.c)

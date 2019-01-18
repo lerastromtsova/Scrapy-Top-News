@@ -351,8 +351,9 @@ youtube
 eu
 europe
 european
-european union
-channel news
+union
+channel 
+news
 middle
 north
 center
@@ -501,7 +502,7 @@ who
 where
 why
 recently
-when I
+when
 ed
 authority
 following
@@ -518,3 +519,8 @@ good
 bed
 administration
 treasury
+york
+Press
+difficult
+human
+justice
