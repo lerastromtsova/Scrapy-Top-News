@@ -248,7 +248,7 @@ def write_topics(fname, topics):
     sheet.cell(row=1, column=64).value = "Sum 2"
     sheet.cell(row=1, column=65).value = "F"
 
-    sheet.cell(row=1, column=66).value = "# of added news"
+    sheet.cell(row=1, column=66).value = "# of added news, their ids"
     sheet.cell(row=1, column=67).value = "News"
     sheet.cell(row=1, column=68).value = "Method"
 
@@ -275,7 +275,7 @@ def write_topics(fname, topics):
         unique_countries, unique_num_countries = topic.countries(unique_words)
         unique_numbers, unique_num_numbers = topic.numbers(unique_words)
         unique_ids, unique_num_ids = topic.ids(unique_words)
-        frequent_unique = unique_words.intersection(topic.most_frequent())
+        frequent_unique = unique_words.intersection(topic.most_frequent(filename='18'+fname))
 
         if topic.subtopics:
             name = ''
@@ -343,8 +343,8 @@ def write_topics(fname, topics):
         sheet.cell(row=i + 3, column=38).value = ", ".join(unique_countries)
         sheet.cell(row=i + 3, column=39).value = unique_num_numbers
         sheet.cell(row=i + 3, column=40).value = unique_num_ids
-        sheet.cell(row=i + 3, column=41).value = ', '.join(topic.most_frequent((1,1)))
-        freq_50 = topic.most_frequent(COEFFICIENT_1_FOR_NEWS)
+        sheet.cell(row=i + 3, column=41).value = ', '.join(topic.most_frequent((1,1),filename='41 '+fname))
+        freq_50 = topic.most_frequent(COEFFICIENT_1_FOR_NEWS, filename='42 '+fname)
         sheet.cell(row=i + 3, column=42).value = ', '.join(freq_50)
 
         sheet.cell(row=i + 3, column=43).value = ', '.join(topic.objects)
@@ -374,7 +374,10 @@ def write_topics(fname, topics):
             sheet.cell(row=i + 3, column=64).value = topic.coefficient_sums["summ_2"]
             sheet.cell(row=i + 3, column=65).value = topic.coefficient_sums["final_result"]
 
-        sheet.cell(row=i + 3, column=66).value = len(topic.news) - 2
+        ids = {str(n.id) for n in topic.news}
+        news_ids = str(len(topic.news))+' | '+', '.join(ids)
+
+        sheet.cell(row=i + 3, column=66).value = news_ids
 
         col = 67
 
@@ -451,7 +454,7 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False, fio_in_freq_ne
     sheet.cell(row=1, column=48).value = "Name"
     sheet.cell(row=1, column=49).value = "Topic"
 
-    sheet.cell(row=1, column=50).value = "# of News"
+    sheet.cell(row=1, column=50).value = "# of News, their ids"
 
     sheet.cell(row=1, column=51).value = "News"
     sheet.cell(row=1, column=52).value = "Method"
@@ -481,7 +484,7 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False, fio_in_freq_ne
         unique_countries, unique_num_countries = topic.countries(unique_words)
         unique_numbers, unique_num_numbers = topic.numbers(unique_words)
         unique_ids, unique_num_ids = topic.ids(unique_words)
-        frequent_unique = unique_words.intersection(topic.most_frequent())
+        frequent_unique = unique_words.intersection(topic.most_frequent(filename='18 '+fname))
 
         sheet.cell(row=row_num, column=1).value = ""
         sheet.cell(row=row_num, column=2).value = ", ".join(topic.old_name)
@@ -537,12 +540,12 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False, fio_in_freq_ne
         sheet.cell(row=row_num, column=39).value = unique_num_numbers
         sheet.cell(row=row_num, column=40).value = unique_num_ids
 
-        sheet.cell(row=row_num, column=41).value = ', '.join(topic.most_frequent((1, 1), fio_in_freq))
-        freq_50 = topic.most_frequent(COEFFICIENT_1_FOR_NEWS, fio_in_freq)
+        sheet.cell(row=row_num, column=41).value = ', '.join(topic.most_frequent((1, 1), fio_in_freq, filename='41 '+fname))
+        freq_50 = topic.most_frequent(COEFFICIENT_1_FOR_NEWS, fio_in_freq, filename='42 '+fname)
 
         sheet.cell(row=row_num, column=42).value = ', '.join(freq_50)
 
-        sheet.cell(row=row_num, column=43).value = ', '.join(topic.most_frequent(COEFFICIENT_2_FOR_NEWS, fio_in_freq_new))
+        sheet.cell(row=row_num, column=43).value = ', '.join(topic.most_frequent(COEFFICIENT_2_FOR_NEWS, fio_in_freq_new, filename='43 '+fname))
         sheet.cell(row=row_num, column=44).value = ', '.join(topic.obj)
         try:
             sheet.cell(row=row_num, column=45).value = ', '.join(
@@ -555,7 +558,11 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False, fio_in_freq_ne
         sheet.cell(row=row_num, column=47).value = ''
         sheet.cell(row=row_num, column=48).value = ''
         sheet.cell(row=row_num, column=49).value = ', '.join(topic.name)
-        sheet.cell(row=row_num, column=50).value = len(topic.news)
+
+        ids = {str(n.id) for n in topic.news}
+        news_ids = str(len(topic.news)) + ' | ' + ', '.join(ids)
+
+        sheet.cell(row=row_num, column=50).value = news_ids
 
         # sheet.cell(row=i + 3, column=51).value = ', '.join(topic.method)
         # sheet.cell(row=i + 3, column=50).value = ', '.join(topic.all_numbers)

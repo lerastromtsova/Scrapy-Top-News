@@ -1,4 +1,4 @@
-from text_processing.preprocess import preprocess, check_first_entities, replace_special_symbols, unite_countries_in
+from text_processing.preprocess import preprocess, check_first_entities, replace_special_symbols, unite_countries_in, replace_double_letters
 from text_processing.translate import translate
 import re
 import sqlite3
@@ -135,6 +135,7 @@ class Document:
                     to_remove.add(ent)
 
             self.named_entities[typ] -= to_remove
+            # self.named_entities[typ] = replace_double_letters(self.named_entities[typ])
 
             c.execute(f"UPDATE buffer SET nes_{typ}=(?), tokens_{typ}=(?) WHERE reference=(?)",
                       (','.join(self.named_entities[typ]), ','.join(self.tokens[typ]), self.url))

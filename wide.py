@@ -1135,37 +1135,15 @@ if __name__ == '__main__':
 
     subtopics_report(corpus.topics, 12, time, db, freq_fio=True, freq_new_fio=True)
 
-    # topics = create_copy_of_topics(corpus.topics)
-    #
-    # changes_done = True
-    # k = 0
-    # while changes_done:
-    #     old_topics = create_copy_of_topics(topics)
-    #     topics = unite_subtopics(topics)
-    #     changes_done = False
-    #     for i, t in enumerate(topics):
-    #         s = t.subtopics
-    #         s1 = old_topics[i].subtopics
-    #         print(t.name)
-    #         print(len(s))
-    #         print(len(s1))
-    #         if len(s1) != len(s):
-    #             print("Changes")
-    #             changes_done = True
-    #     k += 1
-    #     print(k)
-    #
-    # corpus.topics = topics
-
     for k in range(3):
         corpus.topics = unite_subtopics(corpus.topics)
 
     subtopics_report(corpus.topics, 13, time, db, freq_fio=True, freq_new_fio=True)
 
-    for t in corpus.topics:
-        print("Main: ", ", ".join({str(n.id) for n in t.news}))
-        for s in t.subtopics:
-            print("Micro: ", ", ".join({str(n.id) for n in s.news}))
+    # for t in corpus.topics:
+    #     print("Main: ", ", ".join({str(n.id) for n in t.news}))
+    #     for s in t.subtopics:
+    #         print("Micro: ", ", ".join({str(n.id) for n in s.news}))
 
     corpus.topics = form_new_wide(corpus.topics, corpus.data)
 

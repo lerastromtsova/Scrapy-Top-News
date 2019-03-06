@@ -5,6 +5,7 @@ output: translated text
 """
 from googletrans import Translator
 import json.decoder
+from proxies import PROXIES
 
 COUNTRIES = {'au': 'Australia',
              'ar':'Argentina',
@@ -37,7 +38,7 @@ COUNTRIES = {'au': 'Australia',
              'ee': 'Estonia',
              'jp': 'Japan'}
 
-COUNTRIES_R = {y:x for x,y in COUNTRIES.items()}
+COUNTRIES_R = {y: x for x,y in COUNTRIES.items()}
 
 ENGLISH_SPEAKING = {'au': 'Australia',
                     'gb': 'Great Britain',
@@ -46,7 +47,7 @@ ENGLISH_SPEAKING = {'au': 'Australia',
 
 def translate(text, arg=None):
     try:
-        t = Translator()
+        t = Translator(proxies=PROXIES)
 
         try:
             if arg in COUNTRIES_R.keys():

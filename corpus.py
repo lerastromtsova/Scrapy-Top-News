@@ -151,11 +151,14 @@ class Topic:
 
         return ans
 
-    def most_frequent(self, coefs=(1, 1), with_fio=False):
+    def most_frequent(self, coefs=(1, 1), with_fio=False, filename='unknown'):
+        # print(coefs, with_fio)
+        # print(filename)
         coef, percent_of_words = coefs
         token_freq = {}
         result = []
         for new in self.news:
+
             all_text = new.all_text.union(new.tokens["content"])
             for word in all_text:
                 if word not in token_freq.keys():
@@ -245,12 +248,13 @@ class Corpus:
         self.conn.commit()
         self.create_documents(raw_data)
 
-    def find_topics(self, mode={"country":1, "not_country":2}):
+    def find_topics(self, mode={"country": 1, "not_country": 2}):
 
         """ Find initial topics """
 
         for row in self.data:
-            others = [r for r in self.data if r.country != row.country]
+            # others = [r for r in self.data if r.country != row.country]
+            others = [r for r in self.data if r.id != row.id]
             for ot in others:
 
                 cw = intersect(row.all_text, ot.all_text)

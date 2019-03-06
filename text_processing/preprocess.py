@@ -100,9 +100,31 @@ def replace_special_symbols(text):
     # for i in range(len(new_text)-1):
     #     if new_text[i] == new_text[i+1] and new_text[i].islower():
     #         SYM_MAP[new_text[i]*2] = new_text[i]
+
     for key, value in SYM_MAP.items():
             new_text = new_text.replace(key, value)
     return new_text
+
+
+replace_double = {}
+
+
+def replace_double_letters(tokens):
+    to_add = set()
+    for token in tokens:
+        if token in replace_double.keys():
+            to_add.add(replace_double[token])
+        else:
+            if not token.isupper() and token[0].isupper():
+                token_copy = token
+                for i in range(len(token)-1):
+                    if token[i] == token[i-1]:
+                        token_copy = token_copy.replace(token[i]+token[i-1], token[i])
+                if token_copy != token:
+                    replace_double[token] = token_copy
+                    to_add.add(token_copy)
+    tokens.update(to_add)
+    return tokens
 
 
 with open(STOP_PATH, "r") as f:
