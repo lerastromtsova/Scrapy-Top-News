@@ -190,9 +190,9 @@ def find_entities(sentence):
 
     str_to_translate = '\n'.join(uppercase_words)
 
-    eng = translate(str_to_translate, arg='en')
-    deu = translate(eng, arg='de')
-    eng1 = translate(deu, arg='en')
+    eng = translate(str_to_translate, country_or_language='en')
+    deu = translate(eng, country_or_language='de')
+    eng1 = translate(deu, country_or_language='en')
 
     eng = eng.split('\n')
     eng1 = eng1.split('\n')
@@ -218,9 +218,9 @@ def check_first_entities(list_of_ents):
         uppercase_words.append('Why did ' + word.lower() + ' say?')
     str_to_translate = '\n'.join(uppercase_words)
 
-    eng = translate(str_to_translate, arg='en')
-    deu = translate(eng, arg='de')
-    eng1 = translate(deu, arg='en')
+    eng = translate(str_to_translate, country_or_language='en')
+    deu = translate(eng, country_or_language='de')
+    eng1 = translate(deu, country_or_language='en')
 
     eng = eng.split('\n')
     eng1 = eng1.split('\n')

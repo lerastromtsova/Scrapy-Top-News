@@ -397,7 +397,7 @@ class Document:
                     str_to_translate = f.read()
 
                 if str_to_translate:
-                    eng = translate(str_to_translate, arg='en')
+                    eng = translate(str_to_translate, country_or_language='en')
                 else:
                     eng = ''
 
@@ -407,7 +407,7 @@ class Document:
                     eng = f.read()
 
                 if eng:
-                    deu = translate(eng, arg='de')
+                    deu = translate(eng, country_or_language='de')
                 else:
                     deu = ''
 
@@ -417,7 +417,7 @@ class Document:
                     deu = f.read()
 
                 if deu:
-                    eng1 = translate(deu, arg='en')
+                    eng1 = translate(deu, country_or_language='en')
                 else:
                     eng1 = ''
 

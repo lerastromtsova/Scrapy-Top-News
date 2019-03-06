@@ -454,21 +454,21 @@ class Document:
                 with open("1.txt", "r") as f:
                     str_to_translate = f.read()
 
-                eng = translate(str_to_translate, arg='en')
+                eng = translate(str_to_translate, country_or_language='en')
 
                 with open("2.txt","w") as f:
                     f.write(eng)
                 with open("2.txt", "r") as f:
                     eng = f.read()
 
-                deu = translate(eng, arg='de')
+                deu = translate(eng, country_or_language='de')
 
                 with open("3.txt","w") as f:
                     f.write(deu)
                 with open("3.txt", "r") as f:
                     deu = f.read()
 
-                eng1 = translate(deu, arg='en')
+                eng1 = translate(deu, country_or_language='en')
 
                 with open("4.txt","w") as f:
                     f.write(eng1)
