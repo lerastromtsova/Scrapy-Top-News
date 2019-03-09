@@ -253,8 +253,8 @@ class Corpus:
         """ Find initial topics """
 
         for row in self.data:
-            # others = [r for r in self.data if r.country != row.country]
-            others = [r for r in self.data if r.id != row.id]
+            others = [r for r in self.data if r.country != row.country]
+            # others = [r for r in self.data if r.id != row.id]
             for ot in others:
 
                 cw = intersect(row.all_text, ot.all_text)

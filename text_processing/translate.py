@@ -111,6 +111,3 @@ def translate(text, country_or_language=None):
     except json.decoder.JSONDecodeError:
         FIRST_RUN = False
         return ""
-
-
-print(translate('Белая мышь'))
