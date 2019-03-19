@@ -10,6 +10,7 @@ import os
 con = None
 DB_PATH = os.path.join(os.path.dirname(__file__), '..','db','topnews.db')
 
+
 class SQLitePipeline(object):
     def __init__(self):
         self.setupDBCon()

@@ -81,7 +81,8 @@ def translate(text, country_or_language=None):
             with open('proxies.txt','r') as f:
                 proxies_string = f.read()
                 proxies_list = proxies_string.split('\n')
-                proxies = {key: value for proxy in proxies_list for key, value in proxy.split()}
+                proxies_list = [proxy.split() for proxy in proxies_list]
+                proxies = {key: value for key, value in proxies_list}
 
         t = Translator(proxies=proxies)
 
