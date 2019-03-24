@@ -222,8 +222,8 @@ def check_first_entities(list_of_ents):
     deu = translate(eng, country_or_language='de')
     eng1 = translate(deu, country_or_language='en')
 
-    eng = eng.split('\n')
-    eng1 = eng1.split('\n')
+    eng = eng.split('?\n')
+    eng1 = eng1.split('?')
 
     for i in range(len(eng)):
         if eng[i]:
@@ -243,6 +243,3 @@ def split_into_sentences(paragraph):
     sentenceEnders = re.compile('[.!?]')
     sentenceList = sentenceEnders.split(paragraph)
     return sentenceList
-
-
-unite_countries_in_topic_names({"White", "House"})
