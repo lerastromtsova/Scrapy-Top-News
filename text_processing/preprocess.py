@@ -223,7 +223,10 @@ def check_first_entities(list_of_ents):
     eng1 = translate(deu, country_or_language='en')
 
     eng = eng.split('?\n')
-    eng1 = eng1.split('?')
+    if '\n' in eng1:
+        eng1 = eng1.split('?\n')
+    else:
+        eng1 = eng1.split('?')
 
     for i in range(len(eng)):
         if eng[i]:

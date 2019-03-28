@@ -111,16 +111,6 @@ def get_proxies_dict():
 def translation_request(text, target_language):
     url = 'https://translate.yandex.net/api/v1.5/tr.json/translate'
 
-    tokens = ['trnsl.1.1.20190320T191119Z.7351437d92ff7331.6a7239f25a8ae9c0d0f1a4192301b9d447eab01d',
-              'trnsl.1.1.20190324T122545Z.d2cefeb8436fa25d.466c8cb810cd05d3c91df5d9c43339ec0158af52',
-              'trnsl.1.1.20190324T123819Z.ae1376d58c058e27.3ef28a8850873e392ff616696313a1aa78533672',
-              'trnsl.1.1.20190324T123930Z.d76200e81a2da8ed.868ea98fbf2f0ed90dbb9ea39837ab58787232bb',
-              'trnsl.1.1.20190324T124007Z.73f112ac6f237288.88be3b84cde618ab7f91db86faadd13d5f29a910',
-              'trnsl.1.1.20190324T124128Z.4732083aac8129a2.876ae256ecce87521191a8453c6fa712bdaa22b2',
-              'trnsl.1.1.20190324T124252Z.3fd1890c1675c3d8.4963dfaa02306856a24d4be7267aaebb7df5b168',
-              'trnsl.1.1.20190324T124413Z.c3362db269d313f1.ff6ff7569e4e0e3dbc4177d3fcc00f4bbede9e7f',
-              'trnsl.1.1.20190324T124529Z.4f092762d7b9901d.00157461cba04514df89fc7f2bfa11d854618839']
-
     for token, isalive in TOKENS.items():
 
         if isalive:
