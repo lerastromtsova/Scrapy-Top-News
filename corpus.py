@@ -198,7 +198,7 @@ class Topic:
 
 class Corpus:
 
-    def __init__(self, db, table, news_ids="All"):
+    def __init__(self, db, table, news_ids="All", countries="All"):
 
         self.db = db
         self.table = table
@@ -212,6 +212,7 @@ class Corpus:
         self.similarities = []
         self.frequencies = {}
         self.news_ids = news_ids
+        self.countries = countries
 
         raw_data = self.c.fetchall()
 
@@ -222,15 +223,27 @@ class Corpus:
             self.create_columns_and_documents(raw_data)
 
     def create_documents(self, data):
-        if self.news_ids == "All":
-            for i, row in enumerate(data):
-                doc = Document(i, row, self.conn, self.table)
-                self.data.append(doc)
-        else:
-            for i, row in enumerate(data):
-                if str(i) in self.news_ids:
+        if self.countries == "All":
+            if self.news_ids == "All":
+                for i, row in enumerate(data):
                     doc = Document(i, row, self.conn, self.table)
                     self.data.append(doc)
+            else:
+                for i, row in enumerate(data):
+                    if str(i) in self.news_ids:
+                        doc = Document(i, row, self.conn, self.table)
+                        self.data.append(doc)
+        else:
+            if self.news_ids == "All":
+                for i, row in enumerate(data):
+                    if row["country"] in self.countries:
+                        doc = Document(i, row, self.conn, self.table)
+                        self.data.append(doc)
+            else:
+                for i, row in enumerate(data):
+                    if str(i) in self.news_ids and row["country"] in self.countries:
+                        doc = Document(i, row, self.conn, self.table)
+                        self.data.append(doc)
 
     def create_columns_and_documents(self, raw_data):
         add_column(self.table, 'translated', 10000, self.c)

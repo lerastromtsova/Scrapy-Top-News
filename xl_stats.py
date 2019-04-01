@@ -712,9 +712,12 @@ def write_news(fname, news):
     wb = openpyxl.Workbook()
     sheet = wb.active
     for i,doc in enumerate(news):
-        sheet.cell(row=i + 1, column=1).value = f"|{doc.id}| {doc.country} | {doc.url}"
-        sheet.cell(row=i + 1, column=2).value = f"{doc.translated['title']} | {doc.named_entities['title']}"
-        sheet.cell(row=i + 1, column=3).value = f"{doc.translated['lead']} | {doc.named_entities['lead']}"
-        sheet.cell(row=i + 1, column=4).value = f"{doc.translated['content']} | {doc.named_entities['content']}"
+        sheet.cell(row=i + 1, column=1).value = f"{doc.id}"
+        sheet.cell(row=i + 1, column=2).value = f"{doc.country}"
+        sheet.cell(row=i + 1, column=3).value = f"{doc.url}"
+
+        sheet.cell(row=i + 1, column=4).value = f"{doc.translated['title']} | {doc.named_entities['title']}"
+        sheet.cell(row=i + 1, column=5).value = f"{doc.translated['lead']} | {doc.named_entities['lead']}"
+        sheet.cell(row=i + 1, column=6).value = f"{doc.translated['content']} | {doc.named_entities['content']}"
 
     wb.save(fname)

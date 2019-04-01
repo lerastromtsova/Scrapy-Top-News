@@ -1,5 +1,5 @@
 from corpus import Corpus, Topic
-from xl_stats import write_topics, write_topics_with_subtopics
+from xl_stats import write_topics, write_topics_with_subtopics, write_news
 from datetime import datetime
 from utils import iscountry, count_countries, count_not_countries
 from utils import unite_news_text_and_topic_name, intersect
@@ -1038,6 +1038,8 @@ if __name__ == '__main__':
     table = input("Table name (default - buffer): ")
     with_graphs = input("Draw graphs? default - no, print any letter to draw graphs: ")
     news_ids = input("Input News IDs").split()
+    only_english = input("Only translate to English? Default - no, print any letter to use only English: ")
+    countries = input("Countries: ").split()
 
     if not db:
         db = "day"
@@ -1045,110 +1047,119 @@ if __name__ == '__main__':
         table = "buffer"
     if not news_ids:
         news_ids = "All"
+    if not only_english:
+        only_english = False
+    if not countries:
+        countries = "All"
 
     time = datetime.now()
 
     print(f"Started working at {time}")
 
-    corpus = Corpus(db, table, news_ids)
+    corpus = Corpus(db, table, news_ids, countries)
 
-    if with_graphs:
-        # 1) график по 2 общим словам без стран
-        corpus.find_topics(mode={"country": 0, "not_country": 2})
-        nodes, edges = get_topic_news_nodes(corpus.topics)
-        draw_graph_with_topics(nodes, edges, db+" 2общ. без стран")
-        corpus.topics = []
+    if only_english:
+        write_news(f"documents/{db}-{only_english}-{news_ids}.xlsx", corpus.data)
 
-    corpus.find_topics()
-    for topic in corpus.topics:
-        topic.name = {w for w in topic.name if len(w) > 3 or (w.isupper() and len(w) > 2)}
-    corpus.delete_small()
+    else:
 
-    simple_report(corpus.topics, 0, time, db)
+        if with_graphs:
+            # 1) график по 2 общим словам без стран
+            corpus.find_topics(mode={"country": 0, "not_country": 2})
+            nodes, edges = get_topic_news_nodes(corpus.topics)
+            draw_graph_with_topics(nodes, edges, db+" 2общ. без стран")
+            corpus.topics = []
 
-    corpus.topics = delete_duplicates(corpus.topics)
-    corpus.topics = unite_fio(corpus.topics)
+        corpus.find_topics()
+        for topic in corpus.topics:
+            topic.name = {w for w in topic.name if len(w) > 3 or (w.isupper() and len(w) > 2)}
+        corpus.delete_small()
 
-    simple_report(corpus.topics, 1, time, db)
+        simple_report(corpus.topics, 0, time, db)
 
-    corpus.topics = delete_duplicates(corpus.topics)
-    corpus.topics = check_topics(corpus.topics)
+        corpus.topics = delete_duplicates(corpus.topics)
+        corpus.topics = unite_fio(corpus.topics)
 
-    simple_report(corpus.topics, 2, time, db)
+        simple_report(corpus.topics, 1, time, db)
 
-    for t in corpus.topics:
-        t.name = replace_presidents(t.name, mode="add")
-        t.new_name = replace_presidents(t.new_name, mode="remove")
+        corpus.topics = delete_duplicates(corpus.topics)
+        corpus.topics = check_topics(corpus.topics)
 
-    corpus.sort_topics()
-    corpus.check_unique()
+        simple_report(corpus.topics, 2, time, db)
 
-    for t in corpus.topics:
-        t.name = delete_redundant(t.name)
-        t.name = {w for w in t.name if not any((w1 for w1 in t.name - {w} if w1.lower() in w.lower()))}
-        t.new_name = delete_redundant(t.new_name)
-        t.new_name = {w for w in t.new_name if not any((w1 for w1 in t.new_name - {w} if w1.lower() in w.lower()))}
+        for t in corpus.topics:
+            t.name = replace_presidents(t.name, mode="add")
+            t.new_name = replace_presidents(t.new_name, mode="remove")
 
-    corpus.topics = delete_without_unique(corpus.topics)
+        corpus.sort_topics()
+        corpus.check_unique()
 
-    simple_report(corpus.topics, 3, time, db)
+        for t in corpus.topics:
+            t.name = delete_redundant(t.name)
+            t.name = {w for w in t.name if not any((w1 for w1 in t.name - {w} if w1.lower() in w.lower()))}
+            t.new_name = delete_redundant(t.new_name)
+            t.new_name = {w for w in t.new_name if not any((w1 for w1 in t.new_name - {w} if w1.lower() in w.lower()))}
 
-    corpus.topics, neg = filter_topics(corpus.topics, False)
+        corpus.topics = delete_without_unique(corpus.topics)
 
-    simple_report(corpus.topics, 4, time, db)
+        simple_report(corpus.topics, 3, time, db)
 
-    corpus.topics = delete_without_unique(corpus.topics)
-    corpus.topics = delete_duplicates(corpus.topics)
+        corpus.topics, neg = filter_topics(corpus.topics, False)
 
-    simple_report(corpus.topics, 5, time, db)
+        simple_report(corpus.topics, 4, time, db)
 
-    for t in corpus.topics:
-        t.name = delete_redundant(t.name)
+        corpus.topics = delete_without_unique(corpus.topics)
+        corpus.topics = delete_duplicates(corpus.topics)
 
-    topics_copy = {}
-    corpus.sort_topics()
-    corpus.topics = define_main_topics(corpus.topics)
-    corpus.topics = delete_duplicates(corpus.topics)
+        simple_report(corpus.topics, 5, time, db)
 
-    subtopics_report(corpus.topics, 6, time, db, False)
+        for t in corpus.topics:
+            t.name = delete_redundant(t.name)
 
-    corpus.topics = delete_without_frequent(corpus.topics)
-    subtopics_report(corpus.topics, 7, time, db, freq_fio=False, freq_new_fio=True)
+        topics_copy = {}
+        corpus.sort_topics()
+        corpus.topics = define_main_topics(corpus.topics)
+        corpus.topics = delete_duplicates(corpus.topics)
 
-    corpus.topics = add_news_and_delete_duplicates(corpus.topics)
-    subtopics_report(corpus.topics, 8, time, db, freq_fio=True, freq_new_fio=True,)
+        subtopics_report(corpus.topics, 6, time, db, False)
 
-    corpus.sort_topics()
-    corpus.topics = unite_by_news(corpus.topics)
+        corpus.topics = delete_without_frequent(corpus.topics)
+        subtopics_report(corpus.topics, 7, time, db, freq_fio=False, freq_new_fio=True)
 
-    subtopics_report(corpus.topics, 9, time, db, freq_fio=True, freq_new_fio=True,)
+        corpus.topics = add_news_and_delete_duplicates(corpus.topics)
+        subtopics_report(corpus.topics, 8, time, db, freq_fio=True, freq_new_fio=True,)
 
-    corpus.topics = add_news_by_frequent(corpus.topics, corpus.data)
+        corpus.sort_topics()
+        corpus.topics = unite_by_news(corpus.topics)
 
-    subtopics_report(corpus.topics, 10, time, db, freq_fio=True, freq_new_fio=True)
+        subtopics_report(corpus.topics, 9, time, db, freq_fio=True, freq_new_fio=True,)
 
-    corpus.topics = unite_by_news(corpus.topics)
+        corpus.topics = add_news_by_frequent(corpus.topics, corpus.data)
 
-    subtopics_report(corpus.topics, 11, time, db, freq_fio=True, freq_new_fio=True)
+        subtopics_report(corpus.topics, 10, time, db, freq_fio=True, freq_new_fio=True)
 
-    corpus.topics = add_news_to_subtopics(corpus.topics)
+        corpus.topics = unite_by_news(corpus.topics)
 
-    subtopics_report(corpus.topics, 12, time, db, freq_fio=True, freq_new_fio=True)
+        subtopics_report(corpus.topics, 11, time, db, freq_fio=True, freq_new_fio=True)
 
-    for k in range(3):
-        corpus.topics = unite_subtopics(corpus.topics)
+        corpus.topics = add_news_to_subtopics(corpus.topics)
 
-    subtopics_report(corpus.topics, 13, time, db, freq_fio=True, freq_new_fio=True)
+        subtopics_report(corpus.topics, 12, time, db, freq_fio=True, freq_new_fio=True)
 
-    # for t in corpus.topics:
-    #     print("Main: ", ", ".join({str(n.id) for n in t.news}))
-    #     for s in t.subtopics:
-    #         print("Micro: ", ", ".join({str(n.id) for n in s.news}))
+        for k in range(3):
+            corpus.topics = unite_subtopics(corpus.topics)
 
-    corpus.topics = form_new_wide(corpus.topics, corpus.data)
+        subtopics_report(corpus.topics, 13, time, db, freq_fio=True, freq_new_fio=True)
 
-    subtopics_report(corpus.topics, 14, time, db, freq_fio=True, freq_new_fio=True)
+        # for t in corpus.topics:
+        #     print("Main: ", ", ".join({str(n.id) for n in t.news}))
+        #     for s in t.subtopics:
+        #         print("Micro: ", ", ".join({str(n.id) for n in s.news}))
 
-    corpus.topics = unite_by_news(corpus.topics)
+        corpus.topics = form_new_wide(corpus.topics, corpus.data)
 
-    subtopics_report(corpus.topics, 15, time, db, freq_fio=True, freq_new_fio=True,)
+        subtopics_report(corpus.topics, 14, time, db, freq_fio=True, freq_new_fio=True)
+
+        corpus.topics = unite_by_news(corpus.topics)
+
+        subtopics_report(corpus.topics, 15, time, db, freq_fio=True, freq_new_fio=True,)

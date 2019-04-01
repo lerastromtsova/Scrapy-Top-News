@@ -230,12 +230,15 @@ def check_first_entities(list_of_ents):
 
     for i in range(len(eng)):
         if eng[i]:
-            word = eng[i].split()[-2]
-            word1 = eng1[i].split()[-2]
-            if len(word) > 1 and word1[0].isupper() and word.lower() == word1.lower():
-                named_entities[word1] = True
-            elif word1[0].islower() and word.lower() == word1.lower():
-                named_entities[word1] = False
+            try:
+                word = eng[i].split()[-2]
+                word1 = eng1[i].split()[-2]
+                if len(word) > 1 and word1[0].isupper() and word.lower() == word1.lower():
+                    named_entities[word1] = True
+                elif word1[0].islower() and word.lower() == word1.lower():
+                    named_entities[word1] = False
+            except IndexError:
+                pass
     return named_entities
 
 
