@@ -945,12 +945,13 @@ def form_new_wide(topics, data):
     to_remove = set()
     for id, count in counts.items():
         if count == max(counts.values()) and count > 1:
-            new_topic = Topic(name={data[id].translated["title"]}, init_news=[data[id]])
+            news_item = [n for n in data if n.id==id][0]
+            new_topic = Topic(name={news_item.translated["title"]}, init_news=[news_item])
             for st in small_topics:
                 ids = {new.id for new in st.news}
                 if id in ids:
                     new_topic.subtopics.append(st)
-                    new_topic.news.append(data[id])
+                    new_topic.news.append(news_item)
                     to_remove.add(st)
             if new_topic.subtopics:
                 topics.append(new_topic)
@@ -1039,7 +1040,7 @@ if __name__ == '__main__':
     with_graphs = input("Draw graphs? default - no, print any letter to draw graphs: ")
     news_ids = input("Input News IDs").split()
     only_english = input("Only translate to English? Default - no, print any letter to use only English: ")
-    countries = input("Countries: ").split()
+    countries = input("Countries: ").split(', ')
 
     if not db:
         db = "day"
