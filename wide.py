@@ -1050,7 +1050,8 @@ if __name__ == '__main__':
         news_ids = "All"
     if not only_english:
         only_english = False
-    if not countries:
+
+    if countries[0] == '':
         countries = "All"
 
     time = datetime.now()
