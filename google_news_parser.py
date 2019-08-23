@@ -1,5 +1,7 @@
 from newsapi import NewsApiClient
-from datetime import datetime
+import sqlite3
+from db_management import create_news_item
+
 """ 
 Example API:
 
@@ -27,23 +29,22 @@ API_KEY = 'c0cd81357fb64023bcdcaaea3faedd3c'
 # Init
 newsapi = NewsApiClient(api_key=API_KEY)
 
-query = input()
-date_from = input()
 
-all_articles = newsapi.get_everything(q=query,
-                                      from_param=date_from,
-                                      language='en',
-                                      sort_by='relevancy')
+query = input("Enter search query: ")
+countries = input("Enter countries: ")
 
-total_results = all_articles['totalResults']
 
-for i in range(20, total_results, 20):
-    all_articles = newsapi.get_everything(q=query,
-                                          from_param=date_from,
-                                          language='en',
-                                          sort_by='relevancy',
-                                          page=i//20)
+for c in countries.split(', '):
+    all_articles = newsapi.get_top_headlines(q=query,
+                                             country=c,
+                                             page_size=50)
+
     for a in all_articles['articles']:
-        print(a['title'])
+            date = a["publishedAt"].split('T')[0]
 
-
+            create_news_item(country=c,
+                             reference=a['url'],
+                             date=date,
+                             title=a['title'],
+                             lead=a['description'],
+                             content=a['content'])
