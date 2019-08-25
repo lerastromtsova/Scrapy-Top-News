@@ -1,3 +1,2 @@
-sqlite3
-nltk
-googletrans
+newsapi-python
+pony

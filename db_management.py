@@ -10,11 +10,11 @@ db.bind(provider='sqlite', filename=f'db/{datetime.now()}.db', create_db=True)
 
 class News(db.Entity):
 
-    country = Required(str)
-    reference = Required(str)
-    date = Required(datetime, 6)
+    country = Optional(str)
+    reference = Optional(str)
+    date = Optional(datetime, 6)
 
-    title = Required(str)
+    title = Optional(str)
     lead = Optional(str)
     content = Optional(str)
 
@@ -46,6 +46,10 @@ db.generate_mapping(create_tables=True)
 
 @db_session
 def create_news_item(**kwargs):
+    for key, value in kwargs.items():
+        if value is None:
+            kwargs[key] = ' '
+
     news_item = News(**kwargs)
 
 
