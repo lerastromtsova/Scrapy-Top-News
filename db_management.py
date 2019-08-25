@@ -5,7 +5,7 @@ from datetime import datetime
 # set_sql_debug(True)
 
 db = Database()
-db.bind(provider='sqlite', filename=f'db/{datetime.now()}.db', create_db=True)
+db.bind(provider='sqlite', filename=f'db/news.db', create_db=True)
 
 
 class News(db.Entity):
