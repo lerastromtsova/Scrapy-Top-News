@@ -18,14 +18,14 @@ class News(db.Entity):
     lead = Optional(str)
     content = Optional(str)
 
-    en_title_1 = Optional(str)
-    en_title_2 = Optional(str)
+    translated = Optional(str)
+    translated1 = Optional(str)
 
-    en_lead_1 = Optional(str)
-    en_lead_2 = Optional(str)
+    translated_lead = Optional(str)
+    translated1_lead = Optional(str)
 
-    en_content_1 = Optional(str)
-    en_content_2 = Optional(str)
+    translated_title = Optional(str)
+    translated1_title = Optional(str)
 
     tokens_title = Optional(str)
     tokens_lead = Optional(str)
@@ -34,6 +34,7 @@ class News(db.Entity):
     nes_title = Optional(str)
     nes_lead = Optional(str)
     nes_content = Optional(str)
+
 
 # implement later
 # class Country(db.Entity):
@@ -58,8 +59,7 @@ def update_news_item(**kwargs):
     for key in kwargs:
         News[kwargs['id']].key = kwargs[key]
 
+
 @db_session
 def delete_news_item(id):
     News[id].delete()
-
-

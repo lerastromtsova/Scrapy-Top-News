@@ -1036,7 +1036,7 @@ def create_copy_of_topics(topics):
 if __name__ == '__main__':
 
     db = input("DB name (default - day): ")
-    table = input("Table name (default - buffer): ")
+    table = input("Table name (default - News): ")
     with_graphs = input("Draw graphs? default - no, print any letter to draw graphs: ")
     news_ids = input("Input News IDs").split()
     only_english = input("Only translate to English? Default - no, print any letter to use only English: ")
@@ -1045,7 +1045,7 @@ if __name__ == '__main__':
     if not db:
         db = "day"
     if not table:
-        table = "buffer"
+        table = "News"
     if not news_ids:
         news_ids = "All"
     if not only_english:

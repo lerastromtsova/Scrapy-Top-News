@@ -95,7 +95,7 @@ class Document:
             self.translated[typ] = replace_special_symbols(self.translated[typ])
             self.double_translated[typ] = replace_special_symbols(self.double_translated[typ])
 
-            c.execute(f"SELECT tokens_{typ} FROM buffer WHERE reference=(?)", (self.url,))
+            c.execute(f"SELECT tokens_{typ} FROM News WHERE reference=(?)", (self.url,))
             res = c.fetchone()[f"tokens_{typ}"]
 
             if res:
@@ -137,7 +137,7 @@ class Document:
             self.named_entities[typ] -= to_remove
             # self.named_entities[typ] = replace_double_letters(self.named_entities[typ])
 
-            c.execute(f"UPDATE buffer SET nes_{typ}=(?), tokens_{typ}=(?) WHERE reference=(?)",
+            c.execute(f"UPDATE News SET nes_{typ}=(?), tokens_{typ}=(?) WHERE reference=(?)",
                       (','.join(self.named_entities[typ]), ','.join(self.tokens[typ]), self.url))
 
             self.conn.commit()
@@ -149,7 +149,7 @@ class Document:
 
             c = self.conn.cursor()
 
-            c.execute(f"SELECT nes_{ty} FROM buffer WHERE reference=(?)", (self.url,))
+            c.execute(f"SELECT nes_{ty} FROM News WHERE reference=(?)", (self.url,))
             res = c.fetchone()[f"nes_{ty}"]
 
             if res:
