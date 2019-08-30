@@ -3,6 +3,8 @@
 __pycache__/
 # DB folder
 db/
+!*db/countries.db
+!*db/entities.db
 # Environment folder
 env/
 topnews.db
