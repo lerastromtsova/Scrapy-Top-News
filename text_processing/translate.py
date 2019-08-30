@@ -4,7 +4,6 @@ input: text, language (optional)
 output: translated text
 """
 from googletrans import Translator
-from translate import Translator as T
 import json.decoder
 # from proxies import PROXIES
 from bs4 import BeautifulSoup
