@@ -1,6 +1,8 @@
 # PyCharm idea
 .idea/
 __pycache__/
+.cache
+.pytest_cache
 # DB folder
 db/
 !*db/countries.db
@@ -11,3 +13,5 @@ topnews.db
 *.csv
 *.xlsx
 *.xls
+# Config file
+config.py

@@ -711,7 +711,7 @@ def write_topics_with_subtopics(fname, topics, fio_in_freq=False, fio_in_freq_ne
 def write_news(fname, news):
     wb = openpyxl.Workbook()
     sheet = wb.active
-    for i,doc in enumerate(news):
+    for i, doc in enumerate(news):
         sheet.cell(row=i + 1, column=1).value = f"{doc.id}"
         sheet.cell(row=i + 1, column=2).value = f"{doc.country}"
         sheet.cell(row=i + 1, column=3).value = f"{doc.url}"

@@ -36,12 +36,6 @@ class News(db.Entity):
     nes_content = Optional(str)
 
 
-# implement later
-# class Country(db.Entity):
-#     name = Required(str)
-#     capital = Required(str)
-
-
 db.generate_mapping(create_tables=True)
 
 
@@ -50,7 +44,6 @@ def create_news_item(**kwargs):
     for key, value in kwargs.items():
         if value is None:
             kwargs[key] = ' '
-
     news_item = News(**kwargs)
 
 
@@ -63,3 +56,16 @@ def update_news_item(**kwargs):
 @db_session
 def delete_news_item(id):
     News[id].delete()
+
+
+def save_all(news):
+    for country, news_list in news.items():
+        for new in news_list:
+            create_news_item(
+                country=country,
+                reference=new['url'],
+                date=new['publishedAt'].split('T')[0],
+                title=new['title'],
+                lead=new['description'],
+                content=new['content']
+            )
