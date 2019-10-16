@@ -1072,41 +1072,45 @@ if __name__ == '__main__':
             draw_graph_with_topics(nodes, edges, db+" 2общ. без стран")
             corpus.topics = []
 
-        corpus.find_topics()
+        corpus.find_topics()  # объединяем новости по 1 стране и 2 нестранам по всему тексту
         for topic in corpus.topics:
-            topic.name = {w for w in topic.name if len(w) > 3 or (w.isupper() and len(w) > 2)}
-        corpus.delete_small()
+            topic.name = {w for w in topic.name if len(w) > 3 or (w.isupper() and len(w) > 2)}  # выкидываем из общих слов
+            # те, у которых длина меньше или равна 3 (строчное ) или 2 (заглавное)
+
+        corpus.delete_small()  # удаляем темы, у которых важные слова входят в важные слова другой темы
+        # удаляем темы, которые идентичны друг другу
 
         simple_report(corpus.topics, 0, time, db)
 
-        corpus.topics = delete_duplicates(corpus.topics)
-        corpus.topics = unite_fio(corpus.topics)
+        corpus.topics = delete_duplicates(corpus.topics)  # удаляем дублирующие темы (еще раз!)
+        corpus.topics = unite_fio(corpus.topics)  # объединяем ФИО
 
         simple_report(corpus.topics, 1, time, db)
 
-        corpus.topics = delete_duplicates(corpus.topics)
-        corpus.topics = check_topics(corpus.topics)
+        corpus.topics = delete_duplicates(corpus.topics)   # удаляем дублирующие темы (еще раз!)
+        corpus.topics = check_topics(corpus.topics)  # оставляем только те темы, у которых 1с 2нс
 
         simple_report(corpus.topics, 2, time, db)
 
         for t in corpus.topics:
-            t.name = replace_presidents(t.name, mode="add")
+            t.name = replace_presidents(t.name, mode="add")  # replace presidents with countries - нужен динамичный список президентов!
             t.new_name = replace_presidents(t.new_name, mode="remove")
 
-        corpus.sort_topics()
-        corpus.check_unique()
+        corpus.sort_topics()  # сортируем по длине имени
+        corpus.check_unique()  # какие-то правила объединения тем ??????
 
         for t in corpus.topics:
-            t.name = delete_redundant(t.name)
-            t.name = {w for w in t.name if not any((w1 for w1 in t.name - {w} if w1.lower() in w.lower()))}
+            t.name = delete_redundant(t.name)  # удаляем слова, входящие в другие слова
+            t.name = {w for w in t.name if not any((w1 for w1 in t.name - {w} if w1.lower() in w.lower()))}  # делаем то же самое??? лол
             t.new_name = delete_redundant(t.new_name)
             t.new_name = {w for w in t.new_name if not any((w1 for w1 in t.new_name - {w} if w1.lower() in w.lower()))}
 
-        corpus.topics = delete_without_unique(corpus.topics)
+        corpus.topics = delete_without_unique(corpus.topics)  # удаляем темы, которые не имеют уникальных слов
+        # (и какое-то отдельное правило для тем из 3 слов)
 
         simple_report(corpus.topics, 3, time, db)
 
-        corpus.topics, neg = filter_topics(corpus.topics, False)
+        corpus.topics, neg = filter_topics(corpus.topics, False)  # применяем коэффициенты, чтобы отсеять темы
 
         simple_report(corpus.topics, 4, time, db)
 
@@ -1120,36 +1124,36 @@ if __name__ == '__main__':
 
         topics_copy = {}
         corpus.sort_topics()
-        corpus.topics = define_main_topics(corpus.topics)
+        corpus.topics = define_main_topics(corpus.topics)  # распределяем темы по подтемам по каким-то коэффициентам
         corpus.topics = delete_duplicates(corpus.topics)
 
         subtopics_report(corpus.topics, 6, time, db, False)
 
-        corpus.topics = delete_without_frequent(corpus.topics)
+        corpus.topics = delete_without_frequent(corpus.topics)  # удаляем новости без частотных слов
         subtopics_report(corpus.topics, 7, time, db, freq_fio=False, freq_new_fio=True)
 
-        corpus.topics = add_news_and_delete_duplicates(corpus.topics)
+        corpus.topics = add_news_and_delete_duplicates(corpus.topics)  # добавляем новости функцией add_news и удаляем дубликаты из новостей
         subtopics_report(corpus.topics, 8, time, db, freq_fio=True, freq_new_fio=True,)
 
         corpus.sort_topics()
-        corpus.topics = unite_by_news(corpus.topics)
+        corpus.topics = unite_by_news(corpus.topics)  # объединяем темы по 2 новостям из разных стран
 
         subtopics_report(corpus.topics, 9, time, db, freq_fio=True, freq_new_fio=True,)
 
-        corpus.topics = add_news_by_frequent(corpus.topics, corpus.data)
+        corpus.topics = add_news_by_frequent(corpus.topics, corpus.data)  # Добавляем новости по 4 частотным словам или 3 частотным, если хотя бы одно из них ФИО
 
         subtopics_report(corpus.topics, 10, time, db, freq_fio=True, freq_new_fio=True)
 
-        corpus.topics = unite_by_news(corpus.topics)
+        corpus.topics = unite_by_news(corpus.topics)  # объединяем темы по 2 новостям из разных стран
 
         subtopics_report(corpus.topics, 11, time, db, freq_fio=True, freq_new_fio=True)
 
-        corpus.topics = add_news_to_subtopics(corpus.topics)
+        corpus.topics = add_news_to_subtopics(corpus.topics)  # добавляем новости к подтемам по 2 общим заглавным уникальным и 2 общим строчным уникальным
 
         subtopics_report(corpus.topics, 12, time, db, freq_fio=True, freq_new_fio=True)
 
         for k in range(3):
-            corpus.topics = unite_subtopics(corpus.topics)
+            corpus.topics = unite_subtopics(corpus.topics)  # объединяем подтемы если у них различие меньше чем в 1 новость
 
         subtopics_report(corpus.topics, 13, time, db, freq_fio=True, freq_new_fio=True)
 
@@ -1158,10 +1162,10 @@ if __name__ == '__main__':
         #     for s in t.subtopics:
         #         print("Micro: ", ", ".join({str(n.id) for n in s.news}))
 
-        corpus.topics = form_new_wide(corpus.topics, corpus.data)
+        corpus.topics = form_new_wide(corpus.topics, corpus.data)  # каким-то образом формируем новые темы и подтемы для них
 
         subtopics_report(corpus.topics, 14, time, db, freq_fio=True, freq_new_fio=True)
 
-        corpus.topics = unite_by_news(corpus.topics)
+        corpus.topics = unite_by_news(corpus.topics) # объединяем темы по 2 новостям из разных стран
 
         subtopics_report(corpus.topics, 15, time, db, freq_fio=True, freq_new_fio=True,)

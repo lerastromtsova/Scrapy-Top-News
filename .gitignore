@@ -3,6 +3,7 @@
 __pycache__/
 .cache
 .pytest_cache
+.DS_Store
 # DB folder
 db/
 !*db/countries.db
@@ -15,3 +16,5 @@ topnews.db
 *.xls
 # Config file
 config.py
+# Document output folder
+documents/

@@ -5,7 +5,6 @@ from datetime import datetime
 # set_sql_debug(True)
 
 db = Database()
-db.bind(provider='sqlite', filename=f'db/news.db', create_db=True)
 
 
 class News(db.Entity):
@@ -36,9 +35,6 @@ class News(db.Entity):
     nes_content = Optional(str)
 
 
-db.generate_mapping(create_tables=True)
-
-
 @db_session
 def create_news_item(**kwargs):
     for key, value in kwargs.items():
@@ -58,7 +54,9 @@ def delete_news_item(id):
     News[id].delete()
 
 
-def save_all(news):
+def save_all(news, db_name):
+    db.bind(provider='sqlite', filename=f'db/{db_name}.db', create_db=True)
+    db.generate_mapping(create_tables=True)
     for country, news_list in news.items():
         for new in news_list:
             create_news_item(
