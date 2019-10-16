@@ -14,15 +14,17 @@ I have created this table to display the current status of different modules of 
 
 | Module         | Labels       | Comments                  |
 |----------------|--------------|---------------------------|
-|app |**not_tested** *legacy*|May need to delete at all|
+|app |**not_tested** *legacy*|May need to delete|
 |corpus |**tested_manually** *legacy* |Needs refactoring
 |db_management | ✅
 |document |**not_tested** *legacy* |Needs refactoring
 |draw_graph|**not_tested** *legacy*|Requires consideration
 |find_connection|**not_tested** *legacy*|Requires consideration
-|get_news|**not_tested** *legacy*|May need to delete at all|
+|get_news|**not_tested** *legacy*|May need to delete|
 |main|✅
 |newsapi|✅
 |utils|**not_tested** *legacy*|Need to split into different modules
 |wide|**not_tested** *legacy*|Need to split into different modules
 |xl_stats|**tested_manually**|
+|text_processing|**not_tested** *legacy*|Needs refactoring
+|scrapnews|**not_tested** *legacy*|May need to delete|
