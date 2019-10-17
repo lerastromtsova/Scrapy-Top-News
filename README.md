@@ -33,3 +33,29 @@ I have created this table to display the current status of different modules of 
 `pip install -r requirements.txt`
 4. Run file `main.py` to parse news from Google News. The output is stored in a SQlite3 file in `db` folder.
 5. Run file `wide.py` to translate and cluster the news. The output is generated as Excel files and stored in `documents` folder.
+
+### Parameters
+
+The program will ask you to enter some parameters. They are listed in the tables below.
+
+##### For main.py
+
+| Parameter         | Possible values    |
+|-------------------|--------------------|
+|Query type|top / everything
+|Query|any text
+|Date from|YYYY-MM-DD
+|Date to|YYYY-MM-DD
+|Languages|all / anything from `language_choices.py` file, separated by `, `
+|Countries|all / anything from `country_choices.py` file, separated by `, `
+
+##### For wide.py
+
+| Parameter         | Possible values    |
+|-------------------|--------------------|
+|DB name|name of the database to analyse
+|Table name|usually just `News`
+|Draw graphs?|
+|News IDs|
+|Only translate to English|
+|Countries|all / anything from `country_choices.py` file, separated by `, `
