@@ -1,3 +1,6 @@
-requests
-newsapi-python
 pony
+nltk
+bs4
+requests
+pytest
+openpyxl
