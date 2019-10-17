@@ -6,7 +6,6 @@ from utils import unite_news_text_and_topic_name, intersect
 from utils import get_other, ContinueI, exists, more_than_one, delete_redundant, replace_presidents
 from utils import get_topic_subtopic_nodes, get_topic_news_nodes
 
-from draw_graph import draw_graph_with_topics
 from text_processing.preprocess import STOP_WORDS, unite_countries_in, unite_countries_in_topic_names
 from coefs import COEFFICIENT_2_FOR_NEWS, COEFFICIENT_1_FOR_NEWS, COEFFICIENTS_2, COEFFICIENTS_1, THRESHOLD, \
                     COEF_FOR_FREQUENT, COEF_FOR_FREQUENT_UPPER, COEF_FOR_NEWS, COEF_FOR_NEWS_FIO
@@ -968,7 +967,7 @@ def simple_report(topics, num_points, start_time, db_name):
     print(datetime.now() - start_time)
     if with_graphs:
             nodes, edges = get_topic_news_nodes(topics)
-            draw_graph_with_topics(nodes, edges, db_name + f" {num_points}")
+            # draw_graph_with_topics(nodes, edges, db_name + f" {num_points}")
 
 
 def subtopics_report(topics, num_points, start_time, db_name, freq_fio=False, freq_new_fio=False):
@@ -980,7 +979,7 @@ def subtopics_report(topics, num_points, start_time, db_name, freq_fio=False, fr
     print(datetime.now() - start_time)
     if with_graphs:
             nodes, edges = get_topic_subtopic_nodes(topics)
-            draw_graph_with_topics(nodes, edges, db_name + f" {num_points}")
+            # draw_graph_with_topics(nodes, edges, db_name + f" {num_points}")
 
 
 def add_news_by_frequent(topics, data):
@@ -1069,7 +1068,7 @@ if __name__ == '__main__':
             # 1) график по 2 общим словам без стран
             corpus.find_topics(mode={"country": 0, "not_country": 2})
             nodes, edges = get_topic_news_nodes(corpus.topics)
-            draw_graph_with_topics(nodes, edges, db+" 2общ. без стран")
+            # draw_graph_with_topics(nodes, edges, db+" 2общ. без стран")
             corpus.topics = []
 
         corpus.find_topics()  # объединяем новости по 1 стране и 2 нестранам по всему тексту

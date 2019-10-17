@@ -3,9 +3,7 @@ This is where translation happens
 input: text, language (optional)
 output: translated text
 """
-from googletrans import Translator
-import json.decoder
-# from proxies import PROXIES
+
 from bs4 import BeautifulSoup
 import requests
 
@@ -129,68 +127,12 @@ def translation_request(text, target_language):
     raise Exception('There are no tokens left :(')
 
 
-
 def translate(text, country_or_language=None):
     if country_or_language in COUNTRIES_R.keys():
         language = COUNTRIES_R[country_or_language]
     else:
         language = country_or_language
 
-    # translator = T(to_lang=language)
-    # translated = translator.translate(text)
-    # return translated
-
     return translation_request(text, language)
 
 
-def translate_google(text, country_or_language=None):
-    global FIRST_RUN
-    global I
-
-    try:
-        if FIRST_RUN:
-            proxies = get_proxies_list()
-        else:
-            with open('proxies.txt', 'r') as f:
-                proxies_string = f.read()
-                proxies_list = proxies_string.split('\n')
-                proxies_list = [proxy.split() for proxy in proxies_list]
-                proxies = [{key: value} for key, value in proxies_list]
-
-        try:
-            t = Translator(proxies=dict(proxies[I]))
-            I += 1
-
-        except IndexError:
-            I = 0
-            t = Translator(proxies=dict(proxies[I]))
-
-        try:
-            if country_or_language in COUNTRIES_R.keys():
-                language = COUNTRIES_R[country_or_language]
-                translated_text = t.translate(text, dest=language).text
-                FIRST_RUN = False
-
-                return translated_text
-
-            elif country_or_language in COUNTRIES.keys():
-                language = country_or_language
-                translated_text = t.translate(text, dest=language).text
-                FIRST_RUN = False
-
-                return translated_text
-        except ValueError:
-
-            translated_text = t.translate(text).text
-            FIRST_RUN = False
-            return translated_text
-
-        FIRST_RUN = False
-        return t.translate(text).text
-
-    except json.decoder.JSONDecodeError:
-        FIRST_RUN = True
-        print(country_or_language)
-        print(I)
-        print("Could not translate text ", text[0:20])
-        return translate(text, country_or_language)
