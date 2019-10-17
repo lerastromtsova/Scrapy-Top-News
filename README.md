@@ -23,3 +23,13 @@ I have created this table to display the current status of different modules of 
 |wide|**not_tested** *legacy*|Need to split into different modules
 |xl_stats|**tested_manually**|
 |text_processing|**not_tested** *legacy*|Needs refactoring
+
+### Project setup
+
+1. Download or clone the repository
+2. Create file `config.py` in the root of the project. Content of the file should be the following:<br>
+`GOOGLE_API_KEY = '<YOUR_API_KEY>'`
+3. Install requirements:
+`pip install -r requirements.txt`
+4. Run file `main.py` to parse news from Google News. The output is stored in a SQlite3 file in `db` folder.
+5. Run file `wide.py` to translate and cluster the news. The output is generated as Excel files and stored in `documents` folder.
