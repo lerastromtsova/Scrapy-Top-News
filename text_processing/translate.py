@@ -126,7 +126,7 @@ def translation_request(text, target_language):
             except KeyError:
                 TOKENS[token] = False
 
-    raise Exception('There is no tokens left :(')
+    raise Exception('There are no tokens left :(')
 
 
 
