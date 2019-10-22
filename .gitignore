@@ -8,7 +8,9 @@ __pycache__/
 db/
 !*db/countries.db
 !*db/entities.db
+!*db/fio.db
 # Environment folder
+venv/
 env/
 topnews.db
 *.csv
