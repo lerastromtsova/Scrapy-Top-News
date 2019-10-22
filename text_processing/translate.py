@@ -133,6 +133,9 @@ def translate(text, country_or_language=None):
     else:
         language = country_or_language
 
-    return translation_request(text, language)
+    try:
+        return translation_request(text, language)
+    except requests.exceptions.ConnectionError:
+        return translate(text, language)
 
 
