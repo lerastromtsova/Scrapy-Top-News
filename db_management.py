@@ -1,5 +1,6 @@
 from pony.orm import *
 from datetime import datetime
+from utils import create_file
 
 
 # set_sql_debug(True)
@@ -55,7 +56,9 @@ def delete_news_item(id):
 
 
 def save_all(news, db_name):
-    db.bind(provider='sqlite', filename=f'db/{db_name}.db', create_db=True)
+    filename = f'db/{db_name}.db'
+    create_file(filename)
+    db.bind(provider='sqlite', filename=filename, create_db=True)
     db.generate_mapping(create_tables=True)
     for country, news_list in news.items():
         for new in news_list:

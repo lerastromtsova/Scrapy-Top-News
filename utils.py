@@ -1,6 +1,11 @@
 import sqlite3
 import re
+import os
 
+
+def create_file(filename):
+    if not os.path.exists(filename):
+        open(filename, 'w').close()
 
 # COUNTRY functions
 
