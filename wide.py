@@ -5,6 +5,7 @@ from utils import iscountry, count_countries, count_not_countries
 from utils import unite_news_text_and_topic_name, intersect
 from utils import get_other, ContinueI, exists, more_than_one, delete_redundant, replace_presidents
 from utils import get_topic_subtopic_nodes, get_topic_news_nodes
+from utils import create_dir
 
 from text_processing.preprocess import STOP_WORDS, unite_countries_in, unite_countries_in_topic_names
 from coefs import COEFFICIENT_2_FOR_NEWS, COEFFICIENT_1_FOR_NEWS, COEFFICIENTS_2, COEFFICIENTS_1, THRESHOLD, \
@@ -1056,6 +1057,8 @@ if __name__ == '__main__':
     time = datetime.now()
 
     print(f"Started working at {time}")
+
+    create_dir('documents')
 
     corpus = Corpus(db, table, news_ids, countries)
 
