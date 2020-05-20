@@ -5,7 +5,7 @@ import os
 
 def create_file(filename):
     if not os.path.exists(filename):
-        open(filename, 'w').close()
+        open(filename.replace(':', '-'), 'w').close()
 
 
 def create_dir(dirname):
