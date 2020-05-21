@@ -27,5 +27,5 @@ def parametrize():
 if __name__ == '__main__':
     parameters = parametrize()
     news = get_news(**parameters)
-    db_name = datetime.today()
+    db_name = datetime.today().strftime('db-%d-%m-%Y_%H-%M')
     save_all(news, db_name)
